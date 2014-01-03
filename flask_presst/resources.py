@@ -63,39 +63,31 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
             if isinstance(m, restful_fields.Raw):
                 fields[m.attribute or name] = m
 
-        print cls.resource_name, 'nested types', nested_types
-
         cls._meta = meta
 
         field_selector = lambda m: not(inspect.isroutine(m)) and isinstance(m, restful_fields.Raw)
 
-        cls.resource_name = meta.get('resource_name', cls.__name__.lower())
+        cls.resource_name = meta.get('resource_name', cls.__name__).lower()
 
         cls._id_field = meta.get('id_field', 'id')
         cls._fields = dict(inspect.getmembers(cls, field_selector)) # TODO simplify using `members`
         cls._required_fields = meta.get('required_fields', [])
 
     def get(self, id=None, route=None, **kwargs):
-        print 'Request:::::::::', id, route, self.nested_types
         if route:
             try:
                 nested_type = self.nested_types[route]
-                print 'collection:', nested_type, nested_type.collection, id is None
 
                 if (id is None) != nested_type.collection:
                     abort(404)
-
-                print 'dispatch'
 
                 return nested_type.dispatch_request(self, id)
             except KeyError:
                 abort(404)
         elif id is None:
-            print 'item_list'
             item_list = self.get_item_list()
             return self.marshal_item_list(item_list)
         else:
-            print 'item'
             item = self.get_item_for_id(id)
             return self.marshal_item(item)
 

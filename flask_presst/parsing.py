@@ -33,14 +33,15 @@ class PresstArgument(Argument):
         if isinstance(self.type, restful_fields.Raw):
             self.type = self._get_python_type_from_field(self.type)
 
-        # check if we're expecting a string and the value is `None`
-        if value is None and inspect.isclass(self.type) and issubclass(self.type, six.string_types):
-            return None
+        if inspect.isclass(self.type):
+            # check if we're expecting a string and the value is `None`
+            if value is None  and issubclass(self.type, six.string_types):
+                return None
 
-        # handle date and datetime:
-        if issubclass(self.type, datetime.date):
-            # TODO .date() if self.type is datetime.date.
-            return iso8601.parse_date(value)
+            # handle date and datetime:
+            if issubclass(self.type, datetime.date):
+                # TODO .date() if self.type is datetime.date.
+                return iso8601.parse_date(value)
 
         try:
             return self.type(value, self.name, op)

@@ -53,26 +53,13 @@ def resource_method(method='POST', collection=False):
             self._parser.add_argument(name, location=location, **kwargs)
 
         def dispatch_request(self, instance, parent_id, *args, **kwargs):
-            print request.data, request.json, list(a.type for a in self._parser.args)
-
             kwargs.update(self._parser.parse_args())
-            print 'success'
 
             if not self.collection:
                 args = (self.bound_resource.get_item_for_id(parent_id),) + args
 
             return self._fn.__call__(instance, *args, **kwargs)
 
-    # # TODO use metaclass instead
-    # def wrapper(fn):
-    #     print 'wrapping fn', fn
-    #
-    #     _ResourceMethod.method_decorators = [
-    #         _ResourceMethod._with_arguments,
-    #         _ResourceMethod._with_object]
-    #     setattr(_ResourceMethod, method.lower(), fn)
-    #     _ResourceMethod.methods = [method.upper()]
-    #     fn.resource_method = _ResourceMethod
     _ResourceMethod.collection = collection
     return _ResourceMethod
 
@@ -124,10 +111,10 @@ class Relationship(NestedProxy):
         return self.resource_class.marshal_item_list(
             self.resource_class.get_item_list_for_relationship(self.relationship_name, parent_item))
 
-    def patch(self, parent_item):
-        abort(405)
+    def patch(self, parent_id):
+        abort(405) # Collections can't be PATCHED.
 
-    def post(self, parent_item):
+    def post(self, parent_id, item_id):
         """
 
         GET /A -> [{"resource_uri": '/A/1' .. }]
@@ -136,15 +123,9 @@ class Relationship(NestedProxy):
         GET /B/1/rel_to_a -> [{"resource_uri": '/A/1' ..}]
 
         """
-
+        parent_item = self.bound_resource.get_item_for_id(parent_id)
         return self.resource_class.marshal_item(
             self.resource_class.create_item_relationship(item_id, self.relationship_name, parent_item))
 
     def delete(self, parent_item):
         pass # TODO look up permissions in nested resource; only support deletion of links; deletion of actual model needs to be explicit.
-
-    def create_item_relationship(self, id_, relationship, parent_item):
-        raise NotImplementedError()
-
-    def delete_item_relationship(self, id_, relationship, parent_item):
-        raise NotImplementedError()

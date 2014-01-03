@@ -3,8 +3,8 @@ import inspect
 import six
 
 class Reference(object):
-    def __init__(self, reference):
-        self._resource_class = self._resolve_resource_class(reference)
+    def __init__(self, reference, api=None):
+        self._resource_class = api.get_resource_class(reference) if api else self._resolve_resource_class(reference)
 
     def __call__(self, resource_uri):
         if resource_uri is None:
