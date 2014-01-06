@@ -1,12 +1,11 @@
 import inspect
 from flask.ext.restful import fields as restful_fields
 from flask.ext.restful.reqparse import Argument
-from flask.ext.presst.fields import BaseRelationshipField, ArrayField, KeyValueField, JSONField
+from flask_presst.fields import BaseRelationshipField, ArrayField, KeyValueField, JSONField
+from flask_presst.references import Reference
 from iso8601 import iso8601
 import datetime
 import six
-from flask.ext.presst.references import Reference
-
 
 class PresstArgument(Argument):
 

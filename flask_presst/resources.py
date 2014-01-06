@@ -1,12 +1,13 @@
 import inspect
-from flask import request
+import datetime
+from flask import request, current_app
 from flask.ext.restful import reqparse, Resource, abort, marshal
 from flask.ext.restful import fields as restful_fields
 from flask.ext.sqlalchemy import BaseQuery, Pagination
 from flask.views import MethodViewType
 from sqlalchemy.databases import postgres
 from sqlalchemy.orm import class_mapper
-from flask.ext.presst.fields import BaseRelationshipField
+from flask.ext.presst.fields import BaseRelationshipField, ArrayField, KeyValueField
 from flask.ext.presst.nested import NestedProxy
 from flask.ext.presst.parsing import PresstArgument
 import six
@@ -25,8 +26,13 @@ class PresstResourceMeta(MethodViewType):
                 if m.relationship_name is None:
                     m.relationship_name = name
 
-        if hasattr(class_, '_process_meta'):
-            class_._process_meta(members)
+        if hasattr(class_, '_setup_resource'):
+            try:
+                meta = getattr(class_, 'Meta').__dict__
+            except AttributeError:
+                meta = {}
+
+            class_._setup_resource(meta, members)
 
         return class_
 
@@ -34,6 +40,7 @@ class PresstResourceMeta(MethodViewType):
     #     if cls not in cls._instances:
     #         cls._instances[cls] = super(PresstResourceMeta, cls).__call__(*args, **kwargs)
     #     return cls._instances[cls]
+
 
 class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
     """
@@ -49,12 +56,7 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
     _required_fields = None
 
     @classmethod
-    def _process_meta(cls, members):
-        try:
-            meta = getattr(cls, 'Meta').__dict__
-        except AttributeError:
-            meta = {}
-
+    def _setup_resource(cls, meta, members):
         cls.nested_types = nested_types = {}
         cls._fields = fields = {}
         for name, m in members.iteritems():
@@ -200,8 +202,6 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
         return parser.parse_args()
 
 
-
-
 class PolymorphicMixin(object):
     """
     :class:`PolymorphicMixin` only works in with a :class:`PresstResource`.
@@ -259,57 +259,147 @@ class PaginationMixin(object):
 
 
 class ModelResource(PresstResource, PaginationMixin):
+    _processors = ()
     _field_types = None
+    _model = None
 
     @classmethod
-    def _process_meta(cls, members):
-        cls._model = None
+    def _setup_resource(cls, meta, members):
+        cls._model = model = meta.get('model', None)
+        cls._processors = meta.get('processors', cls._processors)
 
-        if not cls._model:
-            return
+        if not model: return
+        mapper = class_mapper(model)
 
-        mapper = class_mapper(cls._model)
-
-        cls._id_field = [key.name for key in mapper.primary_key]
-
-        include_fields = cls._meta.get('include_fields', None)
-        exclude_fields = cls._meta.get('exclude_fields', None)
+        # TODO support multiple primary keys with child resources.
+        assert len(mapper.primary_key) == 1
+        cls._id_field = mapper.primary_key[0].name
 
         cls._field_types = field_types = {}
 
+        include_fields = meta.get('include_fields', None)
+        exclude_fields = meta.get('exclude_fields', None)
+
         for name, column in dict(mapper.columns).iteritems():
 
-            if (include_fields and name in include_fields) \
-                or (exclude_fields and name not in exclude_fields) \
-                or not (include_fields or exclude_fields):
+            if (include_fields and name in include_fields) or \
+                    (exclude_fields and name not in exclude_fields) or \
+                    not (include_fields or exclude_fields):
 
-                if cls._meta.get('excluder_polymorphic', False) and column.table != mapper.tables[-1]:
+                if meta.get('exclude_polymorphic', False) and column.table != mapper.tables[-1]:
                     continue
 
                 if column.primary_key or column.foreign_keys:
                     continue
 
-                # TODO postgres.ARRAY
-
                 if isinstance(column.type, postgres.ARRAY):
-                    type_ = list
+                    field_type = list
                 elif isinstance(column.type, (postgres.HSTORE, postgres.JSON)):
-                    type_ = dict
+                    field_type = dict
                 else:
-                    type_ = column.type.python_type
+                    field_type = column.type.python_type
 
-                field_types[name] = type_
+                field_types[name] = field_type
 
                 # Add to list of fields.
                 if not name in cls._fields:
-                    field_class = cls.__get_field_from_python_type(type_)
-                    kwargs = {'default': None} if column.nullable else {}
+                    field_class = cls._get_field_from_python_type(field_type)
 
-                    cls._fields[name] = field_class(**kwargs)
+                    cls._fields[name] = field_class(default=column.default)
 
                     if not (column.nullable or column.default):
                         cls._required_fields.append(name)
 
+    @staticmethod
+    def _get_field_from_python_type(python_type):
+        return {
+            str: restful_fields.String,
+            unicode: restful_fields.String,
+            int: restful_fields.Integer,
+            bool: restful_fields.Boolean,
+            list: ArrayField,
+            dict: KeyValueField,
+            datetime.date: restful_fields.DateTime,
+            datetime.datetime: restful_fields.DateTime # TODO extend with JSON, dict (HSTORE) etc.
+        }[python_type]
+
+    @classmethod
+    def _apply_processors(cls, event, *args):
+        for processor in cls._processors:
+            getattr(processor, event)(*args + (cls,))
+
     @classmethod
     def get_model(cls):
         return cls._model
+
+    @classmethod
+    def get_item_list(cls):
+        """
+        Pagination is only supported for resources accessed through :class:`Relationship` if
+        the relationship to the parent is `lazy='dynamic'`.
+        """
+        query = cls._model.query
+
+        if isinstance(query, list):
+            abort(500, message='Nesting not supported for this resource.')
+
+        for processor in cls._processors:
+            query = processor.filter(request.method, query, cls)
+
+        return query
+
+    @classmethod
+    def get_item_list_for_relationship(cls, relationship, parent_item):
+        query = getattr(parent_item, relationship)
+
+        if isinstance(query, list):
+            abort(500, message='Nesting not supported for this resource.')
+
+        for processor in cls._processors:
+            query = processor.filter(request.method, query, cls)
+
+        return query
+
+    @classmethod
+    def get_item_for_id(cls, id_):
+        return cls.get_item_list().get_or_404(id)
+
+    @classmethod
+    def create_item(cls, dct):
+        item = cls._model()
+
+        for key, value in dct.iteritems():
+            setattr(item, key, value)
+
+        for processor in cls._processors:
+            processor.before_create_object(item, cls)
+
+        current_app.db.session.add(item)
+        current_app.session.commit()
+        return item
+
+    @classmethod
+    def update_item(cls, id_, dct, partial=False):
+        item = cls.get_item_for_id(id_)
+
+        for key, value in dct.iteritems():
+            setattr(item, key, value)
+
+        try:
+            for processor in cls._processors:
+                processor.before_update_object(item, dct, partial, cls)
+
+            current_app.db.session.commit()
+        except:
+            current_app.db.session.rollback()
+            raise
+
+    @classmethod
+    def delete_item(cls, id_):
+        item = cls.get_item_for_id(id_)
+
+        for processor in cls._processors:
+            processor.before_delete_object(item, cls)
+
+        current_app.db.session.delete(item)
+        current_app.db.session.commit()

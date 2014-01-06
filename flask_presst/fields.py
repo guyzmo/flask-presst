@@ -9,7 +9,7 @@ class BaseRelationshipField(Raw):
     def __init__(self, resource, embedded=False, *args, **kwargs):
         super(BaseRelationshipField, self).__init__(*args, **kwargs)
         self.bound_resource = None
-        self._resource = resource # TODO allow strings for resource names, convert to class.
+        self._resource = resource
         self.embedded = embedded
 
     @cached_property
@@ -37,16 +37,13 @@ class ToOneField(BaseRelationshipField):
 
 
 class ArrayField(Raw):
-    def format(self, value):
-        return value
+    pass
 
 
 class KeyValueField(Raw):
-    def format(self, value):
-        return value
+    pass
 
 
 class JSONField(Raw):
-    def format(self, value):
-        return value
+    pass
 

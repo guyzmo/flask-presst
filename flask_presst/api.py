@@ -48,9 +48,6 @@ class PresstApi(Api):
                 # TODO check if this is actually a `Resource`
                 return getattr(module, class_name)
 
-    def get_instance(self, resource):
-        return
-
     def parse_resource_uri(self, uri, method='GET'):
         if not uri.startswith(self.prefix):
             abort(400, message='Resource URI {} does not begin with API prefix'.format(uri))
@@ -66,15 +63,13 @@ class PresstApi(Api):
         resource_class, id = self.parse_resource_uri(uri)
 
         if expected_resource != resource_class:
-            abort(400, message='Wrong resource item type, expected {1}, got {0}'.format(
+            abort(400, message='Wrong resource item type, expected {0}, got {1}'.format(
                 expected_resource.resource_name,
                 resource_class.resource_name
             ))
 
         return resource_class.get_item_for_id(id)
-
-    # TODO
-
+    
     def add_resource(self, resource, pk_converter='int', *urls, **kwargs):
 
         # fallback to Flask-RESTful `add_resource` implementation with regular resources:
