@@ -12,6 +12,10 @@ from flask.ext.presst.nested import NestedProxy
 from flask.ext.presst.parsing import PresstArgument
 import six
 
+
+LINK_HEADER_FORMAT_STR = '<{0}?page={1}&per_page={2}>; rel="{3}"'
+
+
 class PresstResourceMeta(MethodViewType):
     #_instances = {}
 
@@ -211,54 +215,13 @@ class PolymorphicMixin(object):
         marshaled = super(PolymorphicMixin, self).marshal_item(item)
 
         if resource and resource != self.__class__:
-            marshaled[resource.get_resource_name().replace('/', '__')] = resource.marshal_object(item)
+            marshaled[resource.resource_name.replace('/', '__')] = resource.marshal_object(item)
 
         # fallback:
         return marshaled
 
 
-class PaginationMixin(object):
-    """
-    :class:`PaginationMixin` only works in with a :class:`PresstResource`.
-    """
-
-    _link_header_format_str = '<{0}?page={1}&per_page={2}>; rel="{3}"'
-
-    _pagination_parser = reqparse.RequestParser()
-    _pagination_parser.add_argument('per_page', location='args', type=int, default=20) # 20
-    _pagination_parser.add_argument('page', location='args', type=int, default=1)
-
-    def marshal_item_list(self, item_list, paginate=True):
-        """
-        Like :meth:`PrestoResource.marshal_item_list()` except that :attr:`object_list`
-        can be a :class:`Pagination` object, in which case a paginated result will be returned.
-        """
-        if isinstance(item_list, BaseQuery):
-            if paginate:
-                args = self._pagination_parser.parse_args()
-                item_list = item_list.paginate(page=args.page, per_page=args.per_page)
-            else:
-                item_list = item_list.all()
-
-        if isinstance(item_list, Pagination):
-            links = [(request.path, item_list.page, item_list.per_page, 'self')]
-
-            if item_list.has_prev:
-                links.append((request.path, 1, item_list.per_page, 'first'))
-                links.append((request.path, item_list.page - 1, item_list.per_page, 'prev'))
-            if item_list.has_next:
-                links.append((request.path, item_list.pages, item_list.per_page, 'last'))
-                links.append((request.path, item_list.page + 1, item_list.per_page, 'next'))
-
-            response = self.api.make_response(self.marshal_item_list(item_list.items), 200)
-            response.headers['Link'] = ','.join(map(self._link_header_format_str.format, links))
-            return response
-
-        # fallback:
-        return super(PaginationMixin, self).marshal_item_list(item_list)
-
-
-class ModelResource(PresstResource, PaginationMixin):
+class ModelResource(PresstResource):
     _processors = ()
     _field_types = None
     _model = None
@@ -403,3 +366,37 @@ class ModelResource(PresstResource, PaginationMixin):
 
         current_app.db.session.delete(item)
         current_app.db.session.commit()
+
+    _pagination_parser = reqparse.RequestParser()
+    _pagination_parser.add_argument('per_page', location='args', type=int, default=20) # 20
+    _pagination_parser.add_argument('page', location='args', type=int, default=1)
+
+    @classmethod
+    def marshal_item_list(cls, item_list, paginate=True):
+        """
+        Like :meth:`PrestoResource.marshal_item_list()` except that :attr:`object_list`
+        can be a :class:`Pagination` object, in which case a paginated result will be returned.
+        """
+        if isinstance(item_list, BaseQuery):
+            if paginate:
+                args = cls._pagination_parser.parse_args()
+                item_list = item_list.paginate(page=args.page, per_page=args.per_page)
+            else:
+                item_list = item_list.all()
+
+        if isinstance(item_list, Pagination):
+            links = [(request.path, item_list.page, item_list.per_page, 'self')]
+
+            if item_list.has_prev:
+                links.append((request.path, 1, item_list.per_page, 'first'))
+                links.append((request.path, item_list.page - 1, item_list.per_page, 'prev'))
+            if item_list.has_next:
+                links.append((request.path, item_list.pages, item_list.per_page, 'last'))
+                links.append((request.path, item_list.page + 1, item_list.per_page, 'next'))
+
+            response = cls.api.make_response(cls.marshal_item_list(item_list.items), 200)
+            response.headers['Link'] = ','.join(map(LINK_HEADER_FORMAT_STR.format, links))
+            return response
+
+        # fallback:
+        return super(ModelResource).marshal_item_list(item_list)

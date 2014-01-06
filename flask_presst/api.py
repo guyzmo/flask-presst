@@ -1,6 +1,6 @@
 from importlib import import_module
 import inspect
-from flask.ext.restful import Api, abort, Resource
+from flask.ext.restful import Api, abort
 import six
 from flask.ext.presst.resources import PresstResource, ModelResource
 from flask.ext.presst.utils.routes import route_from
@@ -69,7 +69,13 @@ class PresstApi(Api):
             ))
 
         return resource_class.get_item_for_id(id)
-    
+
+    def get_resource_for_model(self, model):
+        try:
+            return self._model_resource_map[model]
+        except KeyError:
+            return None
+
     def add_resource(self, resource, pk_converter='int', *urls, **kwargs):
 
         # fallback to Flask-RESTful `add_resource` implementation with regular resources:
@@ -84,6 +90,9 @@ class PresstApi(Api):
 
         resource_name = resource.resource_name
 
+        if issubclass(resource, ModelResource):
+            self._model_resource_map[resource.get_model()] = resource
+
         urls = [
             '/{0}'.format(resource_name),
             '/{0}/<{1}:id>'.format(resource_name, pk_converter),
@@ -91,7 +100,6 @@ class PresstApi(Api):
             '/{0}/<string:route>'.format(resource_name)
             # FIXME does not allow for collection-wide resource methods in resources with string keys.
         ]
-
 
         self._presst_resources[resource_name] = resource
 
