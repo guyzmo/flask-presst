@@ -53,8 +53,8 @@ The test coverage is not great and documentation is only being started on just n
 
     db.create_all()
 
-    self.Fruit = Fruit
-    self.Tree = Tree
+    Fruit = Fruit
+    Tree = Tree
 
     class TreeResource(ModelResource):
         class Meta:
@@ -66,5 +66,5 @@ The test coverage is not great and documentation is only being started on just n
 
         tree = fields.ToOneField(TreeResource)
 
-    self.api.add_resource(FruitResource)
-    self.api.add_resource(TreeResource)
+    api.add_resource(FruitResource)
+    api.add_resource(TreeResource)
