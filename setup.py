@@ -11,7 +11,7 @@ setup(
     url='https://github.com/biosustain/flask-presst',
     license='MIT',
     test_suite='nose.collector',
-    description='Rest API framework for Flask and SQLAlchemy.',
+    description='REST API framework for Flask and SQLAlchemy',
     setup_requires=[
         'nose>=1.1.2',
     ],

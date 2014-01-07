@@ -6,11 +6,12 @@ from werkzeug.utils import cached_property
 
 
 class BaseRelationshipField(Raw):
-    def __init__(self, resource, embedded=False, *args, **kwargs):
+    def __init__(self, resource, embedded=False, relationship_name=None, *args, **kwargs):
         super(BaseRelationshipField, self).__init__(*args, **kwargs)
         self.bound_resource = None
         self._resource = resource
         self.embedded = embedded
+        self.relationship_name = None
 
     @cached_property
     def _resource_class(self):
@@ -19,8 +20,8 @@ class BaseRelationshipField(Raw):
 
 class ToManyField(BaseRelationshipField):
     def format(self, item_list):
-        marshal_fn = self._resource_class.object_get_resource_uri \
-            if not self.embedded else self._resource_class.marshal_object
+        marshal_fn = self._resource_class.item_get_resource_uri \
+            if not self.embedded else self._resource_class.marshal_item
 
         return list(marshal_fn(item) for item in item_list)
 
@@ -32,8 +33,8 @@ class ToOneField(BaseRelationshipField):
 
     def format(self, item):
         if not self.embedded:
-            return self._resource_class.object_get_resource_uri(item)
-        return self._resource_class.marshal_object(item)
+            return self._resource_class.item_get_resource_uri(item)
+        return self._resource_class.marshal_item(item)
 
 
 class ArrayField(Raw):

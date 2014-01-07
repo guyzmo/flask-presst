@@ -38,5 +38,15 @@ class TestNestedRelationship(PresstTestCase):
                               200))
 
 
+    def test_embedded(self):
+        pass
+
+    def test_post(self):
+        pass
+
+    def test_delete(self):
+        pass
+
+
 if __name__ == '__main__':
     unittest.main()

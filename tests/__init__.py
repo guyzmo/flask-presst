@@ -58,9 +58,6 @@ class TestPresstResource(PresstResource):
 class PresstTestCase(unittest.TestCase):
     def setUp(self):
         self.app = app = Flask(__name__)
-        # self.db_fd, flaskr.app.config['DATABASE'] = tempfile.mkstemp()
-        # flaskr.app.config['TESTING'] = True
-        # flaskr.init_db()
 
         app.testing = True
 
@@ -68,6 +65,13 @@ class PresstTestCase(unittest.TestCase):
 
     def tearDown(self):
         pass
+
+    def request(self, method, url, data, *result):
+        with self.app.test_client() as client:
+            self.assertEqual(
+                self.parse_response(
+                    getattr(client, method.lower())(url, data=json.dumps(data), content_type='application/json')),
+                result)
 
     def parse_response(self, r):
         v = json.loads(r.get_data()) if r.status_code == 200 else None

@@ -43,6 +43,8 @@ class PresstArgument(Argument):
                 return iso8601.parse_date(value)
 
         try:
+            print self.type, value,
+            print self.type(value, self.name, op)
             return self.type(value, self.name, op)
         except TypeError:
             try:

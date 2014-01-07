@@ -1,11 +1,12 @@
 import inspect
 import datetime
 from flask import request, current_app
-from flask.ext.restful import reqparse, Resource, abort, marshal
+from flask.ext.restful import reqparse, Resource, abort, marshal, unpack
 from flask.ext.restful import fields as restful_fields
-from flask.ext.sqlalchemy import BaseQuery, Pagination
+from flask.ext.sqlalchemy import BaseQuery, Pagination, get_state
 from flask.views import MethodViewType
-from sqlalchemy.databases import postgres
+from sqlalchemy import ColumnDefault
+from sqlalchemy.dialects import postgres
 from sqlalchemy.orm import class_mapper
 from flask.ext.presst.fields import BaseRelationshipField, ArrayField, KeyValueField
 from flask.ext.presst.nested import NestedProxy
@@ -61,8 +62,10 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
 
     @classmethod
     def _setup_resource(cls, meta, members):
+        # TODO move into Meta class itself.
         cls.nested_types = nested_types = {}
-        cls._fields = fields = {}
+        cls._fields = fields = dict()
+
         for name, m in members.iteritems():
             if isinstance(m, NestedProxy):
                 nested_types[m.relationship_name] = m
@@ -71,12 +74,9 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
 
         cls._meta = meta
 
-        field_selector = lambda m: not(inspect.isroutine(m)) and isinstance(m, restful_fields.Raw)
-
         cls.resource_name = meta.get('resource_name', cls.__name__).lower()
 
         cls._id_field = meta.get('id_field', 'id')
-        cls._fields = dict(inspect.getmembers(cls, field_selector)) # TODO simplify using `members`
         cls._required_fields = meta.get('required_fields', [])
 
     def get(self, id=None, route=None, **kwargs):
@@ -98,6 +98,8 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
             return self.marshal_item(item)
 
     def post(self, id=None, route=None, **kwargs):
+
+        print "POST "
         if route:
             try:
                 nested_type = self.nested_types[route]
@@ -109,9 +111,9 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
             except KeyError:
                 abort(404)
         elif id is None:
-            return self.marshal_item(self.create_item(self.request_parse_item(request)))
+            return self.marshal_item(self.create_item(self.request_parse_item()))
         else:
-            return self.marshal_item(self.update_item(id, self.request_parse_item(request)))
+            return self.marshal_item(self.update_item(id, self.request_parse_item()))
 
     def patch(self, id, route=None):
         if id is None:
@@ -127,6 +129,7 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
             except KeyError:
                 abort(404)
         else:
+            # TODO consider abort(400) if request.JSON is not a dictionary.
             changes = self.request_parse_item(limit_fields=(name for name in self._fields if name in request.json))
             return self.marshal_item(self.update_item(id, changes, partial=True))
 
@@ -185,7 +188,7 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
     def item_get_resource_uri(cls, item):
         if cls.api is None:
             raise RuntimeError("{} has not been registered as an API endpoint.".format(cls.__name__))
-        return u'{0}/{1}/{2}'.format(cls.api.prefix, cls.resource_name, unicode(item[cls._id_field])) # FIXME handle both item and attr.
+        return u'{0}/{1}/{2}'.format(cls.api.prefix, cls.resource_name, unicode(getattr(item, cls._id_field, None) or item[cls._id_field])) # FIXME handle both item and attr.
 
     @classmethod
     def marshal_item(cls, item):
@@ -201,77 +204,77 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
         parser = reqparse.RequestParser(argument_class=PresstArgument)
 
         for name in limit_fields or self._fields: # FIXME handle this in PresstArgument.
-            parser.add_argument(name, type=self._fields[name])
+            parser.add_argument(name, type=self._fields[name], required=name in self._required_fields)
 
         return parser.parse_args()
 
 
-class PolymorphicMixin(object):
-    """
-    :class:`PolymorphicMixin` only works in with a :class:`PresstResource`.
-    """
-    def marshal_item(self, item):
-        resource = self.api.get_resource_for_model(item.__class__)
-        marshaled = super(PolymorphicMixin, self).marshal_item(item)
+class ModelResourceMeta(PresstResourceMeta):
+    def __new__(mcs, name, bases, members):
+        class_ = super(ModelResourceMeta, mcs).__new__(mcs, name, bases, members)
 
-        if resource and resource != self.__class__:
-            marshaled[resource.resource_name.replace('/', '__')] = resource.marshal_object(item)
+        if hasattr(class_, '_meta'):
+            meta = class_._meta
+            class_._model = model = meta.get('model', None)
+            class_._processors = meta.get('processors', ())
 
-        # fallback:
-        return marshaled
+            if not model:
+                return class_
+
+            mapper = class_mapper(model)
+
+            # TODO support multiple primary keys with child resources.
+            assert len(mapper.primary_key) == 1
+
+            class_._id_field = meta.get('id_field', mapper.primary_key[0].name)
+            class_._field_types = field_types = {}
+
+            class_.resource_name = meta.get('resource_name', model.__tablename__).lower()
+
+            print class_._fields
+            fields, required_fields = class_._fields, class_._required_fields
+
+            include_fields = meta.get('include_fields', None)
+            exclude_fields = meta.get('exclude_fields', None)
+
+            for name, column in dict(mapper.columns).iteritems():
+                if (include_fields and name in include_fields) or \
+                        (exclude_fields and name not in exclude_fields) or \
+                        not (include_fields or exclude_fields):
+
+                    if meta.get('exclude_polymorphic', False) and column.table != mapper.tables[-1]:
+                        continue
+
+                    if column.primary_key or column.foreign_keys:
+                        continue
+
+                    if isinstance(column.type, postgres.ARRAY):
+                        field_type = list
+                    elif isinstance(column.type, postgres.HSTORE):
+                        field_type = dict
+                    # TODO postgres.JSON case, backwards compatibility.
+                    else:
+                        field_type = column.type.python_type
+
+                    field_types[name] = field_type
+
+                    # Add to list of fields.
+                    if not name in fields:
+                        field_class = class_._get_field_from_python_type(field_type)
+
+                        # TODO implement support for ColumnDefault
+                        # fields[name] = field_class(default=column.default)
+                        fields[name] = field_class()
+
+                        if not (column.nullable or column.default):
+                            required_fields.append(name)
+        return class_
 
 
-class ModelResource(PresstResource):
+class ModelResource(six.with_metaclass(ModelResourceMeta, PresstResource)):
     _processors = ()
     _field_types = None
     _model = None
-
-    @classmethod
-    def _setup_resource(cls, meta, members):
-        cls._model = model = meta.get('model', None)
-        cls._processors = meta.get('processors', cls._processors)
-
-        if not model: return
-        mapper = class_mapper(model)
-
-        # TODO support multiple primary keys with child resources.
-        assert len(mapper.primary_key) == 1
-        cls._id_field = mapper.primary_key[0].name
-
-        cls._field_types = field_types = {}
-
-        include_fields = meta.get('include_fields', None)
-        exclude_fields = meta.get('exclude_fields', None)
-
-        for name, column in dict(mapper.columns).iteritems():
-
-            if (include_fields and name in include_fields) or \
-                    (exclude_fields and name not in exclude_fields) or \
-                    not (include_fields or exclude_fields):
-
-                if meta.get('exclude_polymorphic', False) and column.table != mapper.tables[-1]:
-                    continue
-
-                if column.primary_key or column.foreign_keys:
-                    continue
-
-                if isinstance(column.type, postgres.ARRAY):
-                    field_type = list
-                elif isinstance(column.type, (postgres.HSTORE, postgres.JSON)):
-                    field_type = dict
-                else:
-                    field_type = column.type.python_type
-
-                field_types[name] = field_type
-
-                # Add to list of fields.
-                if not name in cls._fields:
-                    field_class = cls._get_field_from_python_type(field_type)
-
-                    cls._fields[name] = field_class(default=column.default)
-
-                    if not (column.nullable or column.default):
-                        cls._required_fields.append(name)
 
     @staticmethod
     def _get_field_from_python_type(python_type):
@@ -290,6 +293,10 @@ class ModelResource(PresstResource):
     def _apply_processors(cls, event, *args):
         for processor in cls._processors:
             getattr(processor, event)(*args + (cls,))
+
+    @classmethod
+    def _get_session(cls):
+        return get_state(current_app).db.session
 
     @classmethod
     def get_model(cls):
@@ -325,11 +332,13 @@ class ModelResource(PresstResource):
 
     @classmethod
     def get_item_for_id(cls, id_):
-        return cls.get_item_list().get_or_404(id)
+        return cls.get_item_list().get_or_404(id_)
 
     @classmethod
     def create_item(cls, dct):
         item = cls._model()
+
+        print "GO", item, dct
 
         for key, value in dct.iteritems():
             setattr(item, key, value)
@@ -337,8 +346,15 @@ class ModelResource(PresstResource):
         for processor in cls._processors:
             processor.before_create_object(item, cls)
 
-        current_app.db.session.add(item)
-        current_app.session.commit()
+        session = cls._get_session()
+
+        try:
+            session.add(item)
+            session.commit()
+        except:
+            session.rollback()
+            raise
+
         return item
 
     @classmethod
@@ -348,14 +364,18 @@ class ModelResource(PresstResource):
         for key, value in dct.iteritems():
             setattr(item, key, value)
 
+        session = cls._get_session()
+
         try:
             for processor in cls._processors:
                 processor.before_update_object(item, dct, partial, cls)
 
-            current_app.db.session.commit()
+            session.commit()
         except:
-            current_app.db.session.rollback()
+            session.rollback()
             raise
+
+        return item
 
     @classmethod
     def delete_item(cls, id_):
@@ -364,8 +384,9 @@ class ModelResource(PresstResource):
         for processor in cls._processors:
             processor.before_delete_object(item, cls)
 
-        current_app.db.session.delete(item)
-        current_app.db.session.commit()
+        session = cls._get_session()
+        session.delete(item)
+        session.commit()
 
     _pagination_parser = reqparse.RequestParser()
     _pagination_parser.add_argument('per_page', location='args', type=int, default=20) # 20
@@ -394,9 +415,25 @@ class ModelResource(PresstResource):
                 links.append((request.path, item_list.pages, item_list.per_page, 'last'))
                 links.append((request.path, item_list.page + 1, item_list.per_page, 'next'))
 
-            response = cls.api.make_response(cls.marshal_item_list(item_list.items), 200)
-            response.headers['Link'] = ','.join(map(LINK_HEADER_FORMAT_STR.format, links))
-            return response
+            headers = {'Link': ','.join((LINK_HEADER_FORMAT_STR.format(*link) for link in links))}
+            return super(ModelResource, cls).marshal_item_list(item_list.items), 200, headers
 
         # fallback:
-        return super(ModelResource).marshal_item_list(item_list)
+        return super(ModelResource, cls).marshal_item_list(item_list)
+
+
+class PolymorphicModelResource(ModelResource):
+    """
+    :class:`PolymorphicMixin` only works in with a :class:`PresstResource`.
+    """
+
+    @classmethod
+    def marshal_item(cls, item):
+        resource = cls.api.get_resource_for_model(item.__class__)
+        marshaled = super(PolymorphicModelResource, cls).marshal_item(item)
+
+        if resource and resource != cls:
+            marshaled[resource.resource_name.replace('/', '__')] = resource.marshal_item(item)
+
+        # fallback:
+        return marshaled

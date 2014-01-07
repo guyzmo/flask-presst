@@ -60,7 +60,7 @@ class PresstApi(Api):
             abort(400, message='Resource {} is not defined'.format(uri))
 
     def get_item_for_resource_uri(self, uri, expected_resource=None):
-        resource_class, id = self.parse_resource_uri(uri)
+        resource_class, id_ = self.parse_resource_uri(uri)
 
         if expected_resource != resource_class:
             abort(400, message='Wrong resource item type, expected {0}, got {1}'.format(
@@ -68,7 +68,8 @@ class PresstApi(Api):
                 resource_class.resource_name
             ))
 
-        return resource_class.get_item_for_id(id)
+        print 'get_item_for_resource_uri', resource_class, id_
+        return resource_class.get_item_for_id(id_)
 
     def get_resource_for_model(self, model):
         try:
