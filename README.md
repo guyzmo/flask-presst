@@ -43,7 +43,7 @@ The test coverage is not great and documentation is only being started on just n
         name = db.Column(db.String(60), nullable=False)
 
     class Fruit(db.Model):
-        fruit_id = db.Column(db.Integer, primary_key=True)
+        id = db.Column(db.Integer, primary_key=True)
 
         name = db.Column(db.String(60), nullable=False)
         sweetness = db.Column(db.Integer)
@@ -52,9 +52,6 @@ The test coverage is not great and documentation is only being started on just n
         tree = db.relationship(Tree)
 
     db.create_all()
-
-    Fruit = Fruit
-    Tree = Tree
 
     class TreeResource(ModelResource):
         class Meta:
