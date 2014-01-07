@@ -1,4 +1,3 @@
-import inspect
 import datetime
 from flask import request, current_app
 from flask.ext.restful import reqparse, Resource, abort, marshal
@@ -185,7 +184,7 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
     def item_get_resource_uri(cls, item):
         if cls.api is None:
             raise RuntimeError("{} has not been registered as an API endpoint.".format(cls.__name__))
-        return u'{0}/{1}/{2}'.format(cls.api.prefix, cls.resource_name, six.text_type(getattr(item, cls._id_field, None) or item[cls._id_field])) # FIXME handle both item and attr.
+        return '{0}/{1}/{2}'.format(cls.api.prefix, cls.resource_name, six.text_type(getattr(item, cls._id_field, None) or item[cls._id_field])) # FIXME handle both item and attr.
 
     @classmethod
     def marshal_item(cls, item):
