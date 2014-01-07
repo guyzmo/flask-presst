@@ -1,5 +1,7 @@
 # Flask-Presst
 
+[![Build Status](https://travis-ci.org/biosustain/flask-presst.png)](https://travis-ci.org/biosustain/flask-presst)
+
 Flask-Presst is a Flask extension for REST APIs (that itself extends
 [Flask-RESTful](https://github.com/twilio/flask-restful)) and is designed for the SQLAlchemy ORM in general and
 PostgreSQL in particular.
