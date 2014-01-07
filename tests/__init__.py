@@ -2,8 +2,8 @@ import json
 import unittest
 from flask import Flask
 from flask.ext.restful import abort
+import six
 from flask.ext.presst import PresstResource, PresstApi
-
 
 class TestPresstResource(PresstResource):
     items = []
@@ -74,5 +74,5 @@ class PresstTestCase(unittest.TestCase):
                 result)
 
     def parse_response(self, r):
-        v = json.loads(r.get_data()) if r.status_code == 200 else None
+        v = json.loads(r.data.decode()) if r.status_code == 200 else None
         return v, r.status_code

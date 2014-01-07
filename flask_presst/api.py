@@ -2,8 +2,8 @@ from importlib import import_module
 import inspect
 from flask.ext.restful import Api, abort
 import six
-from flask.ext.presst.resources import PresstResource, ModelResource
-from flask.ext.presst.utils.routes import route_from
+from flask_presst.resources import PresstResource, ModelResource
+from flask_presst.utils.routes import route_from
 
 
 class PresstApi(Api):
@@ -68,7 +68,6 @@ class PresstApi(Api):
                 resource_class.resource_name
             ))
 
-        print 'get_item_for_resource_uri', resource_class, id_
         return resource_class.get_item_for_id(id_)
 
     def get_resource_for_model(self, model):
@@ -107,38 +106,38 @@ class PresstApi(Api):
         if issubclass(resource, ModelResource):
             self._model_resource_map[resource.get_model()] = resource
 
-        # add records for 2-level resource methods.
-        for route, nested_type in resource.nested_types.iteritems():
-            #print nested_resource, route
-            #print '/{0}/<{1}:parent_id>/{2}'.format(resource_name, pk_converter, route)
-
-            for relationship, method in nested_type.bound_resource.nested_types.iteritems():
-                if not method.collection:  # 2-level nesting is only supported for collection methods.
-                    continue
-
-                # print '/{0}/<{1}:parent_id>/{2}/{3}'.format(resource_name, pk_converter, route, relationship)
-
-            # TODO get all (nested collections) and collection resource methods from resource.
-            # TODO deal with recursive nested resources
-
-
-            # if nested_type.collection:
-            #     raise NotImplementedError()
-            # else:
-            #     print  '/{0}/<{1}:parent_id>/{2}'.format(resource_name, pk_converter, route)
-                # print 'methods:', nested_type.methods
-                # super(PresstApi, self).add_resource(
-                #     nested_type,
-                #     '/{0}/<{1}:parent_id>/{2}'.format(resource_name, pk_converter, route),
-                #     endpoint='{0}_{1}'.format(resource_name, route))
-
-
-            #
-            #print (nested_resource, nested_resource_uri)
-            #
-            #super(ModelApi, self).add_resource(nested_resource, nested_resource_uri)
-
-        # Add resource with provided URL and args:
+        # # add records for 2-level resource methods.
+        # for route, nested_type in six.iteritems(resource.nested_types):
+        #     #print nested_resource, route
+        #     #print '/{0}/<{1}:parent_id>/{2}'.format(resource_name, pk_converter, route)
+        #
+        #     for relationship, method in nested_type.bound_resource.nested_types.iteritems():
+        #         if not method.collection:  # 2-level nesting is only supported for collection methods.
+        #             continue
+        #
+        #         # print '/{0}/<{1}:parent_id>/{2}/{3}'.format(resource_name, pk_converter, route, relationship)
+        #
+        #     # TODO get all (nested collections) and collection resource methods from resource.
+        #     # TODO deal with recursive nested resources
+        #
+        #
+        #     # if nested_type.collection:
+        #     #     raise NotImplementedError()
+        #     # else:
+        #     #     print  '/{0}/<{1}:parent_id>/{2}'.format(resource_name, pk_converter, route)
+        #         # print 'methods:', nested_type.methods
+        #         # super(PresstApi, self).add_resource(
+        #         #     nested_type,
+        #         #     '/{0}/<{1}:parent_id>/{2}'.format(resource_name, pk_converter, route),
+        #         #     endpoint='{0}_{1}'.format(resource_name, route))
+        #
+        #
+        #     #
+        #     #print (nested_resource, nested_resource_uri)
+        #     #
+        #     #super(ModelApi, self).add_resource(nested_resource, nested_resource_uri)
+        #
+        # # Add resource with provided URL and args:
 
 
         super(PresstApi, self).add_resource(resource, *urls, endpoint=resource_name, **kwargs)

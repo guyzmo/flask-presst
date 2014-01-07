@@ -58,29 +58,28 @@ class TestModelResource(PresstTestCase):
 
     def test_create(self):
         self.request('POST', '/fruit', {'name': 'Apple'},
-                     {'sweetness': 5, 'name': u'Apple', 'resource_uri': u'/fruit/1', u'tree': None}, 200)
+                     {'sweetness': 5, 'name': 'Apple', 'resource_uri': '/fruit/1', 'tree': None}, 200)
 
         self.request('POST', '/fruit', {'name': 'Apple', 'sweetness': 9001},
-                     {'sweetness': 9001, 'name': u'Apple', 'resource_uri': u'/fruit/2', 'tree': None}, 200)
+                     {'sweetness': 9001, 'name': 'Apple', 'resource_uri': '/fruit/2', 'tree': None}, 200)
 
         self.request('POST', '/fruit', {'sweetness': 1}, None, 400)
 
-        self.request('POST', '/tree', {'name': 'Apple'},{'name': u'Apple', 'resource_uri': u'/tree/1'}, 200)
+        self.request('POST', '/tree', {'name': 'Apple'},{'name': 'Apple', 'resource_uri': '/tree/1'}, 200)
 
         self.request('POST', '/fruit', {'name': 'Apple', 'tree': '/tree/1'},
-                     {'sweetness': 5, 'name': u'Apple', 'resource_uri': u'/fruit/3', 'tree': '/tree/1'}, 200)
+                     {'sweetness': 5, 'name': 'Apple', 'resource_uri': '/fruit/3', 'tree': '/tree/1'}, 200)
 
 
     def test_get(self):
-        apple = lambda id: {u'sweetness': 5, u'name': u'Apple', u'resource_uri': u'/fruit/{}'.format(id), u'tree': None}
+        apple = lambda id: {'sweetness': 5, 'name': 'Apple', 'resource_uri': '/fruit/{}'.format(id), 'tree': None}
 
         for i in range(1, 10):
-            print i
             self.request('POST', '/fruit', {'name': 'Apple'}, apple(i), 200)
             self.request('GET', '/fruit', None, [apple(i) for i in range(1, i + 1)], 200)
 
     def test_pagination(self):
-        apple = lambda id: {u'sweetness': 5, u'name': u'Apple', u'resource_uri': u'/fruit/{}'.format(id), u'tree': None}
+        apple = lambda id: {'sweetness': 5, 'name': 'Apple', 'resource_uri': '/fruit/{}'.format(id), 'tree': None}
 
         for i in range(1, 10):
             self.request('POST', '/fruit', {'name': 'Apple'}, apple(i), 200)
@@ -120,23 +119,23 @@ class TestModelResource(PresstTestCase):
 
     def test_update(self):
             self.request('POST', '/fruit', {'name': 'Apple'},
-                         {'sweetness': 5, 'name': u'Apple', 'resource_uri': u'/fruit/1', u'tree': None}, 200)
+                         {'sweetness': 5, 'name': 'Apple', 'resource_uri': '/fruit/1', 'tree': None}, 200)
 
             # TODO implement support for ColumnDefault
             # FIXME defaults with update
             # self.request('POST', '/fruit/1', {'name': 'Golden Apple'},
-            #              {'sweetness': 5, 'name': u'Golden Apple', 'resource_uri': u'/fruit/1', u'tree': None}, 200)
+            #              {'sweetness': 5, 'name': 'Golden Apple', 'resource_uri': '/fruit/1', 'tree': None}, 200)
 
             self.request('POST', '/fruit/1', {'name': 'Golden Apple', 'sweetness': 0},
-                         {'sweetness': 0, 'name': u'Golden Apple', 'resource_uri': u'/fruit/1', u'tree': None}, 200)
+                         {'sweetness': 0, 'name': 'Golden Apple', 'resource_uri': '/fruit/1', 'tree': None}, 200)
 
             self.request('POST', '/fruit/1', {}, None, 400)
 
     def test_patch(self):
 
-        self.request('POST', '/tree', {'name': 'Apple tree'}, {'name': u'Apple tree', 'resource_uri': u'/tree/1'}, 200)
+        self.request('POST', '/tree', {'name': 'Apple tree'}, {'name': 'Apple tree', 'resource_uri': '/tree/1'}, 200)
 
-        expected_apple = {'sweetness': 5, 'name': u'Apple', 'resource_uri': u'/fruit/1', u'tree': None}
+        expected_apple = {'sweetness': 5, 'name': 'Apple', 'resource_uri': '/fruit/1', 'tree': None}
         self.request('POST', '/fruit', {'name': 'Apple'}, expected_apple, 200)
 
         changes = [
@@ -149,12 +148,11 @@ class TestModelResource(PresstTestCase):
         ]
 
         for change in changes:
-            print 'expected_apple, change:',expected_apple, change
             expected_apple.update(change)
             self.request('PATCH', '/fruit/1', change, expected_apple, 200)
 
     def test_delete(self):
-        self.request('POST', '/tree', {'name': 'Apple tree'}, {'name': u'Apple tree', 'resource_uri': u'/tree/1'}, 200)
+        self.request('POST', '/tree', {'name': 'Apple tree'}, {'name': 'Apple tree', 'resource_uri': '/tree/1'}, 200)
         self.request('DELETE', '/tree/1', {'name': 'Apple tree'}, None, 204)
         self.request('DELETE', '/tree/1', {'name': 'Apple tree'}, None, 404)
         self.request('DELETE', '/tree/2', {'name': 'Apple tree'}, None, 404)
@@ -206,18 +204,18 @@ class TestPolymorphicModelResource(PresstTestCase):
 
     def test_polymorphic(self):
         self.request('POST', '/fruit', {'name': 'Banana', 'color': 'yellow'},
-                     {'name': 'Banana', 'color': 'yellow', 'resource_uri': u'/fruit/1'}, 200)
+                     {'name': 'Banana', 'color': 'yellow', 'resource_uri': '/fruit/1'}, 200)
 
         self.request('POST', '/citrus', {'name': 'Lemon', 'color': 'yellow'},
-                     {'name': 'Lemon', 'sweetness': 0, 'color': 'yellow', 'resource_uri': u'/citrus/2'}, 200)
+                     {'name': 'Lemon', 'sweetness': 0, 'color': 'yellow', 'resource_uri': '/citrus/2'}, 200)
 
         self.request('GET', '/fruit', None, [
-            {u'color': u'yellow', u'name': u'Banana', u'resource_uri': u'/fruit/1'},
-            {u'citrus': {u'color': u'yellow',
-                         u'name': u'Lemon',
-                         u'resource_uri': u'/citrus/2',
-                         u'sweetness': 0},
-             u'color': u'yellow',
-             u'name': u'Lemon',
-             u'resource_uri': u'/fruit/2'}
+            {'color': 'yellow', 'name': 'Banana', 'resource_uri': '/fruit/1'},
+            {'citrus': {'color': 'yellow',
+                         'name': 'Lemon',
+                         'resource_uri': '/citrus/2',
+                         'sweetness': 0},
+             'color': 'yellow',
+             'name': 'Lemon',
+             'resource_uri': '/fruit/2'}
         ], 200)

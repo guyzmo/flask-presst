@@ -1,16 +1,15 @@
 import inspect
 import datetime
 from flask import request, current_app
-from flask.ext.restful import reqparse, Resource, abort, marshal, unpack
-from flask.ext.restful import fields as restful_fields
+from flask.ext.restful import reqparse, Resource, abort, marshal
+from flask.ext.restful.fields import Boolean, String, Integer, DateTime, Raw
 from flask.ext.sqlalchemy import BaseQuery, Pagination, get_state
 from flask.views import MethodViewType
-from sqlalchemy import ColumnDefault
 from sqlalchemy.dialects import postgres
 from sqlalchemy.orm import class_mapper
-from flask.ext.presst.fields import BaseRelationshipField, ArrayField, KeyValueField
-from flask.ext.presst.nested import NestedProxy
-from flask.ext.presst.parsing import PresstArgument
+from flask_presst.fields import BaseRelationshipField, ArrayField, KeyValueField
+from flask_presst.nested import NestedProxy
+from flask_presst.parsing import PresstArgument
 import six
 
 
@@ -24,7 +23,7 @@ class PresstResourceMeta(MethodViewType):
         #class_ = type.__new__(mcs, name, bases, members)
         class_ = super(PresstResourceMeta, mcs).__new__(mcs, name, bases, members)
 
-        for name, m in members.iteritems():
+        for name, m in six.iteritems(members):
             if isinstance(m, (BaseRelationshipField, NestedProxy)):
                 m.bound_resource = class_
             # if issubclass(m, _RelationshipResource) and not m.relationship_name:
@@ -66,10 +65,10 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
         cls.nested_types = nested_types = {}
         cls._fields = fields = dict()
 
-        for name, m in members.iteritems():
+        for name, m in six.iteritems(members):
             if isinstance(m, NestedProxy):
                 nested_types[m.relationship_name] = m
-            if isinstance(m, restful_fields.Raw):
+            if isinstance(m, Raw):
                 fields[m.attribute or name] = m
 
         cls._meta = meta
@@ -98,8 +97,6 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
             return self.marshal_item(item)
 
     def post(self, id=None, route=None, **kwargs):
-
-        print "POST "
         if route:
             try:
                 nested_type = self.nested_types[route]
@@ -188,7 +185,7 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
     def item_get_resource_uri(cls, item):
         if cls.api is None:
             raise RuntimeError("{} has not been registered as an API endpoint.".format(cls.__name__))
-        return u'{0}/{1}/{2}'.format(cls.api.prefix, cls.resource_name, unicode(getattr(item, cls._id_field, None) or item[cls._id_field])) # FIXME handle both item and attr.
+        return u'{0}/{1}/{2}'.format(cls.api.prefix, cls.resource_name, six.text_type(getattr(item, cls._id_field, None) or item[cls._id_field])) # FIXME handle both item and attr.
 
     @classmethod
     def marshal_item(cls, item):
@@ -207,6 +204,7 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
             parser.add_argument(name, type=self._fields[name], required=name in self._required_fields)
 
         return parser.parse_args()
+
 
 
 class ModelResourceMeta(PresstResourceMeta):
@@ -231,13 +229,12 @@ class ModelResourceMeta(PresstResourceMeta):
 
             class_.resource_name = meta.get('resource_name', model.__tablename__).lower()
 
-            print class_._fields
             fields, required_fields = class_._fields, class_._required_fields
 
             include_fields = meta.get('include_fields', None)
             exclude_fields = meta.get('exclude_fields', None)
 
-            for name, column in dict(mapper.columns).iteritems():
+            for name, column in six.iteritems(dict(mapper.columns)):
                 if (include_fields and name in include_fields) or \
                         (exclude_fields and name not in exclude_fields) or \
                         not (include_fields or exclude_fields):
@@ -279,14 +276,14 @@ class ModelResource(six.with_metaclass(ModelResourceMeta, PresstResource)):
     @staticmethod
     def _get_field_from_python_type(python_type):
         return {
-            str: restful_fields.String,
-            unicode: restful_fields.String,
-            int: restful_fields.Integer,
-            bool: restful_fields.Boolean,
+            str: String,
+            six.text_type: String,
+            int: Integer,
+            bool: Boolean,
             list: ArrayField,
             dict: KeyValueField,
-            datetime.date: restful_fields.DateTime,
-            datetime.datetime: restful_fields.DateTime # TODO extend with JSON, dict (HSTORE) etc.
+            datetime.date: DateTime,
+            datetime.datetime: DateTime # TODO extend with JSON, dict (HSTORE) etc.
         }[python_type]
 
     @classmethod
@@ -337,10 +334,7 @@ class ModelResource(six.with_metaclass(ModelResourceMeta, PresstResource)):
     @classmethod
     def create_item(cls, dct):
         item = cls._model()
-
-        print "GO", item, dct
-
-        for key, value in dct.iteritems():
+        for key, value in six.iteritems(dct):
             setattr(item, key, value)
 
         for processor in cls._processors:
@@ -361,7 +355,7 @@ class ModelResource(six.with_metaclass(ModelResourceMeta, PresstResource)):
     def update_item(cls, id_, dct, partial=False):
         item = cls.get_item_for_id(id_)
 
-        for key, value in dct.iteritems():
+        for key, value in six.iteritems(dct):
             setattr(item, key, value)
 
         session = cls._get_session()

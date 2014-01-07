@@ -1,3 +1,5 @@
+from flask.ext.restful import abort
+
 
 class Processor(object):
     """

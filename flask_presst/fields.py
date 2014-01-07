@@ -3,6 +3,7 @@ Contains some additional field types that are not included in Flask-RESTful.
 """
 from flask.ext.restful.fields import *
 from werkzeug.utils import cached_property
+from flask_presst.references import Reference
 
 
 class BaseRelationshipField(Raw):
@@ -12,6 +13,10 @@ class BaseRelationshipField(Raw):
         self._resource = resource
         self.embedded = embedded
         self.relationship_name = None
+
+    @cached_property
+    def python_type(self):
+        return Reference(self._resource_class)
 
     @cached_property
     def _resource_class(self):
@@ -47,4 +52,3 @@ class KeyValueField(Raw):
 
 class JSONField(Raw):
     pass
-

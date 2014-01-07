@@ -3,7 +3,7 @@ from flask import request
 from flask.ext.restful import reqparse, abort, Resource
 from flask.views import http_method_funcs
 from werkzeug.utils import cached_property
-from flask.ext.presst.parsing import PresstArgument
+from flask_presst.parsing import PresstArgument
 
 
 class NestedProxy(object):
@@ -16,7 +16,6 @@ class NestedProxy(object):
 
     def __call__(self, instance, parent_id=None, *args, **kwargs):
         # FIXME Remove this (re-implement in ResourceMethod as regular callable)
-        print 'EXPECTED', self._methods, 'GOT', request.method
         if request.method not in self._methods:
             abort(405)
 
@@ -36,7 +35,6 @@ class NestedProxy(object):
             if cls.collection:
                 return fn(*args, **kwargs)
             else:
-                print cls, cls.bound_resource, '>>'
                 parent_item = cls.bound_resource.get_item_for_id(parent_id)
                 return fn(parent_item, *args, **kwargs)
         return with_object

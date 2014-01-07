@@ -1,8 +1,7 @@
 import inspect
 from flask.ext.restful import fields as restful_fields
 from flask.ext.restful.reqparse import Argument
-from flask_presst.fields import BaseRelationshipField, ArrayField, KeyValueField, JSONField
-from flask_presst.references import Reference
+from flask_presst.fields import ArrayField, KeyValueField, JSONField, Raw
 from iso8601 import iso8601
 import datetime
 import six
@@ -11,8 +10,8 @@ class PresstArgument(Argument):
 
     @staticmethod
     def _get_python_type_from_field(field):
-        if isinstance(field, BaseRelationshipField):
-            return Reference(field._resource_class)
+        if hasattr(field, 'python_type'):
+            return field.python_type
 
         try:
             return {
@@ -24,7 +23,6 @@ class PresstArgument(Argument):
                 restful_fields.Boolean: bool,
                 restful_fields.Integer: int
             }[field.__class__]
-
         except KeyError:
             return six.text_type
 
@@ -43,8 +41,6 @@ class PresstArgument(Argument):
                 return iso8601.parse_date(value)
 
         try:
-            print self.type, value,
-            print self.type(value, self.name, op)
             return self.type(value, self.name, op)
         except TypeError:
             try:

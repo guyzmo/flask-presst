@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 # coding=utf-8
+from __future__ import unicode_literals
 from setuptools import setup, find_packages
 
 setup(
-    author=u'Lars Schöning',
+    author='Lars Schöning',
     author_email='lays@biosustain.dtu.dk',
     name='Flask-Presst',
     version='',
