@@ -46,3 +46,5 @@ decorated with the `hybrid_method` decorator. Example implementation of `has_per
             'update': self.owner_id == user.id,
             'delete': False
         }[permission]
+
+...
