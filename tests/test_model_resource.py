@@ -1,5 +1,5 @@
 from flask.ext.sqlalchemy import SQLAlchemy
-from flask_presst import ModelResource, fields, PolymorphicModelResource
+from flask.ext.presst import ModelResource, fields, PolymorphicModelResource
 from tests import PresstTestCase
 
 
@@ -39,7 +39,7 @@ class TestModelResource(PresstTestCase):
             class Meta:
                 model = Fruit
 
-            tree = fields.ToOneField(TreeResource)
+            tree = fields.ToOne(TreeResource)
 
         self.api.add_resource(FruitResource)
         self.api.add_resource(TreeResource)

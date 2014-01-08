@@ -1,7 +1,7 @@
 import inspect
 from flask.ext.restful import fields as restful_fields
 from flask.ext.restful.reqparse import Argument
-from flask_presst.fields import ArrayField, KeyValueField, JSONField, Raw
+from flask_presst.fields import Array, KeyValue, JSON, Raw
 from iso8601 import iso8601
 import datetime
 import six
@@ -15,9 +15,9 @@ class PresstArgument(Argument):
 
         try:
             return {
-                ArrayField: list,
-                KeyValueField: dict,
-                JSONField: dict,
+                Array: list,
+                KeyValue: dict,
+                JSON: dict,
                 restful_fields.DateTime: datetime.datetime,
                 restful_fields.String: six.text_type,
                 restful_fields.Boolean: bool,

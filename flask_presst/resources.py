@@ -6,7 +6,7 @@ from flask.ext.sqlalchemy import BaseQuery, Pagination, get_state
 from flask.views import MethodViewType
 from sqlalchemy.dialects import postgres
 from sqlalchemy.orm import class_mapper
-from flask_presst.fields import BaseRelationshipField, ArrayField, KeyValueField
+from flask_presst.fields import RelationshipFieldBase, Array, KeyValue
 from flask_presst.nested import NestedProxy
 from flask_presst.parsing import PresstArgument
 import six
@@ -33,7 +33,7 @@ class PresstResourceMeta(MethodViewType):
             class_._meta = meta
 
             for name, m in six.iteritems(members):
-                if isinstance(m, (BaseRelationshipField, NestedProxy)):
+                if isinstance(m, (RelationshipFieldBase, NestedProxy)):
                     m.bound_resource = class_
                     if m.relationship_name is None:
                         m.relationship_name = name
@@ -261,8 +261,8 @@ class ModelResource(six.with_metaclass(ModelResourceMeta, PresstResource)):
             six.text_type: String,
             int: Integer,
             bool: Boolean,
-            list: ArrayField,
-            dict: KeyValueField,
+            list: Array,
+            dict: KeyValue,
             datetime.date: DateTime,
             datetime.datetime: DateTime # TODO extend with JSON, dict (HSTORE) etc.
         }[python_type]

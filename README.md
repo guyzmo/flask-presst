@@ -61,7 +61,7 @@ The test coverage is not great and documentation is only being started on just n
         class Meta:
             model = Fruit
 
-        tree = fields.ToOneField(TreeResource)
+        tree = fields.ToOne(TreeResource)
 
     api.add_resource(FruitResource)
     api.add_resource(TreeResource)

@@ -1,5 +1,5 @@
 import unittest
-from flask_presst import fields, Relationship, resource_method
+from flask.ext.presst import fields, Relationship, resource_method
 from tests import TestPresstResource, PresstTestCase
 
 
@@ -46,6 +46,16 @@ class TestNestedRelationship(PresstTestCase):
 
     def test_delete(self):
         pass
+
+
+class TestRelationshipField(PresstTestCase):
+
+    def test_self(self):
+        class Node(TestPresstResource):
+            items = []
+            parent = fields.ToOne('self')
+
+        self.assertEqual(Node.parent._resource_class, Node)
 
 
 if __name__ == '__main__':

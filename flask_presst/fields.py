@@ -6,9 +6,9 @@ from werkzeug.utils import cached_property
 from flask_presst.references import Reference
 
 
-class BaseRelationshipField(Raw):
+class RelationshipFieldBase(Raw):
     def __init__(self, resource, embedded=False, relationship_name=None, *args, **kwargs):
-        super(BaseRelationshipField, self).__init__(*args, **kwargs)
+        super(RelationshipFieldBase, self).__init__(*args, **kwargs)
         self.bound_resource = None
         self._resource = resource
         self.embedded = embedded
@@ -20,10 +20,12 @@ class BaseRelationshipField(Raw):
 
     @cached_property
     def _resource_class(self):
+        if self._resource == 'self':
+            return self.bound_resource
         return self.bound_resource.api.get_resource_class(self._resource, self.bound_resource.__module__)
 
 
-class ToManyField(BaseRelationshipField):
+class ToMany(RelationshipFieldBase):
     def format(self, item_list):
         marshal_fn = self._resource_class.item_get_resource_uri \
             if not self.embedded else self._resource_class.marshal_item
@@ -31,9 +33,9 @@ class ToManyField(BaseRelationshipField):
         return list(marshal_fn(item) for item in item_list)
 
 
-class ToOneField(BaseRelationshipField):
+class ToOne(RelationshipFieldBase):
     def __init__(self, resource, embedded=False, required=False, *args, **kwargs):
-        super(ToOneField, self).__init__(resource, embedded, *args, **kwargs)
+        super(ToOne, self).__init__(resource, embedded, *args, **kwargs)
         self.required = required
 
     def format(self, item):
@@ -42,13 +44,13 @@ class ToOneField(BaseRelationshipField):
         return self._resource_class.marshal_item(item)
 
 
-class ArrayField(Raw):
+class Array(Raw):
     pass
 
 
-class KeyValueField(Raw):
+class KeyValue(Raw):
     pass
 
 
-class JSONField(Raw):
+class JSON(Raw):
     pass
