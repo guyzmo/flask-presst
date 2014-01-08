@@ -16,18 +16,8 @@ LINK_HEADER_FORMAT_STR = '<{0}?page={1}&per_page={2}>; rel="{3}"'
 
 
 class PresstResourceMeta(MethodViewType):
-    #_instances = {}
-
     def __new__(mcs, name, bases, members):
-        #class_ = type.__new__(mcs, name, bases, members)
         class_ = super(PresstResourceMeta, mcs).__new__(mcs, name, bases, members)
-
-        for name, m in six.iteritems(members):
-            if isinstance(m, (BaseRelationshipField, NestedProxy)):
-                m.bound_resource = class_
-            # if issubclass(m, _RelationshipResource) and not m.relationship_name:
-                if m.relationship_name is None:
-                    m.relationship_name = name
 
         if hasattr(class_, '_meta'):
             try:
@@ -40,20 +30,20 @@ class PresstResourceMeta(MethodViewType):
             class_._id_field = meta.get('id_field', 'id')
             class_._required_fields = meta.get('required_fields', [])
             class_._fields = fields = dict()
+            class_._meta = meta
 
             for name, m in six.iteritems(members):
+                if isinstance(m, (BaseRelationshipField, NestedProxy)):
+                    m.bound_resource = class_
+                    if m.relationship_name is None:
+                        m.relationship_name = name
+
                 if isinstance(m, NestedProxy):
                     nested_types[m.relationship_name] = m
                 elif isinstance(m, Raw):
                     fields[m.attribute or name] = m
 
-            class_._meta = meta
         return class_
-
-    # def __call__(cls, *args, **kwargs):
-    #     if cls not in cls._instances:
-    #         cls._instances[cls] = super(PresstResourceMeta, cls).__call__(*args, **kwargs)
-    #     return cls._instances[cls]
 
 
 class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
