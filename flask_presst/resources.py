@@ -29,14 +29,25 @@ class PresstResourceMeta(MethodViewType):
                 if m.relationship_name is None:
                     m.relationship_name = name
 
-        if hasattr(class_, '_setup_resource'):
+        if hasattr(class_, '_meta'):
             try:
                 meta = getattr(class_, 'Meta').__dict__
             except AttributeError:
                 meta = {}
 
-            class_._setup_resource(meta, members)
+            class_.resource_name = meta.get('resource_name', class_.__name__).lower()
+            class_.nested_types = nested_types = {}
+            class_._id_field = meta.get('id_field', 'id')
+            class_._required_fields = meta.get('required_fields', [])
+            class_._fields = fields = dict()
 
+            for name, m in six.iteritems(members):
+                if isinstance(m, NestedProxy):
+                    nested_types[m.relationship_name] = m
+                elif isinstance(m, Raw):
+                    fields[m.attribute or name] = m
+
+            class_._meta = meta
         return class_
 
     # def __call__(cls, *args, **kwargs):
@@ -57,25 +68,6 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
     _id_field = None
     _fields = None
     _required_fields = None
-
-    @classmethod
-    def _setup_resource(cls, meta, members):
-        # TODO move into Meta class itself.
-        cls.nested_types = nested_types = {}
-        cls._fields = fields = dict()
-
-        for name, m in six.iteritems(members):
-            if isinstance(m, NestedProxy):
-                nested_types[m.relationship_name] = m
-            if isinstance(m, Raw):
-                fields[m.attribute or name] = m
-
-        cls._meta = meta
-
-        cls.resource_name = meta.get('resource_name', cls.__name__).lower()
-
-        cls._id_field = meta.get('id_field', 'id')
-        cls._required_fields = meta.get('required_fields', [])
 
     def get(self, id=None, route=None, **kwargs):
         if route:
@@ -209,9 +201,9 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
 class ModelResourceMeta(PresstResourceMeta):
     def __new__(mcs, name, bases, members):
         class_ = super(ModelResourceMeta, mcs).__new__(mcs, name, bases, members)
+        meta = class_._meta
 
-        if hasattr(class_, '_meta'):
-            meta = class_._meta
+        if meta:
             class_._model = model = meta.get('model', None)
             class_._processors = meta.get('processors', ())
 
