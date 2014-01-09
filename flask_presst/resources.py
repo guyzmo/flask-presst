@@ -6,6 +6,7 @@ from flask.ext.sqlalchemy import BaseQuery, Pagination, get_state
 from flask.views import MethodViewType
 from sqlalchemy.dialects import postgres
 from sqlalchemy.orm import class_mapper
+from flask.ext.presst.processor import ProcessorSet
 from flask_presst.fields import RelationshipFieldBase, Array, KeyValue
 from flask_presst.nested import NestedProxy
 from flask_presst.parsing import PresstArgument
@@ -160,6 +161,7 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
 
     @classmethod
     def delete_item(cls, id_):
+        "This method must either return None (nothing) or abort with the appropriate error."
         raise NotImplementedError()
 
     @classmethod
@@ -194,7 +196,7 @@ class ModelResourceMeta(PresstResourceMeta):
 
         if meta:
             class_._model = model = meta.get('model', None)
-            class_._processors = meta.get('processors', ())
+            class_._processors = ProcessorSet(meta.get('processors', ()))
 
             if not model:
                 return class_
@@ -249,9 +251,9 @@ class ModelResourceMeta(PresstResourceMeta):
 
 
 class ModelResource(six.with_metaclass(ModelResourceMeta, PresstResource)):
-    _processors = ()
-    _field_types = None
     _model = None
+    _processors = ProcessorSet()
+    _field_types = None
 
     @staticmethod
     def _get_field_from_python_type(python_type):
@@ -265,11 +267,6 @@ class ModelResource(six.with_metaclass(ModelResourceMeta, PresstResource)):
             datetime.date: DateTime,
             datetime.datetime: DateTime # TODO extend with JSON, dict (HSTORE) etc.
         }[python_type]
-
-    @classmethod
-    def _apply_processors(cls, event, *args):
-        for processor in cls._processors:
-            getattr(processor, event)(*args + (cls,))
 
     @classmethod
     def _get_session(cls):
@@ -290,9 +287,7 @@ class ModelResource(six.with_metaclass(ModelResourceMeta, PresstResource)):
         if isinstance(query, list):
             abort(500, message='Nesting not supported for this resource.')
 
-        for processor in cls._processors:
-            query = processor.filter(request.method, query, cls)
-
+        cls._processors.filter(request.method, query, cls)
         return query
 
     @classmethod
@@ -302,10 +297,28 @@ class ModelResource(six.with_metaclass(ModelResourceMeta, PresstResource)):
         if isinstance(query, list):
             abort(500, message='Nesting not supported for this resource.')
 
-        for processor in cls._processors:
-            query = processor.filter(request.method, query, cls)
-
+        cls._processors.filter(request.method, query)
         return query
+
+    @classmethod
+    def create_item_relationship(cls, id_, relationship, parent_item):
+        item = cls.get_item_for_id(id_)
+
+        cls._processors.before_create_relationship(parent_item, relationship, item)
+
+        getattr(parent_item, relationship).append(item)
+
+        cls._processors.after_create_relationship(parent_item, relationship, item)
+
+    @classmethod
+    def delete_item_relationship(cls, id_, relationship, parent_item):
+        item = cls.get_item_for_id(id_)
+
+        cls._processors.before_delete_relationship(parent_item, relationship, item)
+
+        getattr(parent_item, relationship).remove(item)
+
+        cls._processors.after_delete_relationship(parent_item, relationship, item)
 
     @classmethod
     def get_item_for_id(cls, id_):
@@ -313,12 +326,12 @@ class ModelResource(six.with_metaclass(ModelResourceMeta, PresstResource)):
 
     @classmethod
     def create_item(cls, dct):
+        # noinspection PyCallingNonCallable
         item = cls._model()
         for key, value in six.iteritems(dct):
             setattr(item, key, value)
 
-        for processor in cls._processors:
-            processor.before_create_object(item, cls)
+        cls._processors.before_create_item(item, cls)
 
         session = cls._get_session()
 
@@ -329,6 +342,7 @@ class ModelResource(six.with_metaclass(ModelResourceMeta, PresstResource)):
             session.rollback()
             raise
 
+        cls._processors.after_create_item(item, cls)
         return item
 
     @classmethod
@@ -341,26 +355,26 @@ class ModelResource(six.with_metaclass(ModelResourceMeta, PresstResource)):
         session = cls._get_session()
 
         try:
-            for processor in cls._processors:
-                processor.before_update_object(item, dct, partial, cls)
-
+            cls._processors.before_update_item(item, dct, partial, cls)
             session.commit()
         except:
             session.rollback()
             raise
 
+        cls._processors.after_update_item(item, cls)
         return item
 
     @classmethod
     def delete_item(cls, id_):
         item = cls.get_item_for_id(id_)
 
-        for processor in cls._processors:
-            processor.before_delete_object(item, cls)
+        cls._processors.before_delete_item(item, cls)
 
         session = cls._get_session()
         session.delete(item)
         session.commit()
+
+        cls._processors.after_delete_item(item, cls)
 
     _pagination_parser = reqparse.RequestParser()
     _pagination_parser.add_argument('per_page', location='args', type=int, default=20) # 20
