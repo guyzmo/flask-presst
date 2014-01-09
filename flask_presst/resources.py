@@ -187,7 +187,6 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
         return parser.parse_args()
 
 
-
 class ModelResourceMeta(PresstResourceMeta):
     def __new__(mcs, name, bases, members):
         class_ = super(ModelResourceMeta, mcs).__new__(mcs, name, bases, members)
