@@ -27,7 +27,7 @@ class TestResourceMethod(PresstTestCase):
                     return args[0]
                 setattr(cls, name, process)
 
-        for name, func in inspect.getmembers(Processor, lambda m: inspect.isfunction(m)):
+        for name, func in inspect.getmembers(Processor):
             if 'before_' in name or 'after_' in name:
                 LastActionProcessor.add_method(name)
 
@@ -56,14 +56,12 @@ class TestResourceMethod(PresstTestCase):
         self.api.add_resource(LocationResource)
 
     def test_passive(self):
-
         self.assertEqual(self.passive.last_action, None)
 
         self.request('GET', '/location', None, [], 200)
         self.assertEqual(self.passive.last_action[::2], ('filter_before_read', self.LocationResource))
 
         self.request('POST', '/location', {'name': 'Yard'}, {'name': 'Yard', 'resource_uri': '/location/1'}, 200)
-
         self.assertEqual(self.passive.actions[-3][::2], ('filter_before_read', self.LocationResource))
         self.assertEqual(self.passive.actions[-2][0], 'before_create_item')
         self.assertEqual(self.passive.actions[-1][0], 'after_create_item')
