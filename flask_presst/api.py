@@ -34,11 +34,11 @@ class PresstApi(Api):
             return reference
         elif inspect.isclass(reference) and issubclass(reference, PresstResource):
             return reference
+        elif reference in self._model_resource_map:
+            return self._model_resource_map[reference]
         elif isinstance(reference, six.string_types):
             if reference.lower() in self._presst_resources:
                 return self._presst_resources[reference.lower()]
-            elif reference in self._model_resource_map:
-                return self._model_resource_map[reference]
             else:
                 if not module_name or ('.' in reference):
                     module_name, class_name = reference.rsplit('.', 1)
