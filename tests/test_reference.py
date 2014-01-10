@@ -23,12 +23,14 @@ class TestReference(PresstTestCase):
 
     def test_reference_resolve(self):
         self.assertEqual(Reference('{}.Vegetable'.format(self.__module__)).resource_class, self.Vegetable)
-
-        with self.assertRaises(ValueError):
-            Reference('Fruit')
-
         self.assertEqual(Reference('Fruit', api=self.api).resource_class, self.Fruit)
         self.assertEqual(repr(Reference(self.Fruit)), "<Reference 'fruit'>")
+
+    def test_reference_resolve_error(self):
+        with self.assertRaises(RuntimeError):
+            Reference('Fruit')  # missing module name & no api key given.
+        with self.assertRaises(RuntimeError):
+            Reference('House')
 
     def test_reference(self):
         reference = Reference(self.Fruit)

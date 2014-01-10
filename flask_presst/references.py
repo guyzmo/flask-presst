@@ -20,10 +20,13 @@ class Reference(object):
         if inspect.isclass(reference) and issubclass(reference, PresstResource):
             return reference
 
-        if isinstance(reference, six.string_types):
-            module_name, class_name = reference.rsplit('.', 1)
-            module = import_module(module_name)
-            return getattr(module, class_name)
-        else:
-            raise RuntimeError('Could not resolve API resource reference: {}'.format(reference))
+        try:
+            if isinstance(reference, six.string_types):
+                module_name, class_name = reference.rsplit('.', 1)
+                module = import_module(module_name)
+                return getattr(module, class_name)
+        except ValueError:
+            pass
+
+        raise RuntimeError('Could not resolve API resource reference: {}'.format(reference))
 
