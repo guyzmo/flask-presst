@@ -40,11 +40,11 @@ class TestPresstResource(PresstResource):
         return dct
 
     @classmethod
-    def update_item(cls, id_, dct, is_partial=False):
+    def update_item(cls, id_, dct, partial=False):
         "This method must either return the updated item or abort with the appropriate error."
         item = cls.get_item_for_id(id_)
         item.update(dct)
-        return dct
+        return item
 
     @classmethod
     def delete_item(cls, id_):

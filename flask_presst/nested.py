@@ -25,7 +25,7 @@ class NestedProxy(object):
 
         return self.dispatch_request(instance, parent_id, *args, **kwargs)
 
-    def dispatch_request(self, *args, **kwargs):
+    def dispatch_request(self, *args, **kwargs):  # pragma: no cover
         raise NotImplementedError()
 
 
