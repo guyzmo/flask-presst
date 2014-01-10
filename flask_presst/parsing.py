@@ -17,7 +17,7 @@ class PresstArgument(Argument):
             return {
                 Array: list,
                 KeyValue: dict,
-                JSON: dict,
+                JSON: dict,  # NOTE only works with request.json, not request.args.
                 restful_fields.DateTime: datetime.datetime,
                 restful_fields.String: six.text_type,
                 restful_fields.Boolean: bool,
@@ -32,7 +32,7 @@ class PresstArgument(Argument):
 
         if inspect.isclass(self.type):
             # check if we're expecting a string and the value is `None`
-            if value is None  and issubclass(self.type, six.string_types):
+            if value is None and issubclass(self.type, six.string_types):
                 return None
 
             # handle date and datetime:

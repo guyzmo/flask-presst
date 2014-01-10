@@ -48,7 +48,6 @@ def resource_method(method='POST', collection=False):
     return _ResourceMethod
 
 
-
 class Relationship(NestedProxy):
     """
     Resource Methods:
