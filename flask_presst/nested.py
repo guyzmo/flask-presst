@@ -20,8 +20,6 @@ class NestedProxy(object):
 
 def resource_method(method='POST', collection=False):
     class _ResourceMethod(NestedProxy):
-        _methods = [method]
-
         def __init__(self, fn):
             super(_ResourceMethod, self).__init__(methods=(method, ))
             self._fn = fn
