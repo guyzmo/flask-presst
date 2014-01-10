@@ -14,23 +14,14 @@ class NestedProxy(object):
     def __init__(self, methods=('GET', )):
         self._methods = methods
 
-    def __call__(self, instance, parent_id=None, *args, **kwargs):
-        # FIXME Remove this (re-implement in ResourceMethod as regular callable)
-        if request.method not in self._methods:
-            abort(405)
-
-        # fail if a collection type is called on an item and vice-versa:
-        if self.collection != parent_id is None:
-            abort(500)
-
-        return self.dispatch_request(instance, parent_id, *args, **kwargs)
-
     def dispatch_request(self, *args, **kwargs):  # pragma: no cover
         raise NotImplementedError()
 
 
 def resource_method(method='POST', collection=False):
     class _ResourceMethod(NestedProxy):
+        _methods = [method]
+
         def __init__(self, fn):
             super(_ResourceMethod, self).__init__(methods=(method, ))
             self._fn = fn
@@ -40,6 +31,11 @@ def resource_method(method='POST', collection=False):
             self._parser.add_argument(name, location=location, **kwargs)
 
         def dispatch_request(self, instance, parent_id, *args, **kwargs):
+
+            # TODO move into decorator.
+            if request.method not in self._methods:
+                abort(405)
+
             kwargs.update(self._parser.parse_args())
 
             if self.collection:
