@@ -77,6 +77,7 @@ class TestModelResource(PresstTestCase):
         for i in range(1, 10):
             self.request('POST', '/fruit', {'name': 'Apple'}, apple(i), 200)
             self.request('GET', '/fruit', None, [apple(i) for i in range(1, i + 1)], 200)
+            self.request('GET', '/fruit/{}'.format(i), None, apple(i), 200)
 
     def test_pagination(self):
         apple = lambda id: {'sweetness': 5, 'name': 'Apple', 'resource_uri': '/fruit/{}'.format(id), 'tree': None}
