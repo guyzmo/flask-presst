@@ -4,15 +4,15 @@ import six
 
 class Reference(object):
     def __init__(self, reference, api=None):
-        self._resource_class = api.get_resource_class(reference) if api else self._resolve_resource_class(reference)
+        self.resource_class = api.get_resource_class(reference) if api else self._resolve_resource_class(reference)
 
     def __call__(self, resource_uri):
         if resource_uri is None:
             return None
-        return self._resource_class.api.get_item_for_resource_uri(resource_uri, self._resource_class)
+        return self.resource_class.api.get_item_for_resource_uri(resource_uri, self.resource_class)
 
     def __repr__(self):
-        return "<Reference '{}'>".format(self._resource_class.__name__)
+        return "<Reference '{}'>".format(self.resource_class.resource_name)
 
     @staticmethod
     def _resolve_resource_class(reference):

@@ -3,11 +3,15 @@ from flask.ext.presst import fields, Reference
 from tests import PresstTestCase, TestPresstResource
 
 
+
 class TestReference(PresstTestCase):
     class Fruit(TestPresstResource):
         items = [{'id': 1, 'name': 'Banana'}]
 
         name = fields.String()
+
+        class Meta:
+            resource_name = 'fruit'
 
     class Vegetable(TestPresstResource):
         items = [{'id': 1, 'name': 'Carrot'}]
@@ -18,7 +22,13 @@ class TestReference(PresstTestCase):
         self.api.add_resource(self.Vegetable)
 
     def test_reference_resolve(self):
-        pass
+        self.assertEqual(Reference('{}.Vegetable'.format(self.__module__)).resource_class, self.Vegetable)
+
+        with self.assertRaises(ValueError):
+            Reference('Fruit')
+
+        self.assertEqual(Reference('Fruit', api=self.api).resource_class, self.Fruit)
+        self.assertEqual(repr(Reference(self.Fruit)), "<Reference 'fruit'>")
 
     def test_reference(self):
         reference = Reference(self.Fruit)
@@ -34,3 +44,6 @@ class TestReference(PresstTestCase):
         reference = Reference(self.Fruit)
         with self.app.test_request_context('/'):
             self.assertRaises(exceptions.BadRequest, lambda: reference('/vegetable/1'))
+
+
+Vegetable = TestReference.Vegetable
