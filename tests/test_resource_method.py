@@ -20,8 +20,8 @@ class TestResourceMethod(PresstTestCase):
                 return len(citrus['name'])
 
             @resource_method('GET', collection=True)
-            def count(self):
-                return len(self.get_item_list())
+            def count(self, item_list):
+                return len(item_list)
 
             @resource_method('GET')
             def sweeter_than(self, citrus, other):

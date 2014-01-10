@@ -28,17 +28,6 @@ class NestedProxy(object):
     def dispatch_request(self, *args, **kwargs):
         raise NotImplementedError()
 
-    @classmethod
-    def _with_object(cls, fn):
-        @wraps(fn)
-        def with_object(parent_id=None, *args, **kwargs):
-            if cls.collection:
-                return fn(*args, **kwargs)
-            else:
-                parent_item = cls.bound_resource.get_item_for_id(parent_id)
-                return fn(parent_item, *args, **kwargs)
-        return with_object
-
 
 def resource_method(method='POST', collection=False):
     class _ResourceMethod(NestedProxy):
@@ -53,10 +42,13 @@ def resource_method(method='POST', collection=False):
         def dispatch_request(self, instance, parent_id, *args, **kwargs):
             kwargs.update(self._parser.parse_args())
 
-            if not self.collection:
-                args = (self.bound_resource.get_item_for_id(parent_id),) + args
+            if self.collection:
+                # NOTE this may be inefficient with certain collection types that do not support lazy loading.
+                item_or_items = self.bound_resource.get_item_list()
+            else:
+                item_or_items = self.bound_resource.get_item_for_id(parent_id)
 
-            return self._fn.__call__(instance, *args, **kwargs)
+            return self._fn.__call__(instance, item_or_items, *args, **kwargs)
 
     _ResourceMethod.collection = collection
     return _ResourceMethod
@@ -109,8 +101,8 @@ class Relationship(NestedProxy):
         return self.resource_class.marshal_item_list(
             self.resource_class.get_item_list_for_relationship(self.relationship_name, parent_item))
 
-    def patch(self, parent_id):
-        abort(405) # Collections can't be PATCHED.
+    def patch(self, *args, **kwargs):
+        abort(405) # collections can't be PATCHed.
 
     def post(self, parent_id, item_id):
         """
@@ -125,5 +117,9 @@ class Relationship(NestedProxy):
         return self.resource_class.marshal_item(
             self.resource_class.create_item_relationship(item_id, self.relationship_name, parent_item))
 
-    def delete(self, parent_item):
+    def delete(self, parent_id, item_id):
+        parent_item = self.bound_resource.get_item_for_id(parent_id)
+        self.resource_class.delete_item_relationship(item_id, self.relationship_name, parent_item)
+        return None, 204
+
         pass # TODO look up permissions in nested resource; only support deletion of links; deletion of actual model needs to be explicit.

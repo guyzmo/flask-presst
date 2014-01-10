@@ -16,10 +16,10 @@ class RelationshipFieldBase(Raw):
 
     @cached_property
     def python_type(self):
-        return Reference(self._resource_class)
+        return Reference(self.resource_class)
 
     @cached_property
-    def _resource_class(self):
+    def resource_class(self):
         if self._resource == 'self':
             return self.bound_resource
         return self.bound_resource.api.get_resource_class(self._resource, self.bound_resource.__module__)
@@ -27,8 +27,8 @@ class RelationshipFieldBase(Raw):
 
 class ToMany(RelationshipFieldBase):
     def format(self, item_list):
-        marshal_fn = self._resource_class.item_get_resource_uri \
-            if not self.embedded else self._resource_class.marshal_item
+        marshal_fn = self.resource_class.item_get_resource_uri \
+            if not self.embedded else self.resource_class.marshal_item
 
         return list(marshal_fn(item) for item in item_list)
 
@@ -40,8 +40,8 @@ class ToOne(RelationshipFieldBase):
 
     def format(self, item):
         if not self.embedded:
-            return self._resource_class.item_get_resource_uri(item)
-        return self._resource_class.marshal_item(item)
+            return self.resource_class.item_get_resource_uri(item)
+        return self.resource_class.marshal_item(item)
 
 
 class Array(Raw):

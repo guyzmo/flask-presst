@@ -22,7 +22,7 @@ class PresstResourceMeta(MethodViewType):
 
         if hasattr(class_, '_meta'):
             try:
-                meta = getattr(class_, 'Meta').__dict__
+                meta = dict(getattr(class_, 'Meta').__dict__)  # copy mappingproxy into dict.
             except AttributeError:
                 meta = {}
 
@@ -78,7 +78,7 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
             item = self.get_item_for_id(id)
             return self.marshal_item(item)
 
-    def post(self, id=None, route=None, **kwargs):
+    def post(self, id=None, route=None, *args, **kwargs):
         if route:
             try:
                 nested_type = self.nested_types[route]
@@ -86,7 +86,7 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
                 if (id is None) != nested_type.collection:
                     abort(404)
 
-                return nested_type.dispatch_request(self, id)
+                return nested_type.dispatch_request(self, id, *args, **kwargs)
             except KeyError:
                 abort(404)
         elif id is None:
@@ -112,7 +112,7 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
             changes = self.request_parse_item(limit_fields=(name for name in self._fields if name in request.json))
             return self.marshal_item(self.update_item(id, changes, partial=True))
 
-    def delete(self, id, route=None, **kwargs):
+    def delete(self, id, route=None, *args, **kwargs):
         if id is None:
             abort(400, message='DELETE is not permitted on collections.')
         if route:
@@ -122,7 +122,7 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
                 if (id is None) != nested_type.collection:
                     abort(404)
 
-                return nested_type.dispatch_request(self, id)
+                return nested_type.dispatch_request(self, id, *args, **kwargs)
             except KeyError:
                 abort(404)
         else:
@@ -130,37 +130,37 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
             return None, 204
 
     @classmethod
-    def get_item_for_id(cls, id_):
+    def get_item_for_id(cls, id_):  # pragma: no cover
         raise NotImplementedError()
 
     @classmethod
-    def get_item_list(cls):
+    def get_item_list(cls):  # pragma: no cover
         raise NotImplementedError()
 
     @classmethod
-    def get_item_list_for_relationship(cls, relationship, parent_item):
+    def get_item_list_for_relationship(cls, relationship, parent_item):  # pragma: no cover
         raise NotImplementedError()
 
     @classmethod
-    def create_item_relationship(cls, id_, relationship, parent_item):
+    def create_item_relationship(cls, id_, relationship, parent_item):  # pragma: no cover
         raise NotImplementedError()
 
     @classmethod
-    def delete_item_relationship(cls, id_, relationship, parent_item):
+    def delete_item_relationship(cls, id_, relationship, parent_item):  # pragma: no cover
         raise NotImplementedError()
 
     @classmethod
-    def create_item(cls, dct):
+    def create_item(cls, dct):  # pragma: no cover
         """This method must either return the created item or abort with the appropriate error."""
         raise NotImplementedError()
 
     @classmethod
-    def update_item(cls, id_, dct, partial=False):
+    def update_item(cls, id_, dct, partial=False):  # pragma: no cover
         "This method must either return the updated item or abort with the appropriate error."
         raise NotImplementedError()
 
     @classmethod
-    def delete_item(cls, id_):
+    def delete_item(cls, id_):  # pragma: no cover
         "This method must either return None (nothing) or abort with the appropriate error."
         raise NotImplementedError()
 
@@ -309,6 +309,7 @@ class ModelResource(six.with_metaclass(ModelResourceMeta, PresstResource)):
         getattr(parent_item, relationship).append(item)
 
         cls._processors.after_create_relationship(parent_item, relationship, item)
+        return item
 
     @classmethod
     def delete_item_relationship(cls, id_, relationship, parent_item):

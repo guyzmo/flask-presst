@@ -157,6 +157,13 @@ class TestModelResource(PresstTestCase):
         self.request('DELETE', '/tree/1', {'name': 'Apple tree'}, None, 404)
         self.request('DELETE', '/tree/2', {'name': 'Apple tree'}, None, 404)
 
+    def test_no_model(self):
+        class OopsResource(ModelResource):
+            class Meta:
+                pass
+
+        self.api.add_resource(OopsResource)
+
 
 class TestPolymorphicModelResource(PresstTestCase):
     def setUp(self):
@@ -199,6 +206,7 @@ class TestPolymorphicModelResource(PresstTestCase):
 
         db.create_all()
 
+        self.CitrusFruit = CitrusFruit
         self.api.add_resource(FruitResource)
         self.api.add_resource(CitrusFruitResource)
 
@@ -219,3 +227,21 @@ class TestPolymorphicModelResource(PresstTestCase):
              'name': 'Lemon',
              'resource_uri': '/fruit/2'}
         ], 200)
+
+    def test_exclude_polymorphic(self):
+        class CitrusFruitAltResource(ModelResource):
+            class Meta:
+                model = self.CitrusFruit
+                exclude_polymorphic = True
+                resource_name = 'citrus_alt'
+                exclude_fields = ['table']
+
+        self.api.add_resource(CitrusFruitAltResource)
+        print(self.api.get_resource_class('citrus_alt'))
+
+        self.request('POST', '/citrus', {'name': 'Lemon', 'sweetness': 1},
+                     {'name': 'Lemon', 'sweetness': 1, 'color': None, 'resource_uri': '/citrus/1'}, 200)
+
+        self.request('GET', '/citrus_alt/1', None,
+             {'sweetness': 1, 'resource_uri': '/citrus_alt/1'}, 200)
+

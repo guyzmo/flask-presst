@@ -76,7 +76,7 @@ class PresstApi(Api):
         except KeyError:
             return None
 
-    def add_resource(self, resource, pk_converter='int', *urls, **kwargs):
+    def add_resource(self, resource, *urls, **kwargs):
 
         # fallback to Flask-RESTful `add_resource` implementation with regular resources:
         if not issubclass(resource, PresstResource):
@@ -90,8 +90,7 @@ class PresstApi(Api):
 
         resource_name = resource.resource_name
 
-        if issubclass(resource, ModelResource):
-            self._model_resource_map[resource.get_model()] = resource
+        pk_converter = resource._meta.get('pk_converter', 'int')
 
         urls = [
             '/{0}'.format(resource_name),
