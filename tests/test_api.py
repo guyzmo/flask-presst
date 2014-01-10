@@ -44,7 +44,7 @@ class TestReference(PresstTestCase):
         self.assertEqual(self.api.get_resource_class('Fruit'), self.FruitResource)
         self.assertEqual(self.api.get_resource_class('vegetable'), self.VegetableResource)
         self.assertEqual(self.api.get_resource_class(self.Fruit), self.FruitResource)
-        self.assertEqual(self.api.get_resource_class('test_api.VegetableResource'), self.VegetableResource)
+        self.assertEqual(self.api.get_resource_class('{}.VegetableResource'.format(self.__module__)), self.VegetableResource)
         self.assertEqual(self.api.get_resource_class('VegetableResource', module_name=self.__module__), self.VegetableResource)
 
     def test_get_resource_for_model(self):
