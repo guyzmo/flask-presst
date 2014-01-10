@@ -25,6 +25,7 @@ class TestResourceMethod(PresstTestCase):
                 def process(self, *args):
                     self.actions.append((name,) + args)
                     return args[0]
+
                 setattr(cls, name, process)
 
         for name, func in inspect.getmembers(Processor):

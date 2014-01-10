@@ -3,7 +3,6 @@ from flask.ext.presst import fields, Reference
 from tests import PresstTestCase, TestPresstResource
 
 
-
 class TestReference(PresstTestCase):
     class Fruit(TestPresstResource):
         items = [{'id': 1, 'name': 'Banana'}]

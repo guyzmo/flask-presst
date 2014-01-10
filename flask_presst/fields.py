@@ -26,7 +26,6 @@ class RelationshipFieldBase(Raw):
 
 
 class ToMany(RelationshipFieldBase):
-
     def format(self, item_list):
         marshal_fn = self.resource_class.item_get_resource_uri \
             if not self.embedded else self.resource_class.marshal_item
@@ -37,8 +36,8 @@ class ToMany(RelationshipFieldBase):
     def python_type(self):
         return lambda values: map(Reference(self.resource_class), values)
 
-class ToOne(RelationshipFieldBase):
 
+class ToOne(RelationshipFieldBase):
     def __init__(self, resource, embedded=False, required=False, *args, **kwargs):
         super(ToOne, self).__init__(resource, embedded, *args, **kwargs)
         self.required = required

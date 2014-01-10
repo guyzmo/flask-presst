@@ -65,7 +65,7 @@ class TestModelResource(PresstTestCase):
 
         self.request('POST', '/fruit', {'sweetness': 1}, None, 400)
 
-        self.request('POST', '/tree', {'name': 'Apple'},{'name': 'Apple', 'resource_uri': '/tree/1'}, 200)
+        self.request('POST', '/tree', {'name': 'Apple'}, {'name': 'Apple', 'resource_uri': '/tree/1'}, 200)
 
         self.request('POST', '/fruit', {'name': 'Apple', 'tree': '/tree/1'},
                      {'sweetness': 5, 'name': 'Apple', 'resource_uri': '/fruit/3', 'tree': '/tree/1'}, 200)
@@ -87,7 +87,6 @@ class TestModelResource(PresstTestCase):
             self.request('POST', '/fruit', {'name': 'Apple'}, apple(i), 200)
 
         with self.app.test_client() as client:
-
             response = client.get('/fruit')
             self.assertEqual(response.headers['Link'],
                              '</fruit?page=1&per_page=20>; rel="self"')
@@ -120,18 +119,18 @@ class TestModelResource(PresstTestCase):
 
 
     def test_update(self):
-            self.request('POST', '/fruit', {'name': 'Apple'},
-                         {'sweetness': 5, 'name': 'Apple', 'resource_uri': '/fruit/1', 'tree': None}, 200)
+        self.request('POST', '/fruit', {'name': 'Apple'},
+                     {'sweetness': 5, 'name': 'Apple', 'resource_uri': '/fruit/1', 'tree': None}, 200)
 
-            # TODO implement support for ColumnDefault
-            # FIXME defaults with update
-            # self.request('POST', '/fruit/1', {'name': 'Golden Apple'},
-            #              {'sweetness': 5, 'name': 'Golden Apple', 'resource_uri': '/fruit/1', 'tree': None}, 200)
+        # TODO implement support for ColumnDefault
+        # FIXME defaults with update
+        # self.request('POST', '/fruit/1', {'name': 'Golden Apple'},
+        #              {'sweetness': 5, 'name': 'Golden Apple', 'resource_uri': '/fruit/1', 'tree': None}, 200)
 
-            self.request('POST', '/fruit/1', {'name': 'Golden Apple', 'sweetness': 0},
-                         {'sweetness': 0, 'name': 'Golden Apple', 'resource_uri': '/fruit/1', 'tree': None}, 200)
+        self.request('POST', '/fruit/1', {'name': 'Golden Apple', 'sweetness': 0},
+                     {'sweetness': 0, 'name': 'Golden Apple', 'resource_uri': '/fruit/1', 'tree': None}, 200)
 
-            self.request('POST', '/fruit/1', {}, None, 400)
+        self.request('POST', '/fruit/1', {}, None, 400)
 
     def test_patch(self):
 
@@ -222,9 +221,9 @@ class TestPolymorphicModelResource(PresstTestCase):
         self.request('GET', '/fruit', None, [
             {'color': 'yellow', 'name': 'Banana', 'resource_uri': '/fruit/1'},
             {'citrus': {'color': 'yellow',
-                         'name': 'Lemon',
-                         'resource_uri': '/citrus/2',
-                         'sweetness': 0},
+                        'name': 'Lemon',
+                        'resource_uri': '/citrus/2',
+                        'sweetness': 0},
              'color': 'yellow',
              'name': 'Lemon',
              'resource_uri': '/fruit/2'}
@@ -244,5 +243,5 @@ class TestPolymorphicModelResource(PresstTestCase):
                      {'name': 'Lemon', 'sweetness': 1, 'color': None, 'resource_uri': '/citrus/1'}, 200)
 
         self.request('GET', '/citrus_alt/1', None,
-             {'sweetness': 1, 'resource_uri': '/citrus_alt/1'}, 200)
+                     {'sweetness': 1, 'resource_uri': '/citrus_alt/1'}, 200)
 

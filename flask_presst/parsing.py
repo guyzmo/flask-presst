@@ -6,8 +6,8 @@ from iso8601 import iso8601
 import datetime
 import six
 
-class PresstArgument(Argument):
 
+class PresstArgument(Argument):
     @staticmethod
     def _get_python_type_from_field(field):
         if hasattr(field, 'python_type'):
@@ -17,7 +17,7 @@ class PresstArgument(Argument):
             return {
                 Array: list,
                 KeyValue: dict,
-                JSON: dict,  # NOTE only works with request.json, not request.args.
+                JSON: dict, # NOTE only works with request.json, not request.args.
                 restful_fields.DateTime: datetime.datetime,
                 restful_fields.String: six.text_type,
                 restful_fields.Boolean: bool,

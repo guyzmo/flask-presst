@@ -2,10 +2,13 @@ from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.presst import fields, ModelResource
 from tests import PresstTestCase, TestPresstResource
 
+
 class VegetableResource(TestPresstResource):
     name = fields.String()
+
     class Meta:
         resource_name = 'vegetable'
+
 
 class TestReference(PresstTestCase):
     def setUp(self):
@@ -44,8 +47,10 @@ class TestReference(PresstTestCase):
         self.assertEqual(self.api.get_resource_class('Fruit'), self.FruitResource)
         self.assertEqual(self.api.get_resource_class('vegetable'), self.VegetableResource)
         self.assertEqual(self.api.get_resource_class(self.Fruit), self.FruitResource)
-        self.assertEqual(self.api.get_resource_class('{}.VegetableResource'.format(self.__module__)), self.VegetableResource)
-        self.assertEqual(self.api.get_resource_class('VegetableResource', module_name=self.__module__), self.VegetableResource)
+        self.assertEqual(self.api.get_resource_class('{}.VegetableResource'.format(self.__module__)),
+                         self.VegetableResource)
+        self.assertEqual(self.api.get_resource_class('VegetableResource', module_name=self.__module__),
+                         self.VegetableResource)
 
     def test_get_resource_for_model(self):
         self.assertEqual(self.api.get_resource_for_model(self.Fruit), self.FruitResource)

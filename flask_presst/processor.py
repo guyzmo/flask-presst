@@ -1,5 +1,3 @@
-
-
 class Processor(object):
     """
     The `Processor` class has two types of methods that can be implemented.
@@ -67,4 +65,5 @@ class ProcessorSet(set):
         def _process(*args, **kwargs):
             for processor in self:
                 getattr(processor, item)(*args, **kwargs)
+
         return _process

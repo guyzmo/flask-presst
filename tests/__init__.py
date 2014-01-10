@@ -5,6 +5,7 @@ from flask.ext.restful import abort
 import six
 from flask.ext.presst import PresstResource, PresstApi
 
+
 class TestPresstResource(PresstResource):
     items = []
 

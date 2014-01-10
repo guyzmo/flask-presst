@@ -3,7 +3,7 @@ from werkzeug.exceptions import NotFound
 from werkzeug.urls import url_parse
 
 
-def route_from(url, method = None):
+def route_from(url, method=None):
     # Source: http://stackoverflow.com/questions/19129407/looking-for-inverse-of-url-for-in-flask
     appctx = _app_ctx_stack.top
     reqctx = _request_ctx_stack.top
