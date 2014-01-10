@@ -50,7 +50,7 @@ class TestResourceMethod(PresstTestCase):
 
             class Meta:
                 model = Location
-                processors = [self.passive]
+                processors = [Processor(), self.passive]
 
         self.LocationResource = LocationResource
         self.api.add_resource(LocationResource)
