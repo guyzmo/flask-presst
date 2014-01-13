@@ -33,6 +33,8 @@ The documentation is only being started on just now. In the meant time check out
 
 ## Example code
 
+```python
+
     app = Flask(__name__)
     api = PresstApi(app)
     db = SQLAlchemy(app)
@@ -68,3 +70,4 @@ The documentation is only being started on just now. In the meant time check out
 
     api.add_resource(FruitResource)
     api.add_resource(TreeResource)
+```
