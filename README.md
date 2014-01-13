@@ -7,10 +7,8 @@ Flask-Presst is a Flask extension for REST APIs (that itself extends
 [Flask-RESTful](https://github.com/twilio/flask-restful)) and is designed for the SQLAlchemy ORM in general and
 PostgreSQL in particular.
 
-## Be advised (α)
-
 This extension is a work in progress. It was extracted from another project recently and has not yet been fully rewritten.
-The test coverage is not great and documentation is only being started on just now. That said, for the most part the code is fairly stable.
+The documentation is only being started on just now. In the meant time check out the test cases for guidance.
 
 ## Features
 
@@ -43,6 +41,7 @@ The test coverage is not great and documentation is only being started on just n
         id = db.Column(db.Integer, primary_key=True)
         name = db.Column(db.String(60), nullable=False)
 
+
     class Fruit(db.Model):
         id = db.Column(db.Integer, primary_key=True)
 
@@ -50,7 +49,7 @@ The test coverage is not great and documentation is only being started on just n
         sweetness = db.Column(db.Integer)
 
         tree_id = db.Column(db.Integer, db.ForeignKey(Tree.id))
-        tree = db.relationship(Tree)
+        tree = db.relationship(Tree, backref=backref('fruits', lazy='dynamic'))
 
     db.create_all()
 
@@ -58,11 +57,14 @@ The test coverage is not great and documentation is only being started on just n
         class Meta:
             model = Tree
 
+        fruits = Relationship('Fruit')
+
+
     class FruitResource(ModelResource):
         class Meta:
             model = Fruit
 
-        tree = fields.ToOne(TreeResource)
+        tree = fields.ToOne(TreeResource, embedded=True)
 
     api.add_resource(FruitResource)
     api.add_resource(TreeResource)
