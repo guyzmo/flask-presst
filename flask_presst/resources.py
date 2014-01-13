@@ -298,7 +298,7 @@ class ModelResource(six.with_metaclass(ModelResourceMeta, PresstResource)):
         if isinstance(query, list):
             abort(500, message='Nesting not supported for this resource.')
 
-        cls._processors.filter(request.method, query)
+        cls._processors.filter(request.method, query, cls)
         return query
 
     @classmethod
