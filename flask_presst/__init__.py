@@ -4,6 +4,8 @@ from flask_presst.nested import Relationship, resource_method
 from flask_presst.parsing import PresstArgument
 from flask_presst.references import Reference
 
+__version__ = '0.1'
+
 __all__ = (
     'PresstApi',
     'PresstResource',

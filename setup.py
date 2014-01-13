@@ -2,12 +2,13 @@
 # coding=utf-8
 from __future__ import unicode_literals
 from setuptools import setup, find_packages
+import flask_presst
 
 setup(
     author='Lars Schöning',
     author_email='lays@biosustain.dtu.dk',
     name='Flask-Presst',
-    version='0.1a1',
+    version=flask_presst.__version__,
     packages=find_packages(exclude=['*tests*']),
     url='https://github.com/biosustain/flask-presst',
     license='MIT',
