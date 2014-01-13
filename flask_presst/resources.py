@@ -307,7 +307,14 @@ class ModelResource(six.with_metaclass(ModelResourceMeta, PresstResource)):
 
         cls._processors.before_create_relationship(parent_item, relationship, item)
 
-        getattr(parent_item, relationship).append(item)
+        session = cls._get_session()
+
+        try:
+            getattr(parent_item, relationship).append(item)
+            session.commit()
+        except:
+            session.rollback()
+            raise
 
         cls._processors.after_create_relationship(parent_item, relationship, item)
         return item
@@ -318,7 +325,14 @@ class ModelResource(six.with_metaclass(ModelResourceMeta, PresstResource)):
 
         cls._processors.before_delete_relationship(parent_item, relationship, item)
 
-        getattr(parent_item, relationship).remove(item)
+        session = cls._get_session()
+
+        try:
+            getattr(parent_item, relationship).remove(item)
+            session.commit()
+        except:
+            session.rollback()
+            raise
 
         cls._processors.after_delete_relationship(parent_item, relationship, item)
 
