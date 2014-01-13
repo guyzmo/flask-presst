@@ -22,15 +22,16 @@ class TestPresstResource(PresstResource):
 
     @classmethod
     def get_item_list_for_relationship(cls, relationship, parent_item):
-        return (cls.get_item_for_id(id) for id in parent_item[relationship])
+        return (cls.get_item_for_id(id_) for id_ in parent_item[relationship])
 
     @classmethod
     def create_item_relationship(cls, id_, relationship, parent_item):
-        raise NotImplementedError()
+        parent_item[relationship].append(id_)
+        return cls.get_item_for_id(id_)
 
     @classmethod
     def delete_item_relationship(cls, id_, relationship, parent_item):
-        raise NotImplementedError()
+        parent_item[relationship].remove(id_)
 
     @classmethod
     def create_item(cls, dct):
@@ -70,9 +71,9 @@ class PresstTestCase(unittest.TestCase):
     def request(self, method, url, data, *result):
         with self.app.test_client() as client:
             self.assertEqual(
+                result,
                 self.parse_response(
-                    getattr(client, method.lower())(url, data=json.dumps(data), content_type='application/json')),
-                result)
+                    getattr(client, method.lower())(url, data=json.dumps(data), content_type='application/json')))
 
     def parse_response(self, r):
         v = json.loads(r.data.decode()) if r.status_code == 200 else None

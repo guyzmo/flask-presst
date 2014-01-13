@@ -41,16 +41,23 @@ class TestRelationship(PresstTestCase):
         self.request('PATCH', '/apple/1/seeds', None, None, 405)
         self.request('PATCH', '/apple/1/seeds/1', {}, None, 404)  # NOTE may change to 405.
 
-    @unittest.skip("POST to Relationship not yet implemented")
     def test_post(self):
-        self.request('POST', '/apple/1/seeds/3', None, {"name": "S3", "resource_uri": "/seed/3"}, 200)
-        self.request('GET', '/apple/seed_count', None, 3, 200)
+        self.request('GET', '/seed/3', None, {'name': 'S3', 'resource_uri': '/seed/3'}, 200)
+        self.request('POST', '/apple/1/seeds', '/seed/3', {"name": "S3", "resource_uri": "/seed/3"}, 200)
+        self.request('GET', '/apple/1/seed_count', None, 3, 200)
 
-    @unittest.skip("DELETE from Relationship not yet implemented")
     def test_delete(self):
         self.test_post()
-        self.request('DELETE', '/apple/1/seeds/3', None, None, 204)
-        self.request('GET', '/apple/seed_count', None, 2, 200)
+        self.request('DELETE', '/apple/1/seeds', '/seed/2', None, 204)
+        self.request('GET', '/apple/1/seed_count', None, 2, 200)
+
+    def test_post_missing_item(self):
+        self.request('POST', '/apple/1/seeds', None, None, 400)
+        self.request('POST', '/apple/1/seeds', '/seed/5', None, 404)
+
+    def test_post_item_wrong_resource(self):
+        self.request('POST', '/apple/1/seeds', '/apple/1', None, 400)
+        self.request('POST', '/apple/1/seeds', ['/apple/1'], None, 400)
 
 
 class TestRelationshipField(PresstTestCase):

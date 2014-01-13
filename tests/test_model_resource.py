@@ -1,5 +1,6 @@
 from flask.ext.sqlalchemy import SQLAlchemy
-from flask.ext.presst import ModelResource, fields, PolymorphicModelResource
+from sqlalchemy.orm import backref
+from flask.ext.presst import ModelResource, fields, PolymorphicModelResource, Relationship
 from tests import PresstTestCase
 
 
@@ -24,7 +25,7 @@ class TestModelResource(PresstTestCase):
             sweetness = db.Column(db.Integer, default=5)
 
             tree_id = db.Column(db.Integer, db.ForeignKey(Tree.id))
-            tree = db.relationship(Tree)
+            tree = db.relationship(Tree, backref=backref('fruits', lazy='dynamic'))
 
         db.create_all()
 
@@ -34,6 +35,8 @@ class TestModelResource(PresstTestCase):
         class TreeResource(ModelResource):
             class Meta:
                 model = Tree
+
+            fruits = Relationship('Fruit')
 
         class FruitResource(ModelResource):
             class Meta:
@@ -165,6 +168,19 @@ class TestModelResource(PresstTestCase):
 
         self.api.add_resource(OopsResource)
 
+    def test_relationship_post(self):
+        self.request('POST', '/tree', {'name': 'Apple tree'}, {'name': 'Apple tree', 'resource_uri': '/tree/1'}, 200)
+        self.request('POST', '/fruit', {'name': 'Apple'},
+                     {'name': 'Apple', 'resource_uri': '/fruit/1', 'sweetness': 5, 'tree': None}, 200)
+
+        self.request('POST', '/tree/1/fruits', '/fruit/1',
+                     {'name': 'Apple', 'resource_uri': '/fruit/1', 'sweetness': 5, 'tree': '/tree/1'}, 200)
+        #self.request('GET', '/tree/1/fruit_count', None, 3, 200)
+
+    def test_relationship_delete(self):
+        self.test_relationship_post()
+        self.request('DELETE', '/tree/1/fruits', '/fruit/1', None, 204)
+        #self.request('GET', '/apple/seed_count', None, 2, 200)
 
 class TestPolymorphicModelResource(PresstTestCase):
     def setUp(self):
@@ -244,4 +260,3 @@ class TestPolymorphicModelResource(PresstTestCase):
 
         self.request('GET', '/citrus_alt/1', None,
                      {'sweetness': 1, 'resource_uri': '/citrus_alt/1'}, 200)
-

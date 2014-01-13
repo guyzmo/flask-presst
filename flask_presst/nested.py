@@ -2,7 +2,9 @@ from functools import wraps
 from flask import request
 from flask.ext.restful import reqparse, abort, Resource
 from flask.views import http_method_funcs
+import six
 from werkzeug.utils import cached_property
+from flask.ext.presst.utils.routes import route_from
 from flask_presst.parsing import PresstArgument
 
 
@@ -89,6 +91,20 @@ class Relationship(NestedProxy):
     def dispatch_request(self, instance, *args, **kwargs):
         return getattr(self, request.method.lower())(*args, **kwargs)
 
+    def _resolve_item_id_from_request_data(self):
+        if not isinstance(request.json, six.string_types):
+            abort(400, message='Need resource URI in body of JSON request.')
+
+        resource_class, item_id = self.resource_class.api.parse_resource_uri(request.json)
+
+        if self.resource_class != resource_class:
+            abort(400, message='Wrong resource item type, expected {0}, got {1}'.format(
+                self.resource_class.resource_name,
+                self.resource_class.resource_name
+            ))
+
+        return item_id
+
     def get(self, parent_id):
         parent_item = self.bound_resource.get_item_for_id(parent_id)
         return self.resource_class.marshal_item_list(
@@ -97,22 +113,20 @@ class Relationship(NestedProxy):
     def patch(self, *args, **kwargs):
         abort(405) # collections can't be PATCHed.
 
-    def post(self, parent_id, item_id):
-        """
-
-        GET /A -> [{"resource_uri": '/A/1' .. }]
-        GET /B/1/rel_to_a -> []
-        POST /B/1/rel_to_b/1 -> {"resource_uri": '/A/1' ..}
-        GET /B/1/rel_to_a -> [{"resource_uri": '/A/1' ..}]
-
-        """
+    def post(self, parent_id, item_id=None):
         parent_item = self.bound_resource.get_item_for_id(parent_id)
+
+        if not item_id:  # NOTE not implemented: POST /parent/A/child/B; instead get item from request.data
+            item_id = self._resolve_item_id_from_request_data()
+
         return self.resource_class.marshal_item(
             self.resource_class.create_item_relationship(item_id, self.relationship_name, parent_item))
 
-    def delete(self, parent_id, item_id):
+    def delete(self, parent_id, item_id=None):
         parent_item = self.bound_resource.get_item_for_id(parent_id)
+
+        if not item_id:  # NOTE not implemented: DELETE /parent/A/child/B;, instead get item from request.data
+            item_id = self._resolve_item_id_from_request_data()
+
         self.resource_class.delete_item_relationship(item_id, self.relationship_name, parent_item)
         return None, 204
-
-        pass # TODO look up permissions in nested resource; only support deletion of links; deletion of actual model needs to be explicit.

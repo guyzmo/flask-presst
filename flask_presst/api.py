@@ -29,8 +29,8 @@ class PresstApi(Api):
         :param module_name: module name for lazy loading of class.
         :returns: :class:`PrestoResource`
         """
-        if isinstance(reference, PresstResource):
-            return reference
+        if isinstance(reference, PresstResource):  # pragma: no cover
+            return reference.__class__
         elif inspect.isclass(reference) and issubclass(reference, PresstResource):
             return reference
         elif reference in self._model_resource_map:
@@ -47,7 +47,7 @@ class PresstApi(Api):
                 # TODO check if this is actually a `Resource`
                 return getattr(module, class_name)
 
-    def parse_resource_uri(self, uri, method='GET'):
+    def parse_resource_uri(self, uri):
         if not uri.startswith(self.prefix):
             abort(400, message='Resource URI {} does not begin with API prefix'.format(uri))
 
@@ -103,7 +103,6 @@ class PresstApi(Api):
 
         if issubclass(resource, ModelResource):
             self._model_resource_map[resource.get_model()] = resource
-
         # # add records for 2-level resource methods.
         # for route, nested_type in six.iteritems(resource.nested_types):
         #     #print nested_resource, route
