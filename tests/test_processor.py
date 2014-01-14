@@ -1,6 +1,8 @@
 import inspect
+import types
 from flask.ext.sqlalchemy import SQLAlchemy
-from flask.ext.presst import fields, ModelResource
+from sqlalchemy.orm import backref
+from flask.ext.presst import fields, ModelResource, Relationship
 from flask.ext.presst.processor import Processor
 from tests import PresstTestCase
 
@@ -44,16 +46,31 @@ class TestResourceMethod(PresstTestCase):
             id = db.Column(db.Integer, primary_key=True)
             name = db.Column(db.String(60), nullable=False)
 
+        class Flag(db.Model):
+            id = db.Column(db.Integer, primary_key=True)
+            location_id = db.Column(db.Integer, db.ForeignKey(Location.id), nullable=False)
+            location = db.relationship(Location, backref=backref('flags', lazy='dynamic', cascade='all, delete-orphan'))
+
         db.create_all()
+
+        class FlagResource(ModelResource):
+            location = fields.ToOne('Location', required=True)
+
+            class Meta:
+                model = Flag
 
         class LocationResource(ModelResource):
             name = fields.String()
+
+            flags = Relationship(FlagResource)
 
             class Meta:
                 model = Location
                 processors = [Processor(), self.passive]
 
         self.LocationResource = LocationResource
+
+        self.api.add_resource(FlagResource)
         self.api.add_resource(LocationResource)
 
     def test_passive(self):
@@ -76,12 +93,18 @@ class TestResourceMethod(PresstTestCase):
         self.assertEqual(self.passive.actions[-3][0], 'filter_before_update')
         self.assertEqual(self.passive.last_action[0], 'after_update_item')
 
+        self.request('GET', '/location/1/flags', None, [], 200)
+        self.request('POST', '/flag', {'location': '/location/1'},
+                     {'location': '/location/1', 'resource_uri': '/flag/1'}, 200)
+
         self.request('DELETE', '/location/1', None, None, 204)
         self.assertEqual(self.passive.actions[-3][0], 'filter_before_delete')
         self.assertEqual(self.passive.actions[-2][0], 'before_delete_item')
         self.assertEqual(self.passive.last_action[0], 'after_delete_item')
 
-        # TODO relationships.
+        self.request('GET', '/location/1/flags', None, None, 404)
+        self.request('GET', '/flag', None, [], 200)
+
 
     def test_filter_active(self):
         pass
