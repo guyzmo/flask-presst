@@ -97,6 +97,9 @@ class TestResourceMethod(PresstTestCase):
         self.request('POST', '/flag', {'location': '/location/1'},
                      {'location': '/location/1', 'resource_uri': '/flag/1'}, 200)
 
+        self.request('DELETE', '/location/1/flags', '/flag/1', None, 204)
+        self.request('GET', '/location/1/flags', None, [], 200)
+
         self.request('DELETE', '/location/1', None, None, 204)
         self.assertEqual(self.passive.actions[-3][0], 'filter_before_delete')
         self.assertEqual(self.passive.actions[-2][0], 'before_delete_item')
