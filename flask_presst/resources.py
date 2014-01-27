@@ -365,13 +365,14 @@ class ModelResource(six.with_metaclass(ModelResourceMeta, PresstResource)):
     def update_item(cls, id_, dct, partial=False):
         item = cls.get_item_for_id(id_)
 
-        for key, value in six.iteritems(dct):
-            setattr(item, key, value)
-
         session = cls._get_session()
 
         try:
             cls._processors.before_update_item(item, dct, partial, cls)
+
+            for key, value in six.iteritems(dct):
+                setattr(item, key, value)
+
             session.commit()
         except:
             session.rollback()
