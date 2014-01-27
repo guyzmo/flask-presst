@@ -232,7 +232,8 @@ class ModelResourceMeta(PresstResourceMeta):
                         field_type = list
                     elif isinstance(column.type, postgres.HSTORE):
                         field_type = dict
-                    # TODO postgres.JSON case, backwards compatibility.
+                    elif hasattr(postgres, 'JSON') and isinstance(column.type, postgres.JSON):
+                        field_type = dict
                     else:
                         field_type = column.type.python_type
 
