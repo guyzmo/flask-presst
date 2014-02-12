@@ -31,6 +31,7 @@ class PresstResourceMeta(MethodViewType):
             class_._id_field = meta.get('id_field', 'id')
             class_._required_fields = meta.get('required_fields', [])
             class_._fields = fields = dict()
+            class_._read_only_fields = set(meta.get('read_only_fields', []))
             class_._meta = meta
 
             for name, m in six.iteritems(members):
@@ -58,6 +59,7 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
     _meta = None
     _id_field = None
     _fields = None
+    _read_only_fields = None
     _required_fields = None
 
     def get(self, id=None, route=None, **kwargs):
@@ -185,7 +187,8 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
         parser = reqparse.RequestParser(argument_class=PresstArgument)
 
         for name in limit_fields or self._fields: # FIXME handle this in PresstArgument.
-            parser.add_argument(name, type=self._fields[name], required=name in self._required_fields)
+            if name not in self._read_only_fields:
+                parser.add_argument(name, type=self._fields[name], required=name in self._required_fields)
 
         return parser.parse_args()
 
