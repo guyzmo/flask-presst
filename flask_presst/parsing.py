@@ -1,3 +1,4 @@
+from email.utils import parsedate_to_datetime
 import inspect
 from flask.ext.restful import fields as restful_fields
 from flask.ext.restful.reqparse import Argument
@@ -37,8 +38,14 @@ class PresstArgument(Argument):
 
             # handle date and datetime:
             if issubclass(self.type, datetime.date):
-                # TODO .date() if self.type is datetime.date.
-                return iso8601.parse_date(value)
+                try: # RFC822-formatted strings are now the default:
+                    dt = parsedate_to_datetime(value)
+                except TypeError: # ISO8601 fallback:
+                    dt = iso8601.parse_date(value)
+
+                if self.type is datetime.date:
+                    return dt.date()
+                return dt
 
         try:
             return self.type(value, self.name, op)

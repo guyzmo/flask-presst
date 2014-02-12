@@ -26,6 +26,7 @@ class ParsingTest(PresstTestCase):
 
     def test_parsing_fields(self):
         parser = reqparse.RequestParser(argument_class=PresstArgument)
+        parser.add_argument('date_rfc', type=fields.DateTime())
         parser.add_argument('date', type=fields.DateTime())
         parser.add_argument('none', type=fields.String())
         parser.add_argument('text', type=fields.String())
@@ -35,6 +36,7 @@ class ParsingTest(PresstTestCase):
 
         with self.app.test_request_context('/',
                 data=json.dumps({
+                    'date_rfc': 'Wed, 02 Oct 2002 08:00:00 GMT',
                     'date': '2014-01-10T12:18Z',
                     'int': -1,
                     'text': 'text',
@@ -43,7 +45,9 @@ class ParsingTest(PresstTestCase):
                 content_type='application/json'):
 
             self.assertEqual(parser.parse_args(),
-                             {'date': datetime(2014, 1, 10, 12, 18, tzinfo=UTC),
+                             {
+                              'date_rfc': datetime(2002, 10, 2, 8, 0, tzinfo=UTC),
+                              'date': datetime(2014, 1, 10, 12, 18, tzinfo=UTC),
                               'int': -1,
                               'json': [1, {'a': 2}],
                               'none': None,
