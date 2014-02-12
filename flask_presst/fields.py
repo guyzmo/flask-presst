@@ -58,3 +58,8 @@ class KeyValue(Raw):
 
 class JSON(Raw):
     pass
+
+
+class Date(Raw):
+    def format(self, value):
+        return value.strftime('%Y-%m-%d')

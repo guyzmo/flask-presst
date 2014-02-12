@@ -7,7 +7,7 @@ from flask.views import MethodViewType
 from sqlalchemy.dialects import postgres
 from sqlalchemy.orm import class_mapper
 from flask.ext.presst.processor import ProcessorSet
-from flask_presst.fields import RelationshipFieldBase, Array, KeyValue
+from flask_presst.fields import RelationshipFieldBase, Array, KeyValue, Date
 from flask_presst.nested import NestedProxy
 from flask_presst.parsing import PresstArgument
 import six
@@ -269,7 +269,7 @@ class ModelResource(six.with_metaclass(ModelResourceMeta, PresstResource)):
             bool: Boolean,
             list: Array,
             dict: KeyValue,
-            datetime.date: DateTime,
+            datetime.date: Date,
             datetime.datetime: DateTime # TODO extend with JSON, dict (HSTORE) etc.
         }[python_type]
 
