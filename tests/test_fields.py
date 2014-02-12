@@ -1,5 +1,5 @@
 from datetime import datetime
-from flask.ext.presst import fields
+from flask_presst import fields
 from tests import PresstTestCase, TestPresstResource
 from pytz import UTC
 
