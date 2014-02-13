@@ -188,7 +188,8 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
 
         for name in limit_fields or self._fields: # FIXME handle this in PresstArgument.
             if name not in self._read_only_fields:
-                parser.add_argument(name, type=self._fields[name], required=name in self._required_fields)
+                required = name in self._required_fields
+                parser.add_argument(name, type=self._fields[name], required=required, ignore=not required)
 
         return parser.parse_args()
 
