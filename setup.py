@@ -7,7 +7,7 @@ setup(
     author='Lars Schöning',
     author_email='lays@biosustain.dtu.dk',
     name='Flask-Presst',
-    version='0.1.2',
+    version='0.1.3',
     packages=find_packages(exclude=['*tests*']),
     url='https://github.com/biosustain/flask-presst',
     license='MIT',
@@ -23,4 +23,15 @@ setup(
         'iso8601>=0.1.8',
         'six>=1.3.0'
     ],
+    classifiers=[
+        'Development Status :: 4 - Beta',
+        'Environment :: Web Environment',
+        'Intended Audience :: Developers',
+        'License :: OSI Approved :: MIT License',
+        'Operating System :: OS Independent',
+        'Programming Language :: Python',
+        'Programming Language :: Python :: 3',
+        'Topic :: Internet :: WWW/HTTP',
+        'Topic :: Software Development :: Libraries :: Python Modules'
+    ]
 )
