@@ -1,6 +1,7 @@
 """
 Contains some additional field types that are not included in Flask-RESTful.
 """
+import datetime
 from flask.ext.restful.fields import *
 from werkzeug.utils import cached_property
 from flask_presst.references import Reference
@@ -49,17 +50,23 @@ class ToOne(RelationshipFieldBase):
 
 
 class Array(Raw):
-    pass
+    python_type = list
 
 
 class KeyValue(Raw):
-    pass
+    python_type = dict
 
 
 class JSON(Raw):
-    pass
+
+    @staticmethod
+    def python_type(value):
+        return value  # NOTE only works with request.json, not request.args.
 
 
 class Date(Raw):
+    python_type = datetime.date
+
     def format(self, value):
         return value.strftime('%Y-%m-%d')
+

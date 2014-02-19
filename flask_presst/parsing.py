@@ -16,10 +16,6 @@ class PresstArgument(Argument):
 
         try:
             return {
-                Array: list,
-                KeyValue: dict,
-                JSON: lambda value: value, # NOTE only works with request.json, not request.args.
-                Date: datetime.date,
                 restful_fields.DateTime: datetime.datetime,
                 restful_fields.String: six.text_type,
                 restful_fields.Boolean: bool,
