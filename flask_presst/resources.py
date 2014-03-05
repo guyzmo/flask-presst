@@ -7,7 +7,6 @@ from flask.views import MethodViewType
 from sqlalchemy.dialects import postgres
 from sqlalchemy.orm import class_mapper
 from flask.ext.presst.processor import ProcessorSet
-from flask.ext.presst.signals import before_create_relationship
 from flask_presst.fields import RelationshipFieldBase, Array, KeyValue, Date
 from flask_presst.nested import NestedProxy
 from flask_presst.parsing import PresstArgument
@@ -308,7 +307,6 @@ class ModelResource(six.with_metaclass(ModelResourceMeta, PresstResource)):
     def create_item_relationship(cls, id_, relationship, parent_item):
         item = cls.get_item_for_id(id_)
 
-        before_create_relationship.send(cls, parent_item, relationship, item)
         cls._processors.before_create_relationship(parent_item, relationship, item)
 
         session = cls._get_session()
