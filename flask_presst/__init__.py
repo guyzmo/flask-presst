@@ -14,5 +14,5 @@ __all__ = (
     'resource_method',
 
     'PresstArgument',
-    'Reference'
+    'Reference',
 )

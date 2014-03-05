@@ -3,7 +3,7 @@ import json
 from flask.ext.restful import reqparse
 from pytz import UTC
 from flask.ext.presst import PresstArgument, fields
-from tests import PresstTestCase
+from tests import PresstTestCase, TestPresstResource
 
 
 class ParsingTest(PresstTestCase):
@@ -52,3 +52,28 @@ class ParsingTest(PresstTestCase):
                               'json': [1, {'a': 2}],
                               'none': None,
                               'text': 'text'})
+
+    def test_parse_resource_field(self):
+        class PressResource(TestPresstResource):
+            items = [{'id': 1, 'name': 'Press 1'}]
+
+            name = fields.String()
+
+            class Meta:
+                resource_name = 'press'
+
+        self.api.add_resource(PressResource)
+
+        parser = reqparse.RequestParser(argument_class=PresstArgument)
+
+        parser.add_argument('press', type=fields.ToOne('press'))
+
+        # app context required to look up resource
+        with self.assertRaises(RuntimeError):
+            fields.ToOne('press').python_type
+
+        with self.app.test_request_context('/',
+                data=json.dumps({'press': '/press/1'}),
+                content_type='application/json'):
+
+            self.assertEqual({'press': {'id': 1, 'name': 'Press 1'}}, parser.parse_args())

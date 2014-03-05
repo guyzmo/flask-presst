@@ -1,5 +1,5 @@
 import datetime
-from flask import request, current_app
+from flask import request, current_app, _request_ctx_stack
 from flask.ext.restful import reqparse, Resource, abort, marshal
 from flask.ext.restful.fields import Boolean, String, Integer, DateTime, Raw
 from flask.ext.sqlalchemy import BaseQuery, Pagination, get_state

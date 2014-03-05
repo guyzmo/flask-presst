@@ -2,6 +2,7 @@
 Contains some additional field types that are not included in Flask-RESTful.
 """
 import datetime
+from flask import current_app
 from flask.ext.restful.fields import *
 from werkzeug.utils import cached_property
 from flask_presst.references import Reference
@@ -23,7 +24,8 @@ class RelationshipFieldBase(Raw):
     def resource_class(self):
         if self._resource == 'self':
             return self.bound_resource
-        return self.bound_resource.api.get_resource_class(self._resource, self.bound_resource.__module__)
+        return current_app.presst.get_resource_class(self._resource,
+                                                     getattr(self.bound_resource, '__module__', None))
 
 
 class ToMany(RelationshipFieldBase):

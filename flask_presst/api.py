@@ -1,5 +1,6 @@
 from importlib import import_module
 import inspect
+from flask import current_app
 from flask.ext.restful import Api, abort
 import six
 from flask_presst.resources import PresstResource, ModelResource
@@ -12,6 +13,10 @@ class PresstApi(Api):
         self._presst_resources = {}
         self._presst_resource_insts = {}
         self._model_resource_map = {}
+
+    def _init_app(self, app):
+        super(PresstApi, self)._init_app(app)
+        app.presst = self
 
     def get_resource_class(self, reference, module_name=None):
         """
@@ -27,7 +32,7 @@ class PresstApi(Api):
 
         :param reference: The resource reference
         :param module_name: module name for lazy loading of class.
-        :returns: :class:`PrestoResource`
+        :return: :class:`PrestoResource`
         """
         if isinstance(reference, PresstResource):  # pragma: no cover
             return reference.__class__
@@ -44,8 +49,7 @@ class PresstApi(Api):
                 else:
                     class_name = reference
                 module = import_module(module_name)
-                # TODO check if this is actually a `Resource`
-                return getattr(module, class_name)
+                return getattr(module, class_name)  # TODO check if this is actually a `Resource`
 
     def parse_resource_uri(self, uri):
         if not uri.startswith(self.prefix):

@@ -1,4 +1,5 @@
 import unittest
+from flask.ext.restful import marshal_with
 from flask.ext.presst import fields, Relationship, resource_method
 from tests import TestPresstResource, PresstTestCase
 
@@ -24,6 +25,12 @@ class TestRelationship(PresstTestCase):
             @resource_method('GET')
             def seed_count(self, apple):
                 return len(apple['seeds'])
+
+            @resource_method('GET')
+            @marshal_with({'first': fields.ToOne('seed', embedded=True), 'id': fields.Integer()})
+            def first_seed(self, apple):
+                first_seed_id = apple['seeds'][0]
+                return {'first': Seed.get_item_for_id(first_seed_id), 'id': first_seed_id}
 
         self.Apple = Apple
         self.api.add_resource(Apple)
@@ -58,6 +65,10 @@ class TestRelationship(PresstTestCase):
     def test_post_item_wrong_resource(self):
         self.request('POST', '/apple/1/seeds', '/apple/1', None, 400)
         self.request('POST', '/apple/1/seeds', ['/apple/1'], None, 400)
+
+    def test_marshal(self):
+        self.request('GET', '/apple/1/first_seed', None,
+                     {'first': {'name': 'S1', 'resource_uri': '/seed/1'}, 'id': 1}, 200)
 
 
 class TestRelationshipField(PresstTestCase):
