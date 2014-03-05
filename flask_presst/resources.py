@@ -293,8 +293,7 @@ class ModelResource(six.with_metaclass(ModelResourceMeta, PresstResource)):
         if isinstance(query, list):
             abort(500, message='Nesting not supported for this resource.')
 
-        cls._processors.filter(request.method, query, cls)
-        return query
+        return cls._processors.filter(query, request.method, cls)
 
     @classmethod
     def get_item_list_for_relationship(cls, relationship, parent_item):
@@ -303,8 +302,7 @@ class ModelResource(six.with_metaclass(ModelResourceMeta, PresstResource)):
         if isinstance(query, list):
             abort(500, message='Nesting not supported for this resource.')
 
-        cls._processors.filter(request.method, query, cls)
-        return query
+        return cls._processors.filter(query, request.method, cls)
 
     @classmethod
     def create_item_relationship(cls, id_, relationship, parent_item):

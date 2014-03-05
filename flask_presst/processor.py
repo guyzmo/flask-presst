@@ -7,7 +7,7 @@ class Processor(object):
     are committed.
     """
 
-    def filter(self, method, query, resource_class):
+    def filter(self, query, method, resource_class):
         if method in ('HEAD', 'GET'):
             return self.filter_before_read(query, resource_class)
         elif method in ('POST', 'PATCH'):
@@ -29,8 +29,6 @@ class Processor(object):
     def before_create_item(self, item, resource_class):
         """When used with :class:`ModelResource`, this method is called before the commit."""
         pass
-
-    # TODO create hooks & test processor.
 
     def after_create_item(self, item, resource_class):
         pass
@@ -61,6 +59,12 @@ class Processor(object):
 
 
 class ProcessorSet(set):
+
+    def filter(self, query, *args, **kwargs):
+        for processor in self:
+            query = processor.filter(query, *args, **kwargs)
+        return query
+
     def __getattr__(self, item):
         def _process(*args, **kwargs):
             for processor in self:
