@@ -1,6 +1,5 @@
 from importlib import import_module
 import inspect
-from flask import current_app
 from flask.ext.restful import Api, abort
 import six
 from flask_presst.resources import PresstResource, ModelResource

@@ -6,7 +6,10 @@ from flask.ext.sqlalchemy import BaseQuery, Pagination, get_state
 from flask.views import MethodViewType
 from sqlalchemy.dialects import postgres
 from sqlalchemy.orm import class_mapper
-from flask.ext.presst.processor import ProcessorSet
+from flask_presst.processor import ProcessorSet
+from flask_presst.signals import before_create_item, after_create_item, before_create_relationship, \
+    after_create_relationship, before_delete_relationship, after_delete_relationship, before_update_item, \
+    before_delete_item, after_delete_item, after_update_item
 from flask_presst.fields import RelationshipFieldBase, Array, KeyValue, Date
 from flask_presst.nested import NestedProxy
 from flask_presst.parsing import PresstArgument
@@ -307,7 +310,10 @@ class ModelResource(six.with_metaclass(ModelResourceMeta, PresstResource)):
     def create_item_relationship(cls, id_, relationship, parent_item):
         item = cls.get_item_for_id(id_)
 
-        cls._processors.before_create_relationship(parent_item, relationship, item)
+        before_create_relationship.send(cls,
+                                        parent_item=parent_item,
+                                        relationship=relationship,
+                                        item=item)
 
         session = cls._get_session()
 
@@ -318,14 +324,20 @@ class ModelResource(six.with_metaclass(ModelResourceMeta, PresstResource)):
             session.rollback()
             raise
 
-        cls._processors.after_create_relationship(parent_item, relationship, item)
+        after_create_relationship.send(cls,
+                                       parent_item=parent_item,
+                                       relationship=relationship,
+                                       item=item)
         return item
 
     @classmethod
     def delete_item_relationship(cls, id_, relationship, parent_item):
         item = cls.get_item_for_id(id_)
 
-        cls._processors.before_delete_relationship(parent_item, relationship, item)
+        before_delete_relationship.send(cls,
+                                        parent_item=parent_item,
+                                        relationship=relationship,
+                                        item=item)
 
         session = cls._get_session()
 
@@ -336,7 +348,10 @@ class ModelResource(six.with_metaclass(ModelResourceMeta, PresstResource)):
             session.rollback()
             raise
 
-        cls._processors.after_delete_relationship(parent_item, relationship, item)
+        after_delete_relationship.send(cls,
+                                       parent_item=parent_item,
+                                       relationship=relationship,
+                                       item=item)
 
     @classmethod
     def get_item_for_id(cls, id_):
@@ -349,7 +364,7 @@ class ModelResource(six.with_metaclass(ModelResourceMeta, PresstResource)):
         for key, value in six.iteritems(dct):
             setattr(item, key, value)
 
-        cls._processors.before_create_item(item, cls)
+        before_create_item.send(cls, item=item)
 
         session = cls._get_session()
 
@@ -360,7 +375,7 @@ class ModelResource(six.with_metaclass(ModelResourceMeta, PresstResource)):
             session.rollback()
             raise
 
-        cls._processors.after_create_item(item, cls)
+        after_create_item.send(cls, item=item)
         return item
 
     @classmethod
@@ -370,7 +385,7 @@ class ModelResource(six.with_metaclass(ModelResourceMeta, PresstResource)):
         session = cls._get_session()
 
         try:
-            cls._processors.before_update_item(item, dct, partial, cls)
+            before_update_item.send(cls, item=item, changes=dct, partial=partial)
 
             for key, value in six.iteritems(dct):
                 setattr(item, key, value)
@@ -380,20 +395,20 @@ class ModelResource(six.with_metaclass(ModelResourceMeta, PresstResource)):
             session.rollback()
             raise
 
-        cls._processors.after_update_item(item, cls)
+        after_update_item.send(cls, item=item)
         return item
 
     @classmethod
     def delete_item(cls, id_):
         item = cls.get_item_for_id(id_)
 
-        cls._processors.before_delete_item(item, cls)
+        before_delete_item.send(cls, item=item)
 
         session = cls._get_session()
         session.delete(item)
         session.commit()
 
-        cls._processors.after_delete_item(item, cls)
+        after_delete_item.send(cls, item=item)
 
     _pagination_parser = reqparse.RequestParser()
     _pagination_parser.add_argument('per_page', location='args', type=int, default=20) # 20

@@ -1,8 +1,6 @@
-import inspect
-import types
 from flask.ext.sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import backref
-from flask.ext.presst import fields, ModelResource, Relationship
+from flask.ext.presst import signals, fields, ModelResource, Relationship
 from flask.ext.presst.processor import Processor
 from tests import PresstTestCase
 
@@ -10,31 +8,6 @@ from tests import PresstTestCase
 class TestResourceMethod(PresstTestCase):
     def setUp(self):
         super(TestResourceMethod, self).setUp()
-
-        class LastActionProcessor(Processor):
-            def __init__(self):
-                self.actions = []
-
-            @property
-            def last_action(self):
-                try:
-                    return self.actions[-1]
-                except IndexError:
-                    return None
-
-            @classmethod
-            def add_method(cls, name):
-                def process(self, *args):
-                    self.actions.append((name,) + args)
-                    return args[0]
-
-                setattr(cls, name, process)
-
-        for name, func in inspect.getmembers(Processor):
-            if 'before_' in name or 'after_' in name:
-                LastActionProcessor.add_method(name)
-
-        self.passive = LastActionProcessor()
 
         app = self.app
         app.config['SQLALCHEMY_ENGINE'] = 'sqlite://'
@@ -53,11 +26,56 @@ class TestResourceMethod(PresstTestCase):
 
         db.create_all()
 
+        class Recorder(object):
+            def __init__(self):
+                self.actions = []
+                self.callbacks = {}
+
+            @property
+            def last_action(self):
+                try:
+                    return self.actions[-1]
+                except IndexError:
+                    return None
+
+            def __call__(self, *args, **kwargs):
+                self.actions.append(args + (kwargs,))
+
+            def callback_for(self, name):
+                def callback(*args, **kwargs):
+                    self(name, *args, **kwargs)
+
+                # signal listeners are a weak dictionary, therefore need to store here:
+                self.callbacks[name] = callback
+                return callback
+
+
+        class PassiveProcessor(Processor):
+
+            def __init__(self, recorder):
+                self.recorder = recorder
+
+            def filter_before_read(self, query, resource_class):
+                self.recorder('filter_before_read', query, resource_class)
+                return query
+
+            def filter_before_update(self, query, resource_class):
+                self.recorder('filter_before_update', query, resource_class)
+                return query
+
+            def filter_before_delete(self, query, resource_class):
+                self.recorder('filter_before_delete', query, resource_class)
+                return query
+
+        self.recorder = record = Recorder()
+
+
         class FlagResource(ModelResource):
             location = fields.ToOne('Location', required=True)
 
             class Meta:
                 model = Flag
+
 
         class LocationResource(ModelResource):
             name = fields.String()
@@ -66,12 +84,14 @@ class TestResourceMethod(PresstTestCase):
 
             class Meta:
                 model = Location
-                processors = [Processor(), self.passive]
+                processors = [Processor(), PassiveProcessor(record)]
+
 
         class ActiveProcessor(Processor):
 
             def filter_before_read(self, query, resource_class):
                 return query.filter(Location.name.startswith('H'))
+
 
         class LimitedLocationResource(ModelResource):
             name = fields.String()
@@ -81,6 +101,21 @@ class TestResourceMethod(PresstTestCase):
                 processors = [ActiveProcessor()]
                 resource_name = 'limitedlocation'
 
+
+        for signal in [
+            signals.before_create_item,
+            signals.after_create_item,
+            signals.before_update_item,
+            signals.after_update_item,
+            signals.before_delete_item,
+            signals.after_delete_item,
+            signals.before_create_relationship,
+            signals.after_create_relationship,
+            signals.before_delete_relationship,
+            signals.after_delete_relationship]:
+
+            signal.connect(record.callback_for(signal.name.replace('-', '_')), LocationResource)
+
         self.LocationResource = LocationResource
 
         self.api.add_resource(FlagResource)
@@ -88,24 +123,27 @@ class TestResourceMethod(PresstTestCase):
         self.api.add_resource(LimitedLocationResource)
 
     def test_passive(self):
-        self.assertEqual(self.passive.last_action, None)
+        self.assertEqual(self.recorder.last_action, None)
 
         self.request('GET', '/location', None, [], 200)
-        self.assertEqual(self.passive.last_action[::2], ('filter_before_read', self.LocationResource))
+        self.assertEqual(self.recorder.last_action[::2], ('filter_before_read', self.LocationResource))
 
         self.request('POST', '/location', {'name': 'Yard'}, {'name': 'Yard', 'resource_uri': '/location/1'}, 200)
-        self.assertEqual(self.passive.actions[-3][::2], ('filter_before_read', self.LocationResource))
-        self.assertEqual(self.passive.actions[-2][0], 'before_create_item')
-        self.assertEqual(self.passive.actions[-1][0], 'after_create_item')
+        self.assertEqual(self.recorder.actions[-3][::2], ('filter_before_read', self.LocationResource))
+        self.assertEqual(self.recorder.actions[-2][0], 'before_create_item')
+        self.assertEqual(self.recorder.actions[-1][0], 'after_create_item')
 
         self.request('POST', '/location/1', {'name': 'House'}, {'name': 'House', 'resource_uri': '/location/1'}, 200)
-        self.assertEqual(self.passive.actions[-3][0], 'filter_before_update')
-        self.assertEqual(self.passive.actions[-2][::2][0:2], ('before_update_item', {'name': 'House'}))
-        self.assertEqual(self.passive.last_action[0], 'after_update_item')
+        self.assertEqual(self.recorder.actions[-3][0], 'filter_before_update')
+
+        self.assertEqual(self.recorder.actions[-2][::2][0], 'before_update_item')
+        self.assertEqual(self.recorder.actions[-2][::2][1]['changes'], {'name': u'House'})
+
+        self.assertEqual(self.recorder.last_action[0], 'after_update_item')
 
         self.request('PATCH', '/location/1', {}, {'name': 'House', 'resource_uri': '/location/1'}, 200)
-        self.assertEqual(self.passive.actions[-3][0], 'filter_before_update')
-        self.assertEqual(self.passive.last_action[0], 'after_update_item')
+        self.assertEqual(self.recorder.actions[-3][0], 'filter_before_update')
+        self.assertEqual(self.recorder.last_action[0], 'after_update_item')
 
         self.request('GET', '/location/1/flags', None, [], 200)
         self.request('POST', '/flag', {'location': '/location/1'},
@@ -115,9 +153,9 @@ class TestResourceMethod(PresstTestCase):
         self.request('GET', '/location/1/flags', None, [], 200)
 
         self.request('DELETE', '/location/1', None, None, 204)
-        self.assertEqual(self.passive.actions[-3][0], 'filter_before_delete')
-        self.assertEqual(self.passive.actions[-2][0], 'before_delete_item')
-        self.assertEqual(self.passive.last_action[0], 'after_delete_item')
+        self.assertEqual(self.recorder.actions[-3][0], 'filter_before_delete')
+        self.assertEqual(self.recorder.actions[-2][0], 'before_delete_item')
+        self.assertEqual(self.recorder.last_action[0], 'after_delete_item')
 
         self.request('GET', '/location/1/flags', None, None, 404)
         self.request('GET', '/flag', None, [], 200)
