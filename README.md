@@ -33,41 +33,169 @@ The documentation is only being started on just now. In the meant time check out
 
 ## Example code
 
+From `examples/modelresource_example.py`:
+
 ```python
+app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite://'
 
-    app = Flask(__name__)
-    api = PresstApi(app)
-    db = SQLAlchemy(app)
+api = PresstApi(app)
 
-    class Tree(db.Model):
-        id = db.Column(db.Integer, primary_key=True)
-        name = db.Column(db.String(60), nullable=False)
+db = SQLAlchemy(app)
 
-
-    class Fruit(db.Model):
-        id = db.Column(db.Integer, primary_key=True)
-
-        name = db.Column(db.String(60), nullable=False)
-        sweetness = db.Column(db.Integer)
-
-        tree_id = db.Column(db.Integer, db.ForeignKey(Tree.id))
-        tree = db.relationship(Tree, backref=backref('fruits', lazy='dynamic'))
-
-    db.create_all()
-
-    class TreeResource(ModelResource):
-        class Meta:
-            model = Tree
-
-        fruits = Relationship('Fruit')
+class Tree(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(60), nullable=False)
 
 
-    class FruitResource(ModelResource):
-        class Meta:
-            model = Fruit
+class Fruit(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
 
-        tree = fields.ToOne(TreeResource, embedded=True)
+    name = db.Column(db.String(60), nullable=False)
+    sweetness = db.Column(db.Integer)
 
-    api.add_resource(FruitResource)
-    api.add_resource(TreeResource)
+    tree_id = db.Column(db.Integer, db.ForeignKey(Tree.id))
+    tree = db.relationship(Tree, backref=backref('fruits', lazy='dynamic'))
+
+db.create_all()
+
+
+class TreeResource(ModelResource):
+    fruits = Relationship('Fruit')
+
+    class Meta:
+        model = Tree
+
+    @resource_method('GET')
+    def fruit_count(self, tree):
+        return tree.fruits.count()
+
+
+class FruitResource(ModelResource):
+    tree = fields.ToOne(TreeResource, embedded=True)
+
+    class Meta:
+        model = Fruit
+
+
+@before_create_item.connect_via(FruitResource)
+def before_create_fruit(sender, item):
+    item.sweetness += 1  # make extra sweet
+
+api.add_resource(FruitResource)
+api.add_resource(TreeResource)
+
+if __name__ == '__main__':
+    app.run()
+```
+
+### Example session
+
+#### Simple POST
+```http
+POST /tree HTTP/1.1
+Accept: application/json
+Accept-Encoding: gzip, deflate, compress
+Content-Length: 21
+Content-Type: application/json; charset=utf-8
+Host: 127.0.0.1:5000
+User-Agent: HTTPie/0.7.2
+
+{
+    "name": "LemonTree"
+}
+```
+```http
+HTTP/1.0 200 OK
+Content-Length: 48
+Content-Type: application/json
+Date: Thu, 06 Mar 2014 16:16:23 GMT
+Server: Werkzeug/0.9.4 Python/2.7.5
+
+{
+    "name": "LemonTree", 
+    "resource_uri": "/tree/1"
+}
+```
+
+#### POST with ToOne reference
+```http
+POST /fruit HTTP/1.1
+Accept: application/json
+Accept-Encoding: gzip, deflate, compress
+Content-Length: 56
+Content-Type: application/json; charset=utf-8
+Host: 127.0.0.1:5000
+User-Agent: HTTPie/0.7.2
+
+{
+    "name": "Lemon 1", 
+    "sweetness": "0", 
+    "tree": "/tree/1"
+}
+```
+```http
+HTTP/1.0 200 OK
+Content-Length: 121
+Content-Type: application/json
+Date: Thu, 06 Mar 2014 16:16:51 GMT
+Server: Werkzeug/0.9.4 Python/2.7.5
+
+{
+    "name": "Lemon 1", 
+    "resource_uri": "/fruit/1", 
+    "sweetness": 1, 
+    "tree": {
+        "name": "LemonTree", 
+        "resource_uri": "/tree/1"
+    }
+}
+
+```
+
+#### GET from sub-collection
+```http
+GET /tree/1/fruits HTTP/1.1
+Accept: */*
+Accept-Encoding: gzip, deflate, compress
+Host: 127.0.0.1:5000
+User-Agent: HTTPie/0.7.2
+```
+```http
+HTTP/1.0 200 OK
+Content-Length: 123
+Content-Type: application/json
+Date: Thu, 06 Mar 2014 16:23:46 GMT
+Link: </tree/1/fruits?page=1&per_page=20>; rel="self"
+Server: Werkzeug/0.9.4 Python/2.7.5
+
+[
+    {
+        "name": "Lemon 1", 
+        "resource_uri": "/fruit/1", 
+        "sweetness": 1, 
+        "tree": {
+            "name": "LemonTree", 
+            "resource_uri": "/tree/1"
+        }
+    }
+]
+```
+
+#### GET from a resource (item) method
+```http
+GET /tree/1/fruit_count HTTP/1.1
+Accept: */*
+Accept-Encoding: gzip, deflate, compress
+Host: 127.0.0.1:5000
+User-Agent: HTTPie/0.7.2
+```
+```http
+HTTP/1.0 200 OK
+Content-Length: 2
+Content-Type: application/json
+Date: Thu, 06 Mar 2014 16:28:23 GMT
+Server: Werkzeug/0.9.4 Python/2.7.5
+
+1
 ```
