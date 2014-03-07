@@ -6,10 +6,10 @@ from flask.ext.sqlalchemy import BaseQuery, Pagination, get_state
 from flask.views import MethodViewType
 from sqlalchemy.dialects import postgres
 from sqlalchemy.orm import class_mapper
-from flask_presst.processor import ProcessorSet
 from flask_presst.signals import before_create_item, after_create_item, before_create_relationship, \
     after_create_relationship, before_delete_relationship, after_delete_relationship, before_update_item, \
-    before_delete_item, after_delete_item, after_update_item
+    before_delete_item, after_delete_item, after_update_item, on_filter_read, on_filter_update, \
+    on_filter_delete
 from flask_presst.fields import RelationshipFieldBase, Array, KeyValue, Date
 from flask_presst.nested import NestedProxy
 from flask_presst.parsing import PresstArgument
@@ -203,7 +203,6 @@ class ModelResourceMeta(PresstResourceMeta):
 
         if meta:
             class_._model = model = meta.get('model', None)
-            class_._processors = ProcessorSet(meta.get('processors', ()))
 
             if not model:
                 return class_
@@ -260,7 +259,6 @@ class ModelResourceMeta(PresstResourceMeta):
 
 class ModelResource(six.with_metaclass(ModelResourceMeta, PresstResource)):
     _model = None
-    _processors = ProcessorSet()
     _field_types = None
 
     @staticmethod
@@ -285,6 +283,23 @@ class ModelResource(six.with_metaclass(ModelResourceMeta, PresstResource)):
         return cls._model
 
     @classmethod
+    def _process_filter_signal(cls, query, **kwargs):
+        if request.method in ('HEAD', 'GET'):
+            signal = on_filter_read
+        elif request.method in ('POST', 'PATCH'):
+            signal = on_filter_update
+        elif request.method in ('DELETE',):
+            signal = on_filter_delete
+        else:
+            return query
+
+        for _, response in signal.send(cls, **kwargs):
+            if callable(response):
+                query = response(query)
+
+        return query
+
+    @classmethod
     def get_item_list(cls):
         """
         Pagination is only supported for resources accessed through :class:`Relationship` if
@@ -295,7 +310,7 @@ class ModelResource(six.with_metaclass(ModelResourceMeta, PresstResource)):
         if isinstance(query, list):
             abort(500, message='Nesting not supported for this resource.')
 
-        return cls._processors.filter(query, request.method, cls)
+        return cls._process_filter_signal(query)
 
     @classmethod
     def get_item_list_for_relationship(cls, relationship, parent_item):
@@ -304,7 +319,7 @@ class ModelResource(six.with_metaclass(ModelResourceMeta, PresstResource)):
         if isinstance(query, list):
             abort(500, message='Nesting not supported for this resource.')
 
-        return cls._processors.filter(query, request.method, cls)
+        return cls._process_filter_signal(query)
 
     @classmethod
     def create_item_relationship(cls, id_, relationship, parent_item):

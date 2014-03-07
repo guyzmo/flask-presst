@@ -11,7 +11,6 @@ __all__ = (
 
 _signals = Namespace()
 
-
 before_create_item = _signals.signal('before-create-item')
 
 after_create_item = _signals.signal('after-create-item')
@@ -31,3 +30,9 @@ after_create_relationship = _signals.signal('after-create-relationship')
 before_delete_relationship = _signals.signal('before-delete-relationship')
 
 after_delete_relationship = _signals.signal('after-delete-relationship')
+
+on_filter_read = _signals.signal('filter-read')
+
+on_filter_update = _signals.signal('filter-update')
+
+on_filter_delete = _signals.signal('filter-delete')

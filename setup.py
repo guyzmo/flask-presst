@@ -7,7 +7,7 @@ setup(
     author='Lars Schöning',
     author_email='lays@biosustain.dtu.dk',
     name='Flask-Presst',
-    version='0.2.0',
+    version='0.2.1',
     packages=find_packages(exclude=['*tests*']),
     url='https://github.com/biosustain/flask-presst',
     license='MIT',

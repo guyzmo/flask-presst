@@ -1,7 +1,6 @@
 from flask.ext.sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import backref
 from flask.ext.presst import signals, fields, ModelResource, Relationship
-from flask.ext.presst.processor import Processor
 from tests import PresstTestCase
 
 
@@ -49,26 +48,7 @@ class TestResourceMethod(PresstTestCase):
                 self.callbacks[name] = callback
                 return callback
 
-
-        class PassiveProcessor(Processor):
-
-            def __init__(self, recorder):
-                self.recorder = recorder
-
-            def filter_before_read(self, query, resource_class):
-                self.recorder('filter_before_read', query, resource_class)
-                return query
-
-            def filter_before_update(self, query, resource_class):
-                self.recorder('filter_before_update', query, resource_class)
-                return query
-
-            def filter_before_delete(self, query, resource_class):
-                self.recorder('filter_before_delete', query, resource_class)
-                return query
-
         self.recorder = record = Recorder()
-
 
         class FlagResource(ModelResource):
             location = fields.ToOne('Location', required=True)
@@ -84,13 +64,6 @@ class TestResourceMethod(PresstTestCase):
 
             class Meta:
                 model = Location
-                processors = [Processor(), PassiveProcessor(record)]
-
-
-        class ActiveProcessor(Processor):
-
-            def filter_before_read(self, query, resource_class):
-                return query.filter(Location.name.startswith('H'))
 
 
         class LimitedLocationResource(ModelResource):
@@ -98,11 +71,18 @@ class TestResourceMethod(PresstTestCase):
 
             class Meta:
                 model = Location
-                processors = [ActiveProcessor()]
                 resource_name = 'limitedlocation'
 
 
+        @signals.on_filter_read.connect_via(LimitedLocationResource)
+        def on_filter_read(sender):
+            return lambda query: query.filter(Location.name.startswith('H'))
+
+
         for signal in [
+            signals.on_filter_read,
+            signals.on_filter_update,
+            signals.on_filter_delete,
             signals.before_create_item,
             signals.after_create_item,
             signals.before_update_item,
@@ -126,15 +106,15 @@ class TestResourceMethod(PresstTestCase):
         self.assertEqual(self.recorder.last_action, None)
 
         self.request('GET', '/location', None, [], 200)
-        self.assertEqual(self.recorder.last_action[::2], ('filter_before_read', self.LocationResource))
+        self.assertEqual(self.recorder.last_action, ('filter_read', self.LocationResource, {}))
 
         self.request('POST', '/location', {'name': 'Yard'}, {'name': 'Yard', 'resource_uri': '/location/1'}, 200)
-        self.assertEqual(self.recorder.actions[-3][::2], ('filter_before_read', self.LocationResource))
+        self.assertEqual(self.recorder.actions[-3], ('filter_read', self.LocationResource, {}))
         self.assertEqual(self.recorder.actions[-2][0], 'before_create_item')
         self.assertEqual(self.recorder.actions[-1][0], 'after_create_item')
 
         self.request('POST', '/location/1', {'name': 'House'}, {'name': 'House', 'resource_uri': '/location/1'}, 200)
-        self.assertEqual(self.recorder.actions[-3][0], 'filter_before_update')
+        self.assertEqual(self.recorder.actions[-3][0], 'filter_update')
 
         self.assertEqual(self.recorder.actions[-2][::2][0], 'before_update_item')
         self.assertEqual(self.recorder.actions[-2][::2][1]['changes'], {'name': u'House'})
@@ -142,7 +122,7 @@ class TestResourceMethod(PresstTestCase):
         self.assertEqual(self.recorder.last_action[0], 'after_update_item')
 
         self.request('PATCH', '/location/1', {}, {'name': 'House', 'resource_uri': '/location/1'}, 200)
-        self.assertEqual(self.recorder.actions[-3][0], 'filter_before_update')
+        self.assertEqual(self.recorder.actions[-3][0], 'filter_update')
         self.assertEqual(self.recorder.last_action[0], 'after_update_item')
 
         self.request('GET', '/location/1/flags', None, [], 200)
@@ -153,7 +133,7 @@ class TestResourceMethod(PresstTestCase):
         self.request('GET', '/location/1/flags', None, [], 200)
 
         self.request('DELETE', '/location/1', None, None, 204)
-        self.assertEqual(self.recorder.actions[-3][0], 'filter_before_delete')
+        self.assertEqual(self.recorder.actions[-3][0], 'filter_delete')
         self.assertEqual(self.recorder.actions[-2][0], 'before_delete_item')
         self.assertEqual(self.recorder.last_action[0], 'after_delete_item')
 
