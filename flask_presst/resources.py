@@ -6,6 +6,7 @@ from flask.ext.sqlalchemy import BaseQuery, Pagination, get_state
 from flask.views import MethodViewType
 from sqlalchemy.dialects import postgres
 from sqlalchemy.orm import class_mapper
+from sqlalchemy.orm.exc import NoResultFound
 from flask_presst.signals import before_create_item, after_create_item, before_create_relationship, \
     after_create_relationship, before_delete_relationship, after_delete_relationship, before_update_item, \
     before_delete_item, after_delete_item, after_update_item, on_filter_read, on_filter_update, \
@@ -370,7 +371,10 @@ class ModelResource(six.with_metaclass(ModelResourceMeta, PresstResource)):
 
     @classmethod
     def get_item_for_id(cls, id_):
-        return cls.get_item_list().get_or_404(id_)
+        try: # SQLAlchemy's .get() does not work well with .filter()
+            return cls.get_item_list().filter_by(**{cls._id_field: id_}).one()
+        except NoResultFound:
+            abort(404)
 
     @classmethod
     def create_item(cls, dct):
