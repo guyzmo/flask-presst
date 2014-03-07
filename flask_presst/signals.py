@@ -6,7 +6,7 @@ __all__ = (
     'before_delete_item', 'after_delete_item',
     'before_create_relationship', 'after_create_relationship',
     'before_delete_relationship', 'after_delete_relationship',
-    # TODO before_create_child/after_create_child.
+    'on_filter_read', 'on_filter_update', 'on_filter_delete'
 )
 
 _signals = Namespace()
