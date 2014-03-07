@@ -94,12 +94,8 @@ if __name__ == '__main__':
 #### Simple POST
 ```http
 POST /tree HTTP/1.1
-Accept: application/json
-Accept-Encoding: gzip, deflate, compress
 Content-Length: 21
 Content-Type: application/json; charset=utf-8
-Host: 127.0.0.1:5000
-User-Agent: HTTPie/0.7.2
 
 {
     "name": "LemonTree"
@@ -109,8 +105,6 @@ User-Agent: HTTPie/0.7.2
 HTTP/1.0 200 OK
 Content-Length: 48
 Content-Type: application/json
-Date: Thu, 06 Mar 2014 16:16:23 GMT
-Server: Werkzeug/0.9.4 Python/2.7.5
 
 {
     "name": "LemonTree", 
@@ -121,12 +115,8 @@ Server: Werkzeug/0.9.4 Python/2.7.5
 #### POST with ToOne reference
 ```http
 POST /fruit HTTP/1.1
-Accept: application/json
-Accept-Encoding: gzip, deflate, compress
 Content-Length: 56
 Content-Type: application/json; charset=utf-8
-Host: 127.0.0.1:5000
-User-Agent: HTTPie/0.7.2
 
 {
     "name": "Lemon 1", 
@@ -138,8 +128,6 @@ User-Agent: HTTPie/0.7.2
 HTTP/1.0 200 OK
 Content-Length: 121
 Content-Type: application/json
-Date: Thu, 06 Mar 2014 16:16:51 GMT
-Server: Werkzeug/0.9.4 Python/2.7.5
 
 {
     "name": "Lemon 1", 
@@ -156,18 +144,11 @@ Server: Werkzeug/0.9.4 Python/2.7.5
 #### GET from sub-collection
 ```http
 GET /tree/1/fruits HTTP/1.1
-Accept: */*
-Accept-Encoding: gzip, deflate, compress
-Host: 127.0.0.1:5000
-User-Agent: HTTPie/0.7.2
 ```
 ```http
 HTTP/1.0 200 OK
 Content-Length: 123
 Content-Type: application/json
-Date: Thu, 06 Mar 2014 16:23:46 GMT
-Link: </tree/1/fruits?page=1&per_page=20>; rel="self"
-Server: Werkzeug/0.9.4 Python/2.7.5
 
 [
     {
@@ -185,17 +166,11 @@ Server: Werkzeug/0.9.4 Python/2.7.5
 #### GET from a resource (item) method
 ```http
 GET /tree/1/fruit_count HTTP/1.1
-Accept: */*
-Accept-Encoding: gzip, deflate, compress
-Host: 127.0.0.1:5000
-User-Agent: HTTPie/0.7.2
 ```
 ```http
 HTTP/1.0 200 OK
 Content-Length: 2
 Content-Type: application/json
-Date: Thu, 06 Mar 2014 16:28:23 GMT
-Server: Werkzeug/0.9.4 Python/2.7.5
 
 1
 ```
