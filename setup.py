@@ -4,7 +4,7 @@ from __future__ import unicode_literals
 from setuptools import setup, find_packages
 
 setup(
-    author='Lars Schöning',
+    author='Lars Schoening',
     author_email='lays@biosustain.dtu.dk',
     name='Flask-Presst',
     version='0.2.2',
