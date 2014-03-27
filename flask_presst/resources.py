@@ -214,6 +214,12 @@ class ModelResourceMeta(PresstResourceMeta):
             assert len(mapper.primary_key) == 1
 
             class_._id_field = meta.get('id_field', mapper.primary_key[0].name)
+
+            if 'id_field' in meta:
+                class_._model_id_column = getattr(model, meta['id_field'])
+            else:
+                class_._model_id_column = mapper.primary_key[0]
+
             class_._field_types = field_types = {}
 
             class_.resource_name = meta.get('resource_name', model.__tablename__).lower()
@@ -260,6 +266,7 @@ class ModelResourceMeta(PresstResourceMeta):
 
 class ModelResource(six.with_metaclass(ModelResourceMeta, PresstResource)):
     _model = None
+    _model_id_column = None
     _field_types = None
 
     @staticmethod
@@ -371,8 +378,8 @@ class ModelResource(six.with_metaclass(ModelResourceMeta, PresstResource)):
 
     @classmethod
     def get_item_for_id(cls, id_):
-        try: # SQLAlchemy's .get() does not work well with .filter()
-            return cls.get_item_list().filter_by(**{cls._id_field: id_}).one()
+        try:  # SQLAlchemy's .get() does not work well with .filter()
+            return cls.get_item_list().filter(cls._id_column == id_).one()
         except NoResultFound:
             abort(404)
 
