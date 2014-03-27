@@ -379,7 +379,7 @@ class ModelResource(six.with_metaclass(ModelResourceMeta, PresstResource)):
     @classmethod
     def get_item_for_id(cls, id_):
         try:  # SQLAlchemy's .get() does not work well with .filter()
-            return cls.get_item_list().filter(cls._id_column == id_).one()
+            return cls.get_item_list().filter(cls._model_id_column == id_).one()
         except NoResultFound:
             abort(404)
 
