@@ -101,7 +101,6 @@ class TestResourceMethod(PresstTestCase):
                             "type": "integer"
                         }
                     },
-                    "id": "citrus",
                     "links": [
                         {
                             "href": "/citrus/count",
@@ -156,5 +155,8 @@ class TestResourceMethod(PresstTestCase):
                         }
                     }
                 }
+            },
+            "properties": {
+                "citrus": {"$ref": "#/definitions/citrus"}
             }
         }, 200)

@@ -207,7 +207,6 @@ class TestModelResource(PresstTestCase):
                             "type": "integer"
                         }
                     },
-                    "id": "fruit",
                     "links": [
                         {
                             "href": "/fruit/{id}",
@@ -243,7 +242,6 @@ class TestModelResource(PresstTestCase):
                             "type": "string"
                         }
                     },
-                    "id": "tree",
                     "links": [
                         {
                             "href": "/tree/{id}/fruits",
@@ -269,6 +267,10 @@ class TestModelResource(PresstTestCase):
                         "name"
                     ]
                 }
+            },
+            'properties': {
+                'tree': {'$ref': '#/definitions/tree'},
+                'fruit': {'$ref': '#/definitions/fruit'}
             }
         }, 200)
 

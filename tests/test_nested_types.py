@@ -86,7 +86,6 @@ class TestRelationship(PresstTestCase):
                             "type": "string"
                         }
                     },
-                    "id": "apple",
                     "links": [
                         {
                             "href": "/apple/{id}/first_seed",
@@ -132,7 +131,6 @@ class TestRelationship(PresstTestCase):
                             "type": "string"
                         }
                     },
-                    "id": "seed",
                     "links": [
                         {
                             "href": "/seed/{id}",
@@ -144,6 +142,10 @@ class TestRelationship(PresstTestCase):
                         "resource_uri": {"$ref": "#/definitions/seed/definitions/resource_uri"}
                     }
                 }
+            },
+            "properties": {
+                "apple": {"$ref": "#/definitions/apple"},
+                "seed": {"$ref": "#/definitions/seed"}
             }
         }, 200)
 

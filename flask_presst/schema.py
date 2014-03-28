@@ -21,9 +21,9 @@ class Schema(View):
 
     def _get_ref(self, resource, full=False):
         if full:
-            return '#/definitions/{}'.format(resource.endpoint)
+            return {'$ref': '#/definitions/{}'.format(resource.endpoint)}
         else:
-            return '#/definitions/{}/definitions/resource_uri'.format(resource.endpoint)
+            return {'$ref': '#/definitions/{}/definitions/resource_uri'.format(resource.endpoint)}
 
     def _get_field_type(self, field):
 
@@ -51,14 +51,14 @@ class Schema(View):
         elif isinstance(field, fields.DateTime):
             return {'type': 'string', 'format': 'date-time'}
         elif isinstance(field, fields.ToOne):
-            return {'$ref': self._get_ref(field.resource_class, field.embedded)}
+            return self._get_ref(field.resource_class, field.embedded)
         elif isinstance(field, fields.ToMany):
             return {
                 'type': 'array',
-                'items': {'$ref': self._get_ref(field.resource_class, field.embedded)}
+                'items': self._get_ref(field.resource_class, field.embedded)
             }
         elif isinstance(field, Reference):
-            return {'$ref': self._get_ref(field.resource_class)}
+            return self._get_ref(field.resource_class)
 
         else:
             try:
@@ -81,9 +81,8 @@ class Schema(View):
         definitions, properties = self.get_definitions(resource)
 
         resource_definition = {
-            'id': resource.endpoint,
             'definitions': definitions,
-            'properties': dict((name, {'$ref': ref}) for name, ref in properties.items()),
+            'properties': dict((name, ref) for name, ref in properties.items()),
             'links': sorted(self.get_links(resource), key=itemgetter('rel'))
         }
 
@@ -101,14 +100,14 @@ class Schema(View):
             definition = self._get_field_type(field)
 
             if '$ref' in definition:
-                properties[name] = definition['$ref']
+                properties[name] = definition
                 continue
 
             if name in resource._read_only_fields:
                 definition['readOnly'] = True
 
             definitions[name] = definition
-            properties[name] = '#/definitions/{}/definitions/{}'.format(resource.endpoint, name)
+            properties[name] = {'$ref': '#/definitions/{}/definitions/{}'.format(resource.endpoint, name)}
 
         definitions['resource_uri'] = {
             'type': 'string',
@@ -177,7 +176,9 @@ class Schema(View):
 
         self.api._schema_dict = schema = {
             '$schema': 'http://json-schema.org/hyper-schema#',
-            'definitions': definitions
+            'definitions': definitions,
+            'properties': dict((resource.endpoint, self._get_ref(resource, True))
+                                for resource in self.api._presst_resources.values())
         }
 
         return schema, 200
