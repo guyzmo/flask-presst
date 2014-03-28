@@ -52,6 +52,7 @@ def before_create_fruit(sender, item):
 
 api.add_resource(FruitResource)
 api.add_resource(TreeResource)
+api.enable_schema()
 
 if __name__ == '__main__':
     app.run()
