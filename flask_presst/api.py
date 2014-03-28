@@ -96,49 +96,29 @@ class PresstApi(Api):
 
         urls = [
             '/{0}'.format(resource_name),
-            '/{0}/<{1}:id>'.format(resource_name, pk_converter),
-            '/{0}/<{1}:id>/<string:route>'.format(resource_name, pk_converter),
-            '/{0}/<string:route>'.format(resource_name)
-            # FIXME does not allow for collection-wide resource methods in resources with string keys.
+            '/{0}/<{1}:id>'.format(resource_name, pk_converter)
         ]
 
         self._presst_resources[resource_name] = resource
 
         if issubclass(resource, ModelResource):
             self._model_resource_map[resource.get_model()] = resource
-        # # add records for 2-level resource methods.
-        # for route, nested_type in six.iteritems(resource.nested_types):
-        #     #print nested_resource, route
-        #     #print '/{0}/<{1}:parent_id>/{2}'.format(resource_name, pk_converter, route)
-        #
-        #     for relationship, method in nested_type.bound_resource.nested_types.iteritems():
-        #         if not method.collection:  # 2-level nesting is only supported for collection methods.
-        #             continue
-        #
-        #         # print '/{0}/<{1}:parent_id>/{2}/{3}'.format(resource_name, pk_converter, route, relationship)
-        #
-        #     # TODO get all (nested collections) and collection resource methods from resource.
-        #     # TODO deal with recursive nested resources
-        #
-        #
-        #     # if nested_type.collection:
-        #     #     raise NotImplementedError()
-        #     # else:
-        #     #     print  '/{0}/<{1}:parent_id>/{2}'.format(resource_name, pk_converter, route)
-        #         # print 'methods:', nested_type.methods
-        #         # super(PresstApi, self).add_resource(
-        #         #     nested_type,
-        #         #     '/{0}/<{1}:parent_id>/{2}'.format(resource_name, pk_converter, route),
-        #         #     endpoint='{0}_{1}'.format(resource_name, route))
-        #
-        #
-        #     #
-        #     #print (nested_resource, nested_resource_uri)
-        #     #
-        #     #super(ModelApi, self).add_resource(nested_resource, nested_resource_uri)
-        #
-        # # Add resource with provided URL and args:
 
+        for name, child in six.iteritems(resource.nested_types):
+
+            # FIXME routing for blueprints; also needs tests
+            if child.collection:
+                rule = '/{0}/{1}'.format(resource_name, name)
+            else:
+                rule = '/{0}/<{1}:parent_id>/{2}'.format(resource_name, pk_converter, name)
+
+            child_endpoint = '{0}_{1}'.format(resource_name, name)
+            child_view_func = self.output(child.view_factory(child_endpoint, resource))
+
+            self.app.add_url_rule(rule,
+                                  view_func=child_view_func,
+                                  endpoint=child_endpoint,
+                                  methods=child.methods, **kwargs)
 
         super(PresstApi, self).add_resource(resource, *urls, endpoint=resource_name, **kwargs)
 

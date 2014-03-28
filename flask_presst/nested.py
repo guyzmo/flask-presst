@@ -1,7 +1,7 @@
 from functools import wraps
 from flask import request
 from flask.ext.restful import reqparse, abort, Resource
-from flask.views import http_method_funcs
+from flask.views import http_method_funcs, View, MethodView
 import six
 from werkzeug.utils import cached_property
 from flask.ext.presst.utils.routes import route_from
@@ -9,48 +9,62 @@ from flask_presst.parsing import PresstArgument
 
 
 class NestedProxy(object):
-    relationship_name = None
     bound_resource = None
-    collection = False
 
-    def __init__(self, methods=('GET', )):
-        self._methods = methods
+    def __init__(self, methods, collection=False, relationship_name=None):
+        self.methods = methods
+        self.collection = collection
+        self.relationship_name = relationship_name
 
-    def dispatch_request(self, *args, **kwargs):  # pragma: no cover
+    def view_factory(self, name, bound_resource):  # pragma: no cover
         raise NotImplementedError()
 
 
-def resource_method(method='POST', collection=False):
-    class _ResourceMethod(NestedProxy):
-        def __init__(self, fn):
-            super(_ResourceMethod, self).__init__(methods=(method, ))
-            self._fn = fn
-            self._parser = reqparse.RequestParser(argument_class=PresstArgument)
+class _ResourceMethod(NestedProxy):
+    def __init__(self, fn, *args, **kwargs):
+        super(_ResourceMethod, self).__init__(*args, **kwargs)
+        self._fn = fn
+        self._parser = reqparse.RequestParser(argument_class=PresstArgument)
 
-        def add_argument(self, name, location=('json', 'values'), **kwargs):
-            self._parser.add_argument(name, location=location, **kwargs)
+    def add_argument(self, name, location=('json', 'values'), **kwargs):
+        self._parser.add_argument(name, location=location, **kwargs)
 
-        def dispatch_request(self, instance, parent_id, *args, **kwargs):
+    def view_factory(self, name, bound_resource):
+        def view(*args, **kwargs):
 
-            # TODO move into decorator.
-            if request.method not in self._methods:
-                abort(405)
-
-            kwargs.update(self._parser.parse_args())
-
+            # NOTE this may be inefficient with certain collection types that do not support lazy loading:
             if self.collection:
-                # NOTE this may be inefficient with certain collection types that do not support lazy loading.
-                item_or_items = self.bound_resource.get_item_list()
+                item_or_items = bound_resource.get_item_list()
             else:
-                item_or_items = self.bound_resource.get_item_for_id(parent_id)
+                parent_id = kwargs.pop('parent_id')
+                item_or_items = bound_resource.get_item_for_id(parent_id)
 
-            return self._fn.__call__(instance, item_or_items, *args, **kwargs)
+            # noinspection PyCallingNonCallable
+            kwargs.update(self._parser.parse_args())
+            resource_instance = bound_resource()
 
-    _ResourceMethod.collection = collection
-    return _ResourceMethod
+            return self._fn.__call__(resource_instance, item_or_items, *args, **kwargs)
+
+        return view
+
+    def __get__(self, obj, *args, **kwargs):
+        if obj is None:
+            return self
+        return lambda *args, **kwargs: self._fn.__call__(obj, *args, **kwargs)
 
 
-class Relationship(NestedProxy):
+def resource_method(method='POST', collection=False):
+    def wrapper(fn):
+        if isinstance(method, (list, tuple)):
+            methods = method
+        else:
+            methods = [method]
+
+        return wraps(fn)(_ResourceMethod(fn, methods, collection))
+    return wrapper
+
+
+class Relationship(NestedProxy, MethodView):
     """
     Resource Methods:
 
@@ -79,17 +93,25 @@ class Relationship(NestedProxy):
     as any :func:`backref()`.
     """
 
-    def __init__(self, resource, relationship_name=None, *args, **kwargs):
-        super(Relationship, self).__init__(*args, **kwargs)
-        self._resource = resource
+    def __init__(self, resource,
+                 relationship_name=None,
+                 methods=None,
+                 bound_resource=None, *args, **kwargs):
+        super(Relationship, self).__init__(methods or ['GET', 'POST', 'DELETE'])
+        self.resource = resource
         self.relationship_name = relationship_name
+        self.bound_resource = bound_resource
 
-    @cached_property # FIXME won't actually cache unless at class level.
+    @cached_property
     def resource_class(self):
-        return self.bound_resource.api.get_resource_class(self._resource, self.bound_resource.__module__)
+        return self.bound_resource.api.get_resource_class(self.resource, self.bound_resource.__module__)
 
-    def dispatch_request(self, instance, *args, **kwargs):
-        return getattr(self, request.method.lower())(*args, **kwargs)
+    def view_factory(self, name, bound_resource):
+        return self.as_view(name,
+                            bound_resource=bound_resource,
+                            resource=self.resource,
+                            relationship_name=self.relationship_name,
+                            methods=self.methods)
 
     def _resolve_item_id_from_request_data(self):
         if not isinstance(request.json, six.string_types):
@@ -109,9 +131,6 @@ class Relationship(NestedProxy):
         parent_item = self.bound_resource.get_item_for_id(parent_id)
         return self.resource_class.marshal_item_list(
             self.resource_class.get_item_list_for_relationship(self.relationship_name, parent_item))
-
-    def patch(self, *args, **kwargs):
-        abort(405) # collections can't be PATCHed.
 
     def post(self, parent_id, item_id=None):
         parent_item = self.bound_resource.get_item_for_id(parent_id)

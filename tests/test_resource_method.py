@@ -28,7 +28,7 @@ class TestResourceMethod(PresstTestCase):
                 return citrus['sweetness'] > other['sweetness']
 
             @resource_method('POST')
-            def sweeten(self, citrus, by):# citrus, by):
+            def sweeten(self, citrus, by):
                 citrus['sweetness'] += by
                 return self.marshal_item(citrus)
 
@@ -36,6 +36,7 @@ class TestResourceMethod(PresstTestCase):
 
         Citrus.sweeter_than.add_argument('other', type=Reference(Citrus))
 
+        self.Citrus = Citrus
         self.api.add_resource(Citrus)
 
     def test_item_method(self):
@@ -50,6 +51,13 @@ class TestResourceMethod(PresstTestCase):
     def test_arguments(self):
         # required & verification & defaults.
         pass
+
+    def test_callable(self):
+        with self.app.test_request_context('/citrus/1'):
+            instance = self.Citrus()
+            instance.sweeten(self.Citrus.get_item_for_id(1), 5)
+
+            self.assertEqual({'id': 1, 'name': 'Orange', 'sweetness': 8}, self.Citrus.get_item_for_id(1))
 
     def test_convert_argument(self):
         with self.app.test_client() as client:
