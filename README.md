@@ -2,6 +2,8 @@
 
 [![Build Status](https://travis-ci.org/biosustain/flask-presst.png)](https://travis-ci.org/biosustain/flask-presst)
 [![Coverage Status](https://coveralls.io/repos/biosustain/flask-presst/badge.png?branch=master)](https://coveralls.io/r/biosustain/flask-presst?branch=master)
+[![PyPI version](https://badge.fury.io/py/Flask-Presst.png)](http://badge.fury.io/py/Flask-Presst)
+[![Requirements Status](https://requires.io/github/biosustain/flask-presst/requirements.png?branch=master)](https://requires.io/github/biosustain/flask-presst/requirements/?branch=master)
 
 Flask-Presst is a Flask extension for REST APIs (that itself extends
 [Flask-RESTful](https://github.com/twilio/flask-restful)) and is designed for the SQLAlchemy ORM in general and
