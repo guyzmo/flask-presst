@@ -10,7 +10,7 @@ Flask-Presst is a Flask extension for REST APIs (that itself extends
 PostgreSQL in particular.
 
 This extension is a work in progress. It was extracted from another project recently and has not yet been fully rewritten.
-The documentation is only being started on just now. In the meant time check out the test cases for guidance.
+The documentation is only being started on just now. In the mean time check out the test cases for guidance.
 
 ## Features
 
