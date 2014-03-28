@@ -22,15 +22,15 @@ The documentation is only being started on just now. In the meant time check out
 - __Object-based permissions__
 - __Resource & resource-item methods__
 - GitHub-style __pagination__
+- Experimental support for `JSON Hyper-Schema <http://json-schema.org/latest/json-schema-hypermedia.html>`_: Documents
+  all resources, sub-collections, and methods; write ``api.enable_schema()`` to enable.
 
 ### Planned features
 
 - Built-in caching support
 - Batch updates for nested resources
 - Batch requests using `/resource/1;2;3;4/` with atomicity through nested transactions.
-- Built-in `/schema` resource & resource methods for all resources in an API.
 - True child resources for non-polymorphic models with foreign-key primary keys
-- Namespaces
 
 
 ## Example code

@@ -149,7 +149,7 @@ class TestModelResource(PresstTestCase):
             {'sweetness': 3},
             {},
             {'name': 'Golden Apple', 'tree': None},
-        ]
+            ]
 
         for change in changes:
             expected_apple.update(change)
@@ -188,6 +188,90 @@ class TestModelResource(PresstTestCase):
         self.request('DELETE', '/tree/1/fruits', '/fruit/1', None, 204)
         #self.request('GET', '/apple/seed_count', None, 2, 200)
 
+    def test_get_schema(self):
+        self.api.enable_schema()
+        self.request('GET', '/', None, {
+            "$schema": "http://json-schema.org/hyper-schema#",
+            "definitions": {
+                "fruit": {
+                    "definitions": {
+                        "name": {
+                            "type": "string"
+                        },
+                        "resource_uri": {
+                            "format": "uri",
+                            "readOnly": True,
+                            "type": "string"
+                        },
+                        "sweetness": {
+                            "type": "integer"
+                        }
+                    },
+                    "id": "fruit",
+                    "links": [
+                        {
+                            "href": "/fruit/{id}",
+                            "rel": "self"
+                        }
+                    ],
+                    "properties": {
+                        "name": {
+                            "$ref": "#/definitions/fruit/definitions/name"
+                        },
+                        "resource_uri": {
+                            "$ref": "#/definitions/fruit/definitions/resource_uri"
+                        },
+                        "sweetness": {
+                            "$ref": "#/definitions/fruit/definitions/sweetness"
+                        },
+                        "tree": {
+                            "$ref": "#/definitions/tree/definitions/resource_uri"
+                        }
+                    },
+                    "required": [
+                        "name"
+                    ]
+                },
+                "tree": {
+                    "definitions": {
+                        "name": {
+                            "type": "string"
+                        },
+                        "resource_uri": {
+                            "format": "uri",
+                            "readOnly": True,
+                            "type": "string"
+                        }
+                    },
+                    "id": "tree",
+                    "links": [
+                        {
+                            "href": "/tree/{id}/fruits",
+                            "rel": "fruits",
+                            "targetSchema": {
+                                "$ref": "#/definitions/fruit"
+                            }
+                        },
+                        {
+                            "href": "/tree/{id}",
+                            "rel": "self"
+                        }
+                    ],
+                    "properties": {
+                        "name": {
+                            "$ref": "#/definitions/tree/definitions/name"
+                        },
+                        "resource_uri": {
+                            "$ref": "#/definitions/tree/definitions/resource_uri"
+                        }
+                    },
+                    "required": [
+                        "name"
+                    ]
+                }
+            }
+        }, 200)
+
 class TestPolymorphicModelResource(PresstTestCase):
     def setUp(self):
         super(TestPolymorphicModelResource, self).setUp()
@@ -214,7 +298,7 @@ class TestPolymorphicModelResource(PresstTestCase):
 
             __mapper_args__ = {
                 'polymorphic_identity': 'citrus',
-            }
+                }
 
         class FruitResource(PolymorphicModelResource):
             class Meta:

@@ -21,8 +21,9 @@ class NestedProxy(object):
 
 
 class _ResourceMethod(NestedProxy):
-    def __init__(self, fn, *args, **kwargs):
-        super(_ResourceMethod, self).__init__(*args, **kwargs)
+    def __init__(self, fn, method, *args, **kwargs):
+        super(_ResourceMethod, self).__init__([method], *args, **kwargs)
+        self.method = method
         self._fn = fn
         self._parser = reqparse.RequestParser(argument_class=PresstArgument)
 
@@ -55,12 +56,7 @@ class _ResourceMethod(NestedProxy):
 
 def resource_method(method='POST', collection=False):
     def wrapper(fn):
-        if isinstance(method, (list, tuple)):
-            methods = method
-        else:
-            methods = [method]
-
-        return wraps(fn)(_ResourceMethod(fn, methods, collection))
+        return wraps(fn)(_ResourceMethod(fn, method, collection))
     return wrapper
 
 

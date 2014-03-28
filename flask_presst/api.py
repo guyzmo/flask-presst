@@ -1,7 +1,9 @@
+from functools import partial
 from importlib import import_module
 import inspect
 from flask.ext.restful import Api, abort
 import six
+from flask_presst.schema import Schema
 from flask_presst.resources import PresstResource, ModelResource
 from flask_presst.utils.routes import route_from
 
@@ -12,6 +14,7 @@ class PresstApi(Api):
         self._presst_resources = {}
         self._presst_resource_insts = {}
         self._model_resource_map = {}
+        self.has_schema = False
 
     def _init_app(self, app):
         super(PresstApi, self)._init_app(app)
@@ -78,6 +81,14 @@ class PresstApi(Api):
         except KeyError:
             return None
 
+    def enable_schema(self):
+        if not self.has_schema:
+            self.has_schema = True
+            self.app.add_url_rule(self._complete_url('/', ''),
+                                  view_func=self.output(Schema.as_view('schema', self)),
+                                  endpoint='schema',
+                                  methods=['GET'])
+
     def add_resource(self, resource, *urls, **kwargs):
 
         # fallback to Flask-RESTful `add_resource` implementation with regular resources:
@@ -96,7 +107,7 @@ class PresstApi(Api):
 
         urls = [
             '/{0}'.format(resource_name),
-            '/{0}/<{1}:id>'.format(resource_name, pk_converter)
+            '/{0}/<{1}:id>'.format(resource_name, pk_converter),
         ]
 
         self._presst_resources[resource_name] = resource
@@ -106,14 +117,16 @@ class PresstApi(Api):
 
         for name, child in six.iteritems(resource.nested_types):
 
-            # FIXME routing for blueprints; also needs tests
             if child.collection:
-                rule = '/{0}/{1}'.format(resource_name, name)
+                url = '/{0}/{1}'.format(resource_name, name)
             else:
-                rule = '/{0}/<{1}:parent_id>/{2}'.format(resource_name, pk_converter, name)
+                url = '/{0}/<{1}:parent_id>/{2}'.format(resource_name, pk_converter, name)
 
             child_endpoint = '{0}_{1}'.format(resource_name, name)
             child_view_func = self.output(child.view_factory(child_endpoint, resource))
+
+            # FIXME routing for blueprints; also needs tests
+            rule = self._complete_url(url, '')
 
             self.app.add_url_rule(rule,
                                   view_func=child_view_func,

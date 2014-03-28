@@ -8,11 +8,11 @@ from werkzeug.utils import cached_property
 from flask_presst.references import Reference
 
 
-class RelationshipFieldBase(Raw):
+class _RelationshipField(Raw):
     def __init__(self, resource, embedded=False, relationship_name=None, *args, **kwargs):
-        super(RelationshipFieldBase, self).__init__(*args, **kwargs)
+        super(_RelationshipField, self).__init__(*args, **kwargs)
         self.bound_resource = None
-        self._resource = resource
+        self.resource = resource
         self.embedded = embedded
         self.relationship_name = None
 
@@ -22,13 +22,13 @@ class RelationshipFieldBase(Raw):
 
     @cached_property
     def resource_class(self):
-        if self._resource == 'self':
+        if self.resource == 'self':
             return self.bound_resource
-        return current_app.presst.get_resource_class(self._resource,
+        return current_app.presst.get_resource_class(self.resource,
                                                      getattr(self.bound_resource, '__module__', None))
 
 
-class ToMany(RelationshipFieldBase):
+class ToMany(_RelationshipField):
     def format(self, item_list):
         marshal_fn = self.resource_class.item_get_resource_uri \
             if not self.embedded else self.resource_class.marshal_item
@@ -40,7 +40,7 @@ class ToMany(RelationshipFieldBase):
         return lambda values: map(Reference(self.resource_class), values)
 
 
-class ToOne(RelationshipFieldBase):
+class ToOne(_RelationshipField):
     def __init__(self, resource, embedded=False, required=False, *args, **kwargs):
         super(ToOne, self).__init__(resource, embedded, *args, **kwargs)
         self.required = required
@@ -71,4 +71,3 @@ class Date(Raw):
 
     def format(self, value):
         return value.strftime('%Y-%m-%d')
-

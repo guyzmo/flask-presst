@@ -38,6 +38,7 @@ class TestResourceMethod(PresstTestCase):
 
         self.Citrus = Citrus
         self.api.add_resource(Citrus)
+        self.api.enable_schema()
 
     def test_item_method(self):
         with self.app.test_client() as client:
@@ -81,3 +82,79 @@ class TestResourceMethod(PresstTestCase):
 
     def test_2_level(self):
         pass
+
+    def test_get_schema(self):
+        self.request('GET', '/', None, {
+            "$schema": "http://json-schema.org/hyper-schema#",
+            "definitions": {
+                "citrus": {
+                    "definitions": {
+                        "name": {
+                            "type": "string"
+                        },
+                        "resource_uri": {
+                            "format": "uri",
+                            "readOnly": True,
+                            "type": "string"
+                        },
+                        "sweetness": {
+                            "type": "integer"
+                        }
+                    },
+                    "id": "citrus",
+                    "links": [
+                        {
+                            "href": "/citrus/count",
+                            "rel": "count",
+                            "method": "GET",
+                            "schema": {
+                                "properties": {}
+                            }
+                        },
+                        {
+                            "href": "/citrus/{id}/name_length",
+                            "rel": "name_length",
+                            "method": "GET",
+                            "schema": {
+                                "properties": {}
+                            }
+                        },
+                        {
+                            "href": "/citrus/{id}",
+                            "rel": "self"
+                        },
+                        {
+                            "href": "/citrus/{id}/sweeten",
+                            "rel": "sweeten",
+                            "method": "POST",
+                            "schema": {  # "by" not shown because via query string and method is POST
+                                "properties": {}
+                            }
+                        },
+                        {
+                            "href": "/citrus/{id}/sweeter_than",
+                            "rel": "sweeter_than",
+                            "method": "GET",
+                            "schema": {
+                                "properties": {
+                                    "other": {
+                                        "$ref": "#/definitions/citrus/definitions/resource_uri"
+                                    }
+                                }
+                            }
+                        }
+                    ],
+                    "properties": {
+                        "name": {
+                            "$ref": "#/definitions/citrus/definitions/name"
+                        },
+                        "resource_uri": {
+                            "$ref": "#/definitions/citrus/definitions/resource_uri"
+                        },
+                        "sweetness": {
+                            "$ref": "#/definitions/citrus/definitions/sweetness"
+                        }
+                    }
+                }
+            }
+        }, 200)

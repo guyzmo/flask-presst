@@ -70,6 +70,82 @@ class TestRelationship(PresstTestCase):
         self.request('GET', '/apple/1/first_seed', None,
                      {'first': {'name': 'S1', 'resource_uri': '/seed/1'}, 'id': 1}, 200)
 
+    def test_get_schema(self):
+        self.api.enable_schema()
+        self.request('GET', '/', None, {
+            "$schema": "http://json-schema.org/hyper-schema#",
+            "definitions": {
+                "apple": {
+                    "definitions": {
+                        "name": {
+                            "type": "string"
+                        },
+                        "resource_uri": {
+                            "format": "uri",
+                            "readOnly": True,
+                            "type": "string"
+                        }
+                    },
+                    "id": "apple",
+                    "links": [
+                        {
+                            "href": "/apple/{id}/first_seed",
+                            "rel": "first_seed",
+                            "method": "GET",
+                            "schema": {
+                                "properties": {}
+                            }
+                        },
+                        {
+                            "href": "/apple/{id}/seed_count",
+                            "rel": "seed_count",
+                            "method": "GET",
+                            "schema": {
+                                "properties": {}
+                            }
+                        },
+                        {
+                            "href": "/apple/{id}/seeds",
+                            "rel": "seeds",
+                            "targetSchema": {
+                                "$ref": "#/definitions/seed"
+                            }
+                        },
+                        {
+                            "href": "/apple/{id}",
+                            "rel": "self"
+                        }
+                    ],
+                    "properties": {
+                        "name": {"$ref": "#/definitions/apple/definitions/name"},
+                        "resource_uri": {"$ref": "#/definitions/apple/definitions/resource_uri"}
+                    }
+                },
+                "seed": {
+                    "definitions": {
+                        "name": {
+                            "type": "string"
+                        },
+                        "resource_uri": {
+                            "format": "uri",
+                            "readOnly": True,
+                            "type": "string"
+                        }
+                    },
+                    "id": "seed",
+                    "links": [
+                        {
+                            "href": "/seed/{id}",
+                            "rel": "self"
+                        }
+                    ],
+                    "properties": {
+                        "name": {"$ref": "#/definitions/seed/definitions/name"},
+                        "resource_uri": {"$ref": "#/definitions/seed/definitions/resource_uri"}
+                    }
+                }
+            }
+        }, 200)
 
 class TestRelationshipField(PresstTestCase):
     def test_self(self):
