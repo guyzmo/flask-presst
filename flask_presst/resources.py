@@ -66,71 +66,31 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
     _read_only_fields = None
     _required_fields = None
 
-    def get(self, id=None, route=None, **kwargs):
-        if route:
-            try:
-                nested_type = self.nested_types[route]
-
-                if (id is None) != nested_type.collection:
-                    abort(404)
-
-                return nested_type.dispatch_request(self, id)
-            except KeyError:
-                abort(404)
-        elif id is None:
+    def get(self, id=None, **kwargs):
+        if id is None:
             item_list = self.get_item_list()
             return self.marshal_item_list(item_list)
         else:
             item = self.get_item_for_id(id)
             return self.marshal_item(item)
 
-    def post(self, id=None, route=None, *args, **kwargs):
-        if route:
-            try:
-                nested_type = self.nested_types[route]
-
-                if (id is None) != nested_type.collection:
-                    abort(404)
-
-                return nested_type.dispatch_request(self, id, *args, **kwargs)
-            except KeyError:
-                abort(404)
-        elif id is None:
+    def post(self, id=None, *args, **kwargs):
+        if id is None:
             return self.marshal_item(self.create_item(self.request_parse_item()))
         else:
             return self.marshal_item(self.update_item(id, self.request_parse_item()))
 
-    def patch(self, id, route=None):
+    def patch(self, id):
         if id is None:
             abort(400, message='PATCH is not permitted on collections.')
-        if route:
-            try:
-                nested_type = self.nested_types[route]
-
-                if (id is None) != nested_type.collection:
-                    abort(404)
-
-                return nested_type.dispatch_request(self, id)
-            except KeyError:
-                abort(404)
         else:
             # TODO consider abort(400) if request.JSON is not a dictionary.
             changes = self.request_parse_item(limit_fields=(name for name in self._fields if name in request.json))
             return self.marshal_item(self.update_item(id, changes, partial=True))
 
-    def delete(self, id, route=None, *args, **kwargs):
+    def delete(self, id, *args, **kwargs):
         if id is None:
             abort(400, message='DELETE is not permitted on collections.')
-        if route:
-            try:
-                nested_type = self.nested_types[route]
-
-                if (id is None) != nested_type.collection:
-                    abort(404)
-
-                return nested_type.dispatch_request(self, id, *args, **kwargs)
-            except KeyError:
-                abort(404)
         else:
             self.delete_item(id)
             return None, 204
