@@ -22,8 +22,9 @@ The documentation is only being started on just now. In the meant time check out
 - __Object-based permissions__
 - __Resource & resource-item methods__
 - GitHub-style __pagination__
-- Experimental support for `JSON Hyper-Schema <http://json-schema.org/latest/json-schema-hypermedia.html>`_: Documents
-  all resources, sub-collections, and methods; write ``api.enable_schema()`` to enable.
+- __[JSON Hyper-Schema](http://json-schema.org/latest/json-schema-hypermedia.html)__, documenting
+  all resources, nested resources and resource methods.
+
 
 ### Planned features
 
