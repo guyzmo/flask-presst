@@ -100,6 +100,10 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
         raise NotImplementedError()
 
     @classmethod
+    def get_item_id(cls, item):
+        return getattr(item, cls._id_field, None) or item[cls._id_field]
+
+    @classmethod
     def get_item_list(cls):  # pragma: no cover
         raise NotImplementedError()
 
@@ -134,7 +138,7 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
     def item_get_resource_uri(cls, item):
         if cls.api is None:
             raise RuntimeError("{} has not been registered as an API endpoint.".format(cls.__name__))
-        return cls.api.url_for(cls, id=getattr(item, cls._id_field, None) or item[cls._id_field])
+        return cls.api.url_for(cls, id=cls.get_item_id(item))
 
     @classmethod
     def marshal_item(cls, item):
