@@ -8,3 +8,5 @@ install:
 script: coverage run --source=flask_presst setup.py test
 after_success:
     - coveralls
+git:
+  submodules: false
