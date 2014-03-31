@@ -34,5 +34,9 @@ setup(
         'Programming Language :: Python :: 3',
         'Topic :: Internet :: WWW/HTTP',
         'Topic :: Software Development :: Libraries :: Python Modules'
-    ]
+    ],
+    zip_safe=False,
+    extras_require={
+        'docs': ['Sphinx'],
+    }
 )

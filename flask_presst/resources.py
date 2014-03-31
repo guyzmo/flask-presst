@@ -12,7 +12,7 @@ from flask_presst.signals import before_create_item, after_create_item, before_c
     before_delete_item, after_delete_item, after_update_item, on_filter_read, on_filter_update, \
     on_filter_delete
 from flask_presst.fields import _RelationshipField, Array, KeyValue, Date
-from flask_presst.nested import NestedProxy
+from flask_presst.nesting import NestedProxy
 from flask_presst.parsing import PresstArgument
 import six
 
@@ -54,6 +54,38 @@ class PresstResourceMeta(MethodViewType):
 
 class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
     """
+
+    Resource item property fields are defined as as class attributes. e.g.:
+
+    .. code-block:: python
+
+        class PersonResource(PresstResource):
+            name = fields.String()
+            age = fields.Integer()
+            # ...
+
+    Each new subclass of :class:`PresstResource` can be configured using a class attribute, :class:`Meta`, which
+    includes properties that are applied at creation time by the :class:`PresstResource`'s metaclass. The following
+    attributes can be declared within :class:`Meta`:
+
+    =====================  ==============================================================================
+    Attribute name         Description
+    =====================  ==============================================================================
+    resource_name          The name of the resource used to build the resource endpoint, also used
+                           for referencing the resource using e.g. :class:`fields.ToMany`. *Default:
+                           the lower-case of the class name of the resource*
+    id_field               The default implementation of :class:`PresstResource` attempts to read the id
+                           of each resource item using this attribute or item key. The id field will
+                           never be marshalled [#f1]_. *Default: 'id'*
+    required_fields        A list of fields that must be given in `POST` requests.
+    read_only_fields       A list of fields that are returned by the resource but are ignored in `POST`
+                           and `PATCH` requests.
+    =====================  ==============================================================================
+
+    .. rubric:: Footnotes
+
+    .. [#f1] Adventurous people can override :meth:`marshal_item` to include `id_field` instead of or in addition to
+       ``'resource_uri'``.
 
     """
     api = None
@@ -97,60 +129,132 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
 
     @classmethod
     def get_item_for_id(cls, id_):  # pragma: no cover
+        """
+        Must be implemented to either return the item or raise an exception such as
+        :class:`werkzeug.exceptions.NotFound`.
+
+        :param id_: id of the resource item to return
+        """
         raise NotImplementedError()
 
     @classmethod
-    def get_item_id(cls, item):
+    def item_get_id(cls, item):
+        """
+        Returns the id attribute of a given item. Uses ``Meta.id_field``.
+        """
         return getattr(item, cls._id_field, None) or item[cls._id_field]
 
     @classmethod
     def get_item_list(cls):  # pragma: no cover
+        """
+        Must be implemented in top-level resources to return a list of items in the collection.
+
+        .. note::
+
+            The term *list* here is flexible, as any type of object is valid if it can be processed by
+            :meth:`marshal_item_list`. The default implementation supports any iterable. It is encouraged to implement
+            some form of lazy-loading or to trim the list based on the ``request``.
+
+        .. seealso:: :meth:`marshal_item_list`
+        """
         raise NotImplementedError()
 
     @classmethod
     def get_item_list_for_relationship(cls, relationship, parent_item):  # pragma: no cover
+        """
+        Return the list of items for a relationship. Must be implemented in nested resources.
+
+        :param str relationship: name of the relationship in the parent level resource
+        :param parent_item: instance of the item from the parent level resource
+        """
         raise NotImplementedError()
 
     @classmethod
     def create_item_relationship(cls, id_, relationship, parent_item):  # pragma: no cover
+        """
+        Add an item to a relationship. Must be implemented in nested resources.
+
+        :param id_: the id of the item to add to the relationship
+        :param str relationship: name of the relationship in the parent level resource
+        :param parent_item: instance of the item from the parent level resource
+        """
         raise NotImplementedError()
 
     @classmethod
     def delete_item_relationship(cls, id_, relationship, parent_item):  # pragma: no cover
+        """
+        Delete an item from a relationship. Must be implemented in nested resources.
+
+        :param id_: the id of the item to remove from the relationship
+        :param str relationship: name of the relationship in the parent level resource
+        :param parent_item: instance of the item from the parent level resource
+        """
         raise NotImplementedError()
 
     @classmethod
     def create_item(cls, dct):  # pragma: no cover
-        """This method must either return the created item or abort with the appropriate error."""
+        """
+        Must be implemented to create a new item in the resource collection.
+
+        :param dict dct: parsed resource fields
+        :return: the new item
+        """
         raise NotImplementedError()
 
     @classmethod
     def update_item(cls, id_, dct, partial=False):  # pragma: no cover
-        "This method must either return the updated item or abort with the appropriate error."
+        """
+        Must be implemented to update an item in the resource collection.
+
+        :param id_: id of the item to update
+        :param dict dct: dictionary of changes
+        :param bool partial: whether this is a `PATCH` change
+        """
         raise NotImplementedError()
 
     @classmethod
     def delete_item(cls, id_):  # pragma: no cover
-        "This method must either return None (nothing) or abort with the appropriate error."
+        """
+        Must be implemented to delete an item from the resource collection.
+
+        :param id_: id of the item to delete
+        """
         raise NotImplementedError()
 
     @classmethod
     def item_get_resource_uri(cls, item):
+        """Returns the `resource_uri` of an item.
+
+        .. seealso:: :meth:`item_get_id()`
+        """
         if cls.api is None:
             raise RuntimeError("{} has not been registered as an API endpoint.".format(cls.__name__))
-        return cls.api.url_for(cls, id=cls.get_item_id(item))
+        return cls.api.url_for(cls, id=cls.item_get_id(item))
 
     @classmethod
     def marshal_item(cls, item):
+        """
+        Marshals the item using the resource fields and returns a JSON-compatible dictionary.
+        """
         marshaled = {'resource_uri': cls.item_get_resource_uri(item)}
         marshaled.update(marshal(item, cls._fields))
         return marshaled
 
     @classmethod
     def marshal_item_list(cls, items):
+        """
+        Marshals a list of items from the resource.
+
+        .. seealso:: :meth:`marshal_item`
+        """
         return list(cls.marshal_item(item) for item in items)
 
     def request_parse_item(self, limit_fields=None):
+        """
+        Helper method to parse an item from the request.
+
+        :param limit_fields: optional list of field names to parse; if not set, all fields will be parsed.
+        """
         parser = reqparse.RequestParser(argument_class=PresstArgument)
 
         for name in limit_fields or self._fields: # FIXME handle this in PresstArgument.
@@ -207,9 +311,9 @@ class ModelResourceMeta(PresstResourceMeta):
                     if isinstance(column.type, postgres.ARRAY):
                         field_type = list
                     elif isinstance(column.type, postgres.HSTORE):
-                        field_type = dict
+                        field_type = fields.KeyValue()
                     elif hasattr(postgres, 'JSON') and isinstance(column.type, postgres.JSON):
-                        field_type = dict
+                        field_type = fields.JSON()
                     else:
                         field_type = column.type.python_type
 
@@ -229,6 +333,34 @@ class ModelResourceMeta(PresstResourceMeta):
 
 
 class ModelResource(six.with_metaclass(ModelResourceMeta, PresstResource)):
+    """
+
+    :class:`ModelResource` inherits all of the :class:`Meta` options of :class:`PresstResource`, however
+    with slightly different behavior and including some additions.
+
+    =====================  ==============================================================================
+    Attribute name         Description
+    =====================  ==============================================================================
+    model                  The :class:`sqlalchemy.ext.declarative.declarative_base` model this resource
+                           maps to.
+                           Tested only with `Flask-SQLAlchemy` models.
+    resource_name          Now defaults to the lower-case of the model class name.
+    id_field               Now defaults to the name of the primary key of `model`.
+    include_fields         A list of fields that should be imported from the `model`. By default, all
+                           columns other than foreign key and primary key columns are imported.
+                           :func:`sqlalchemy.orm.relationship` model attributes and hybrid properties
+                           cannot be defined in this way and have to be specified explicitly as resource
+                           class attributes.
+    exclude_fields         A list of fields that should not be imported from the `model`.
+    exclude_polymorphic    Whether to exclude fields that are inherited from the parent model of a
+                           polymorphic model. *Defaults to False*
+    required_fields        Fields that are automatically imported from the model are automatically
+                           required if their columns are not `nullable` and do not have a `default`.
+    =====================  ==============================================================================
+
+
+    This resource class processes all of the signals in :mod:`flask.ext.presst.signals`.
+    """
     _model = None
     _model_id_column = None
     _field_types = None
@@ -436,7 +568,27 @@ class ModelResource(six.with_metaclass(ModelResourceMeta, PresstResource)):
 
 class PolymorphicModelResource(ModelResource):
     """
-    :class:`PolymorphicMixin` only works in with a :class:`PresstResource`.
+    :class:`PolymorphicModelResource` is identical to :class:`ModelResource`, except that when it marshals an item
+    that has a different class than the ``model`` attribute defined in :class:`Meta`, it marshals the contents of that
+    model separately from the inherited resource and adds it to the marshalled dictionary as a property with the
+    name of the inherited resource.
+
+    e.g.
+
+    .. code-block:: javascript
+
+        {
+            "resource_uri": "/polymorphic_resource/1",
+            // polymorphic_resource properties
+            "base_resource": {
+                "resource_uri": "/base_resource/1",
+                // base_resource properties
+            }
+        }
+
+
+    :class:`PolymorphicModelResource` is designed to be used with SQLAlchemy models that
+    make use of `SQLAlchemy's polymorphic inheritance <http://docs.sqlalchemy.org/en/latest/orm/inheritance.html>`_.
     """
 
     @classmethod

@@ -4,7 +4,7 @@ from flask import json
 from flask.views import View
 from flask_presst.references import Reference
 from flask_presst import fields
-from flask_presst.nested import _ResourceMethod, Relationship
+from flask_presst.nesting import ResourceMethod, Relationship
 
 
 class Schema(View):
@@ -133,7 +133,7 @@ class Schema(View):
             }
 
 
-            if isinstance(child, _ResourceMethod):
+            if isinstance(child, ResourceMethod):
 
                 properties = {}
                 for arg in child._parser.args:

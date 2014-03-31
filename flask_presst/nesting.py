@@ -20,14 +20,25 @@ class NestedProxy(object):
         raise NotImplementedError()
 
 
-class _ResourceMethod(NestedProxy):
+class ResourceMethod(NestedProxy):
     def __init__(self, fn, method, *args, **kwargs):
-        super(_ResourceMethod, self).__init__([method], *args, **kwargs)
+        super(ResourceMethod, self).__init__([method], *args, **kwargs)
         self.method = method
         self._fn = fn
         self._parser = reqparse.RequestParser(argument_class=PresstArgument)
 
     def add_argument(self, name, location=('json', 'values'), **kwargs):
+        """
+        Adds an argument to the :class:`reqparse.RequestParser`. When a request to a :class:`ResourceMethod` is
+        made, the request is first parsed. If the parsing succeeds, the results are added as keyword arguments
+        to the wrapped function.
+
+        :param name: name of argument
+        :param location: attribute of the request object to search; e.g `json` or `args`.
+        :param bool required: whether the argument must exist
+        :param default: default value
+        :param type: a callable, or a Flask-Presst or Flask-RESTful field
+        """
         self._parser.add_argument(name, location=location, **kwargs)
 
     def view_factory(self, name, bound_resource):
@@ -55,48 +66,41 @@ class _ResourceMethod(NestedProxy):
 
 
 def resource_method(method='POST', collection=False):
+    """
+    A decorator for attaching custom routes to a :class:`PresstResource`.
+
+    Depending on whether ``collection`` is ``True``, the route is either ``/resource/method``
+    or ``/resource/{id}/method`` and the decorator passes either the list of items from
+    :meth:`PresstResource.get_item_list` or the single item.
+
+    :param str method: one of 'POST', 'GET', 'PATCH', 'DELETE'
+    :param bool collection: whether this is a collection method or item method
+    :returns: :class:`ResourceMethod` instance
+    """
     def wrapper(fn):
-        return wraps(fn)(_ResourceMethod(fn, method, collection))
+        return wraps(fn)(ResourceMethod(fn, method, collection))
     return wrapper
 
 
 class Relationship(NestedProxy, MethodView):
     """
-    Resource Methods:
+    :class:`Relationship` views, when attached to a :class:`PresstResource`, create a route that maps from
+    an item in one resource to a collection of items in another resource.
 
-    A :class:`_RelationshipResource` inherits all resource methods that apply to the collection.
-    This means that `/resource_a/1/resource_b/method` works, but `/resource_a/1/resource_b/1/method`
-    does not, since `/resource_a/1/resource_b/1/method` would be identical to `/resource_b/1/method`
-    and therefore redundant.
+    :class:`Relationship` makes use of SqlAlchemy's `relationship` attributes. To support pagination on these objects,
+    the relationship must return a query object. Therefore, the :func:`sqlalchemy.orm.relationship` must have the
+    attribute :attr:`lazy` set to ``'dynamic'``. The same goes for any :func:`backref()`.
 
-    Also, while collection methods on nested resources are supported, deep nesting such as
-    `/resource_a/1/resource_b/resource_c/` is not. The proper way to resolve deeply nested resources is to first call.
-    `/resource_a/1/resource_b` and then request `/resource_b/*/resource_c` for every item that has been returned.
-
-    By the same measure, `/resource_a/1/resource_b/1/resource_c/` is not supported, and that statement would in any
-    case be identical to `/resource_b/1/resource_c/`.
-
-    While  shallow nesting may necessitate multiple API calls in edge situations and seem less efficient, shallow
-    nesting has the advantage of avoiding a proliferation of resource endpoints and of having to deal with circular
-    dependencies.
-
-    .. note:: A special case, if implemented, will be *child resources*, where an item in a certain resource can only be
-        accessed through its parent resource. But these will not be defined using :class:`_RelationshipResource`.
-
-    :class:`_RelationshipResource` makes use of SqlAlchemy's `relationship` attributes. For :class:`_RelationshipResource` to
-    support pagination on these objects, the relationship must return a query object. This is achieved by setting the
-    relationship parameter :attr:`lazy` to `'dynamic'`, which has to be done both on the forward relationship as well
-    as any :func:`backref()`.
+    :param resource: resource class, resource name, or SQLAlchemy model
+    :param str relationship_name: alternate attribute name in resource item
     """
 
     def __init__(self, resource,
-                 relationship_name=None,
-                 methods=None,
-                 bound_resource=None, *args, **kwargs):
-        super(Relationship, self).__init__(methods or ['GET', 'POST', 'DELETE'])
+                 relationship_name=None, **kwargs):
+        super(Relationship, self).__init__(kwargs.pop('methods', ['GET', 'POST', 'DELETE']))
         self.resource = resource
         self.relationship_name = relationship_name
-        self.bound_resource = bound_resource
+        self.bound_resource = kwargs.pop('bound_resource', None)
 
     @cached_property
     def resource_class(self):

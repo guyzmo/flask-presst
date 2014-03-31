@@ -9,6 +9,11 @@ from flask_presst.utils.routes import route_from
 
 
 class PresstApi(Api):
+    """
+
+
+    """
+
     def __init__(self, *args, **kwargs):
         super(PresstApi, self).__init__(*args, **kwargs)
         self._presst_resources = {}
