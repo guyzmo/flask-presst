@@ -9,7 +9,7 @@ setup(
     name='Flask-Presst',
     version='0.2.6',
     packages=find_packages(exclude=['*tests*']),
-    url='https://github.com/biosustain/flask-presst',
+    url='https://flask-presst.readthedocs.org/en/latest/',
     license='MIT',
     test_suite='nose.collector',
     description='REST API framework for Flask and SQLAlchemy',
