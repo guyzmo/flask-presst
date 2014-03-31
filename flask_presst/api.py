@@ -127,7 +127,7 @@ class PresstApi(Api):
             else:
                 url = '/{0}/<{1}:parent_id>/{2}'.format(resource_name, pk_converter, name)
 
-            child_endpoint = '{0}_{1}'.format(resource_name, name)
+            child_endpoint = '{0}_{1}_{2}'.format(resource_name, name, child.__class__.__name__.lower())
             child_view_func = self.output(child.view_factory(child_endpoint, resource))
 
             # FIXME routing for blueprints; also needs tests
