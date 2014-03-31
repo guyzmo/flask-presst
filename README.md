@@ -10,7 +10,7 @@ supports nesting and *embedding* of resources and powerful *resource methods*.
 
 ## User's Guide
 
-
+The user guide and documentation is published [here](http://flask-presst.readthedocs.org/en/latest/).
 
 ## Features
 
