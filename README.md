@@ -14,9 +14,7 @@ The user guide and documentation is published [here](http://flask-presst.readthe
 
 ## Features
 
-- Support for SQLAlchemy models, including:
-  - PostgreSQL **JSON & HSTORE** field types
-  - **Model inheritance**
+- Support for **SQLAlchemy models**
 - **Embeddable resources** & relationships
 - **Nested resources**
 - **Resource methods**
