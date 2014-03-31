@@ -5,7 +5,7 @@
 [![PyPI version](https://badge.fury.io/py/Flask-Presst.png)](http://badge.fury.io/py/Flask-Presst)
 [![Requirements Status](https://requires.io/github/biosustain/flask-presst/requirements.png?branch=master)](https://requires.io/github/biosustain/flask-presst/requirements/?branch=master)
 
-**Flask-Presst** is a Flask extension for REST APIs using the SQLAlchemy ORM and PostgreSQL. The extension has
+**Flask-Presst** is a Flask extension for REST APIs using the SQLAlchemy ORM and PostgreSQL. The extension
 supports nesting and embedding of resources and powerful resource methods.
 
 ## User's Guide

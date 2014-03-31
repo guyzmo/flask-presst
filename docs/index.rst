@@ -6,13 +6,13 @@
 Flask-Presst
 ============
 
-**Flask-Presst** is a Flask extension for REST APIs using the SQLAlchemy ORM and PostgreSQL. The extension has
-supports nesting and *embedding* of resources and powerful *resource methods*.
+**Flask-Presst** is a Flask extension for building RESTful APIs that map to the SQLAlchemy ORM. The extension
+supports nesting and embedding of resources and powerful resource methods.
 
 Flask-Presst is built on top of
 `Flask-RESTful <https://github.com/twilio/flask-restful>`_ and can be used together with other Flask-RESTful resources.
 Flask-Presst also depends on `Flask <http://flask.pocoo.org/>`_,
-`Flask-SQLAlchemy <pythonhosted.org/Flask-SQLAlchemy/>`_ and `Blinker <pythonhosted.org/blinker/>`_.
+`Flask-SQLAlchemy <http://pythonhosted.org/Flask-SQLAlchemy/>`_ and `Blinker <http://pythonhosted.org/blinker/>`_.
 
 User's guide
 ------------
