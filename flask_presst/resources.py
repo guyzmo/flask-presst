@@ -302,6 +302,8 @@ class ModelResourceMeta(PresstResourceMeta):
                         (exclude_fields and name not in exclude_fields) or \
                         not (include_fields or exclude_fields):
 
+                    field_class = None
+
                     if meta.get('exclude_polymorphic', False) and column.table != mapper.tables[-1]:
                         continue
 
@@ -311,9 +313,11 @@ class ModelResourceMeta(PresstResourceMeta):
                     if isinstance(column.type, postgres.ARRAY):
                         field_type = list
                     elif isinstance(column.type, postgres.HSTORE):
-                        field_type = fields.KeyValue()
+                        field_type = dict
+                        field_class = KeyValue
                     elif hasattr(postgres, 'JSON') and isinstance(column.type, postgres.JSON):
-                        field_type = JSON()
+                        field_type = lambda data: data
+                        field_class = JSON
                     else:
                         field_type = column.type.python_type
 
@@ -321,7 +325,8 @@ class ModelResourceMeta(PresstResourceMeta):
 
                     # Add to list of fields.
                     if not name in fields:
-                        field_class = class_._get_field_from_python_type(field_type)
+                        if not field_class:
+                            field_class = class_._get_field_from_python_type(field_type)
 
                         # TODO implement support for ColumnDefault
                         # fields[name] = field_class(default=column.default)
