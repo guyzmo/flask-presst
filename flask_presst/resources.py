@@ -11,7 +11,7 @@ from flask_presst.signals import before_create_item, after_create_item, before_c
     after_create_relationship, before_delete_relationship, after_delete_relationship, before_update_item, \
     before_delete_item, after_delete_item, after_update_item, on_filter_read, on_filter_update, \
     on_filter_delete
-from flask_presst.fields import _RelationshipField, Array, KeyValue, Date
+from flask_presst.fields import _RelationshipField, Array, KeyValue, Date, JSON
 from flask_presst.nesting import NestedProxy
 from flask_presst.parsing import PresstArgument
 import six
@@ -313,7 +313,7 @@ class ModelResourceMeta(PresstResourceMeta):
                     elif isinstance(column.type, postgres.HSTORE):
                         field_type = fields.KeyValue()
                     elif hasattr(postgres, 'JSON') and isinstance(column.type, postgres.JSON):
-                        field_type = fields.JSON()
+                        field_type = JSON()
                     else:
                         field_type = column.type.python_type
 
