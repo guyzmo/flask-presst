@@ -37,6 +37,6 @@ setup(
     ],
     zip_safe=False,
     extras_require={
-        'docs': ['Sphinx'],
+        'docs': 'sphinx',
     }
 )
