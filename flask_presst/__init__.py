@@ -1,4 +1,5 @@
 from functools import wraps
+from flask.ext.restful import unpack
 from flask_presst.api import PresstApi
 from flask_presst.resources import PresstResource, ModelResource, PolymorphicModelResource
 from flask_presst.nesting import Relationship, resource_method
