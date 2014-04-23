@@ -3,7 +3,7 @@ from importlib import import_module
 import inspect
 from flask.ext.restful import Api, abort
 import six
-from flask_presst.schema import Schema
+from flask_presst.schema import HyperSchema
 from flask_presst.resources import PresstResource, ModelResource
 from flask_presst.utils.routes import route_from
 
@@ -90,7 +90,7 @@ class PresstApi(Api):
         if not self.has_schema:
             self.has_schema = True
             self.app.add_url_rule(self._complete_url('/', ''),
-                                  view_func=self.output(Schema.as_view('schema', self)),
+                                  view_func=self.output(HyperSchema.as_view('schema', self)),
                                   endpoint='schema',
                                   methods=['GET'])
 

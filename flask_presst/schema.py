@@ -7,7 +7,7 @@ from flask_presst import fields
 from flask_presst.nesting import ResourceMethod, Relationship
 
 
-class Schema(View):
+class HyperSchema(View):
     """
     Generates a JSON schema of all resources in the API.
 
