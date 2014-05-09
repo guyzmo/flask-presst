@@ -212,7 +212,8 @@ Items returned from any :class:`ModelResource` are paginated. Pagination in Flas
           </book?page=2&per_page=20>; rel="next"
     Server: Werkzeug/0.9.4 Python/2.7.5
 
-
+The default and maximum number of items per page can be configured using the
+``'PRESST_DEFAULT_PER_PAGE'`` and ``'PRESST_MAX_PER_PAGE'`` configuration variables.
 
 Resource methods
 ----------------

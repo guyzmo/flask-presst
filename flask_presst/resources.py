@@ -537,9 +537,22 @@ class ModelResource(six.with_metaclass(ModelResourceMeta, PresstResource)):
 
         after_delete_item.send(cls, item=item)
 
-    _pagination_parser = reqparse.RequestParser()
-    _pagination_parser.add_argument('per_page', location='args', type=int, default=20) # 20
-    _pagination_parser.add_argument('page', location='args', type=int, default=1)
+    @classmethod
+    def _parse_request_pagination(cls):
+        default_per_page = current_app.config.get('PRESST_DEFAULT_PER_PAGE', 20)
+        max_per_page = current_app.config.get('PRESST_MAX_PER_PAGE', 100)
+
+        parser = reqparse.RequestParser()
+        parser.add_argument('per_page', location='args', type=int, default=default_per_page)
+        parser.add_argument('page', location='args', type=int, default=1)
+
+        args = parser.parse_args()
+        page, per_page = args.page, args.per_page
+
+        if per_page > max_per_page:
+            per_page = max_per_page
+
+        return page, per_page
 
     @classmethod
     def marshal_item_list(cls, item_list, paginate=True):
@@ -549,8 +562,8 @@ class ModelResource(six.with_metaclass(ModelResourceMeta, PresstResource)):
         """
         if isinstance(item_list, BaseQuery):
             if paginate:
-                args = cls._pagination_parser.parse_args()
-                item_list = item_list.paginate(page=args.page, per_page=args.per_page)
+                page, per_page = cls._parse_request_pagination()
+                item_list = item_list.paginate(page=page, per_page=per_page)
             else:
                 item_list = item_list.all()
 
