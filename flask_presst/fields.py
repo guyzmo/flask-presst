@@ -51,7 +51,8 @@ class ToMany(_RelationshipField):
         """
         A callable that converts a list of uris into instances of type :attr:`resource_class`.
         """
-        return lambda values: map(Reference(self.resource_class), values)
+        reference = Reference(self.resource_class)
+        return lambda values: [reference(value) for value in values]
 
 
 class ToOne(_RelationshipField):

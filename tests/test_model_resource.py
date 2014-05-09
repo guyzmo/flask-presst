@@ -274,6 +274,53 @@ class TestModelResource(PresstTestCase):
             }
         }, 200)
 
+
+class TestModelResourceFields(PresstTestCase):
+    def setUp(self):
+        super(TestModelResourceFields, self).setUp()
+
+        app = self.app
+        app.config['SQLALCHEMY_ENGINE'] = 'sqlite://'
+        app.config['TESTING'] = True
+
+        self.db = db = SQLAlchemy(app)
+
+        class Type(db.Model):
+            id = db.Column(db.Integer, primary_key=True)
+            name = db.Column(db.String(60), nullable=False)
+
+        class Machine(db.Model):
+            id = db.Column(db.Integer, primary_key=True)
+            name = db.Column(db.String(60), nullable=False)
+
+            type_id = db.Column(db.Integer, db.ForeignKey(Type.id))
+            type = db.relationship(Type, backref=backref('machines', lazy='dynamic', uselist=True))
+
+        db.create_all()
+
+        class MachineResource(ModelResource):
+            class Meta:
+                model = Machine
+
+            type = fields.ToOne('type')
+
+        class TypeResource(ModelResource):
+            class Meta:
+                model = Type
+
+            machines = fields.ToMany(MachineResource)
+
+        self.api.add_resource(MachineResource)
+        self.api.add_resource(TypeResource)
+
+    def test_post_to_many(self):
+        self.request('POST', '/machine', {'name': 'Press I'},
+                     {'name': 'Press I', 'resource_uri': '/machine/1', 'type': None}, 200)
+
+        self.request('POST', '/type', {'name': 'Press', 'machines': ['/machine/1']},
+                     {'name': 'Press', 'resource_uri': '/type/1', 'machines': ['/machine/1']}, 200)
+
+
 class TestPolymorphicModelResource(PresstTestCase):
     def setUp(self):
         super(TestPolymorphicModelResource, self).setUp()
