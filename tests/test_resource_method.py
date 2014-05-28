@@ -85,78 +85,108 @@ class TestResourceMethod(PresstTestCase):
 
     def test_get_schema(self):
         self.request('GET', '/', None, {
-            "$schema": "http://json-schema.org/hyper-schema#",
-            "definitions": {
-                "citrus": {
-                    "definitions": {
-                        "name": {
-                            "type": "string"
+            'definitions': {
+                '_pagination': {
+                    'properties': {
+                        'per_page': {
+                            'minimum': 1,
+                            'maximum': 100,
+                            'default': 20,
+                            'type': 'integer'
                         },
-                        "resource_uri": {
-                            "format": "uri",
-                            "readOnly": True,
-                            "type": "string"
-                        },
-                        "sweetness": {
-                            "type": "integer"
+                        'page': {
+                            'minimum': 1,
+                            'default': 1,
+                            'type': 'integer'
                         }
                     },
-                    "links": [
+                    'type': 'object'
+                },
+                'citrus': {
+                    'definitions': {
+                        'name': {
+                            'type': 'string'
+                        },
+                        'sweetness': {
+                            'type': 'integer'
+                        },
+                        'resource_uri': {
+                            'format': 'uri',
+                            'readOnly': True,
+                            'type': 'string'
+                        }
+                    },
+                    'properties': {
+                        'name': {
+                            '$ref': '#/definitions/citrus/definitions/name'
+                        },
+                        'sweetness': {
+                            '$ref': '#/definitions/citrus/definitions/sweetness'
+                        },
+                        'resource_uri': {
+                            '$ref': '#/definitions/citrus/definitions/resource_uri'
+                        }
+                    },
+                    'type': 'object',
+                    'links': [
                         {
-                            "href": "/citrus/count",
-                            "rel": "count",
-                            "method": "GET",
-                            "schema": {
-                                "properties": {}
-                            }
+                            'href': '/citrus/count',
+                            'rel': 'count',
+                            'schema': {
+                                'properties': {
+
+                                }
+                            },
+                            'method': 'GET'
                         },
                         {
-                            "href": "/citrus/{id}/name_length",
-                            "rel": "name_length",
-                            "method": "GET",
-                            "schema": {
-                                "properties": {}
-                            }
+                            'rel': 'instances',
+                            'href': '/citrus',
+                            'method': 'GET'
                         },
                         {
-                            "href": "/citrus/{id}",
-                            "rel": "self"
+                            'href': '/citrus/{id}/name_length',
+                            'rel': 'name_length',
+                            'schema': {
+                                'properties': {
+
+                                }
+                            },
+                            'method': 'GET'
                         },
                         {
-                            "href": "/citrus/{id}/sweeten",
-                            "rel": "sweeten",
-                            "method": "POST",
-                            "schema": {  # "by" not shown because via query string and method is POST
-                                "properties": {}
-                            }
+                            'rel': 'self',
+                            'href': '/citrus/{id}',
+                            'method': 'GET'
                         },
                         {
-                            "href": "/citrus/{id}/sweeter_than",
-                            "rel": "sweeter_than",
-                            "method": "GET",
-                            "schema": {
-                                "properties": {
-                                    "other": {
-                                        "$ref": "#/definitions/citrus/definitions/resource_uri"
+                            'href': '/citrus/{id}/sweeten',
+                            'rel': 'sweeten',
+                            'schema': {
+                                # 'by' not included because argument is GET parameter and method is POST
+                                'properties': {}
+                            },
+                            'method': 'POST'
+                        },
+                        {
+                            'href': '/citrus/{id}/sweeter_than',
+                            'rel': 'sweeter_than',
+                            'schema': {
+                                'properties': {
+                                    'other': {
+                                        '$ref': '#/definitions/citrus/definitions/resource_uri'
                                     }
                                 }
-                            }
+                            },
+                            'method': 'GET'
                         }
-                    ],
-                    "properties": {
-                        "name": {
-                            "$ref": "#/definitions/citrus/definitions/name"
-                        },
-                        "resource_uri": {
-                            "$ref": "#/definitions/citrus/definitions/resource_uri"
-                        },
-                        "sweetness": {
-                            "$ref": "#/definitions/citrus/definitions/sweetness"
-                        }
-                    }
+                    ]
                 }
             },
-            "properties": {
-                "citrus": {"$ref": "#/definitions/citrus"}
+            '$schema': 'http://json-schema.org/draft-04/hyper-schema#',
+            'properties': {
+                'citrus': {
+                    '$ref': '#/definitions/citrus'
+                }
             }
         }, 200)

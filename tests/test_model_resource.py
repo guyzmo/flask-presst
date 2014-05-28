@@ -191,86 +191,132 @@ class TestModelResource(PresstTestCase):
     def test_get_schema(self):
         self.api.enable_schema()
         self.request('GET', '/', None, {
-            "$schema": "http://json-schema.org/hyper-schema#",
-            "definitions": {
-                "fruit": {
-                    "definitions": {
-                        "name": {
-                            "type": "string"
+            '$schema': 'http://json-schema.org/draft-04/hyper-schema#',
+            'definitions': {
+                'fruit': {
+                    'type': 'object',
+                    'definitions': {
+                        'resource_uri': {
+                            'type': 'string',
+                            'readOnly': True,
+                            'format': 'uri'
                         },
-                        "resource_uri": {
-                            "format": "uri",
-                            "readOnly": True,
-                            "type": "string"
+                        'name': {
+                            'type': 'string'
                         },
-                        "sweetness": {
-                            "type": "integer"
+                        'sweetness': {
+                            'type': 'integer'
                         }
                     },
-                    "links": [
-                        {
-                            "href": "/fruit/{id}",
-                            "rel": "self"
+                    'properties': {
+                        'resource_uri': {
+                            '$ref': '#/definitions/fruit/definitions/resource_uri'
+                        },
+                        'name': {
+                            '$ref': '#/definitions/fruit/definitions/name'
+                        },
+                        'tree': {
+                            '$ref': '#/definitions/tree/definitions/resource_uri'
+                        },
+                        'sweetness': {
+                            '$ref': '#/definitions/fruit/definitions/sweetness'
                         }
+                    },
+                    'required': [
+                        'name'
                     ],
-                    "properties": {
-                        "name": {
-                            "$ref": "#/definitions/fruit/definitions/name"
+                    'links': [
+                        {
+                            'schema': {
+                                '$ref': '#/definitions/_pagination'
+                            },
+                            'method': 'GET',
+                            'rel': 'instances',
+                            'href': '/fruit'
                         },
-                        "resource_uri": {
-                            "$ref": "#/definitions/fruit/definitions/resource_uri"
-                        },
-                        "sweetness": {
-                            "$ref": "#/definitions/fruit/definitions/sweetness"
-                        },
-                        "tree": {
-                            "$ref": "#/definitions/tree/definitions/resource_uri"
+                        {
+                            'method': 'GET',
+                            'rel': 'self',
+                            'href': '/fruit/{id}'
                         }
-                    },
-                    "required": [
-                        "name"
                     ]
                 },
-                "tree": {
-                    "definitions": {
-                        "name": {
-                            "type": "string"
+                '_pagination': {
+                    'type': 'object',
+                    'properties': {
+                        'page': {
+                            'type': 'integer',
+                            'default': 1,
+                            'minimum': 1
                         },
-                        "resource_uri": {
-                            "format": "uri",
-                            "readOnly": True,
-                            "type": "string"
+                        'per_page': {
+                            'type': 'integer',
+                            'maximum': 100,
+                            'default': 20,
+                            'minimum': 1
+                        }
+                    }
+                },
+                'tree': {
+                    'type': 'object',
+                    'definitions': {
+                        'resource_uri': {
+                            'type': 'string',
+                            'readOnly': True,
+                            'format': 'uri'
+                        },
+                        'name': {
+                            'type': 'string'
                         }
                     },
-                    "links": [
+                    'properties': {
+                        'resource_uri': {
+                            '$ref': '#/definitions/tree/definitions/resource_uri'
+                        },
+                        'name': {
+                            '$ref': '#/definitions/tree/definitions/name'
+                        }
+                    },
+                    'required': [
+                        'name'
+                    ],
+                    'links': [
                         {
-                            "href": "/tree/{id}/fruits",
-                            "rel": "fruits",
-                            "targetSchema": {
-                                "$ref": "#/definitions/fruit"
+                            'schema': {
+                                '$ref': '#/definitions/_pagination'
+                            },
+                            'href': '/tree/{id}/fruits',
+                            'rel': 'fruits',
+                            'targetSchema': {
+                                'type': 'array',
+                                'items': {
+                                    '$ref': '#/definitions/fruit'
+                                }
                             }
                         },
                         {
-                            "href": "/tree/{id}",
-                            "rel": "self"
-                        }
-                    ],
-                    "properties": {
-                        "name": {
-                            "$ref": "#/definitions/tree/definitions/name"
+                            'schema': {
+                                '$ref': '#/definitions/_pagination'
+                            },
+                            'method': 'GET',
+                            'rel': 'instances',
+                            'href': '/tree'
                         },
-                        "resource_uri": {
-                            "$ref": "#/definitions/tree/definitions/resource_uri"
+                        {
+                            'method': 'GET',
+                            'rel': 'self',
+                            'href': '/tree/{id}'
                         }
-                    },
-                    "required": [
-                        "name"
                     ]
                 }
             },
             'properties': {
-                'tree': {'$ref': '#/definitions/tree'},
-                'fruit': {'$ref': '#/definitions/fruit'}
+                'fruit': {
+                    '$ref': '#/definitions/fruit'
+                },
+                'tree': {
+                    '$ref': '#/definitions/tree'
+                }
             }
         }, 200)
 

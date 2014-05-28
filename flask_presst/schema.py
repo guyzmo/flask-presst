@@ -1,9 +1,10 @@
 import inspect
 from operator import itemgetter
-from flask import json
+from flask import json, current_app
 from flask.views import View
 from flask_presst.references import Reference
 from flask_presst import fields
+from flask_presst.resources import ModelResource
 from flask_presst.nesting import ResourceMethod, Relationship
 
 
@@ -77,10 +78,14 @@ class HyperSchema(View):
 
         return {'type': field_type}
 
+    def _complete_url(self, uri):
+        return self.api._complete_url(uri, '')
+
     def get_resource_definition(self, resource):
         definitions, properties = self.get_definitions(resource)
 
         resource_definition = {
+            'type': 'object',
             'definitions': definitions,
             'properties': dict((name, ref) for name, ref in properties.items()),
             'links': sorted(self.get_links(resource), key=itemgetter('rel'))
@@ -118,10 +123,26 @@ class HyperSchema(View):
         return definitions, properties
 
     def get_links(self, resource):
+        paginated = issubclass(resource, ModelResource)
+
         yield {
             'rel': 'self',
-            'href': '/{}/{{id}}'.format(resource.endpoint)
+            'href': self._complete_url('/{}/{{id}}'.format(resource.endpoint)),
+            'method': 'GET',
         }
+
+        instances = {
+            'rel': 'instances',
+            'href': self._complete_url('/{}'.format(resource.endpoint)),
+            'method': 'GET'
+        }
+
+        if paginated:
+            instances['schema'] = {
+                '$ref': '#/definitions/_pagination'
+            }
+
+        yield instances
 
         # TODO POST etc. methods, accounting for required_fields
 
@@ -129,12 +150,10 @@ class HyperSchema(View):
             uri = '/{}/{}'.format(resource.endpoint, name) if child.collection else '/{}/{{id}}/{}'.format(resource.endpoint, name)
             link = {
                 'rel': name,
-                'href': self.api._complete_url(uri, '')
+                'href': self._complete_url(uri)
             }
 
-
             if isinstance(child, ResourceMethod):
-
                 properties = {}
                 for arg in child._parser.args:
 
@@ -155,10 +174,22 @@ class HyperSchema(View):
                     }
                 })
             elif isinstance(child, Relationship):
-                # TODO include HTTP methods
+                # TODO include HTTP methods (multiple methods possible, GET, POST, DELETE mainly)
+                paginated = issubclass(resource, ModelResource)
+
+                if paginated:
+                    link.update({
+                        'schema': {
+                            '$ref': '#/definitions/_pagination'
+                        }
+                    })
+
                 link.update({
                     'targetSchema': {
-                        '$ref': '#/definitions/{}'.format(child.resource_class.endpoint)
+                        'type': 'array',
+                        'items': {
+                            '$ref': '#/definitions/{}'.format(child.resource_class.endpoint)
+                        }
                     }
                 })
 
@@ -168,14 +199,31 @@ class HyperSchema(View):
         if hasattr(self.api, '_schema_dict'):
             return self.api._schema_dict, 200
 
-        definitions = {}
+        definitions = {
+            '_pagination': {
+                'type': 'object',
+                'properties': {
+                    'per_page': {
+                        'type': 'integer',
+                        'minimum': 1,
+                        'maximum': current_app.config.get('PRESST_MAX_PER_PAGE', 100),
+                        'default': current_app.config.get('PRESST_DEFAULT_PER_PAGE', 20)
+                    },
+                    'page': {
+                        'type': 'integer',
+                        'minimum': 1,
+                        'default': 1
+                    }
+                }
+            }
+        }
 
         # noinspection PyProtectedMember
         for resource in self.api._presst_resources.values():
             definitions[resource.endpoint] = self.get_resource_definition(resource)
 
         self.api._schema_dict = schema = {
-            '$schema': 'http://json-schema.org/hyper-schema#',
+            '$schema': 'http://json-schema.org/draft-04/hyper-schema#',
             'definitions': definitions,
             'properties': dict((resource.endpoint, self._get_ref(resource, True))
                                 for resource in self.api._presst_resources.values())

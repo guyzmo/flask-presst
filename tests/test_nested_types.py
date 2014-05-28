@@ -73,81 +73,131 @@ class TestRelationship(PresstTestCase):
     def test_get_schema(self):
         self.api.enable_schema()
         self.request('GET', '/', None, {
-            "$schema": "http://json-schema.org/hyper-schema#",
-            "definitions": {
-                "apple": {
-                    "definitions": {
-                        "name": {
-                            "type": "string"
-                        },
-                        "resource_uri": {
-                            "format": "uri",
-                            "readOnly": True,
-                            "type": "string"
-                        }
-                    },
-                    "links": [
-                        {
-                            "href": "/apple/{id}/first_seed",
-                            "rel": "first_seed",
-                            "method": "GET",
-                            "schema": {
-                                "properties": {}
-                            }
-                        },
-                        {
-                            "href": "/apple/{id}/seed_count",
-                            "rel": "seed_count",
-                            "method": "GET",
-                            "schema": {
-                                "properties": {}
-                            }
-                        },
-                        {
-                            "href": "/apple/{id}/seeds",
-                            "rel": "seeds",
-                            "targetSchema": {
-                                "$ref": "#/definitions/seed"
-                            }
-                        },
-                        {
-                            "href": "/apple/{id}",
-                            "rel": "self"
-                        }
-                    ],
-                    "properties": {
-                        "name": {"$ref": "#/definitions/apple/definitions/name"},
-                        "resource_uri": {"$ref": "#/definitions/apple/definitions/resource_uri"}
-                    }
+            '$schema': 'http://json-schema.org/draft-04/hyper-schema#',
+            'properties': {
+                'apple': {
+                    '$ref': '#/definitions/apple'
                 },
-                "seed": {
-                    "definitions": {
-                        "name": {
-                            "type": "string"
-                        },
-                        "resource_uri": {
-                            "format": "uri",
-                            "readOnly": True,
-                            "type": "string"
-                        }
-                    },
-                    "links": [
-                        {
-                            "href": "/seed/{id}",
-                            "rel": "self"
-                        }
-                    ],
-                    "properties": {
-                        "name": {"$ref": "#/definitions/seed/definitions/name"},
-                        "resource_uri": {"$ref": "#/definitions/seed/definitions/resource_uri"}
-                    }
+                'seed': {
+                    '$ref': '#/definitions/seed'
                 }
             },
-            "properties": {
-                "apple": {"$ref": "#/definitions/apple"},
-                "seed": {"$ref": "#/definitions/seed"}
+            'definitions': {
+                'apple': {
+                    'type': 'object',
+                    'properties': {
+                        'resource_uri': {
+                            '$ref': '#/definitions/apple/definitions/resource_uri'
+                        },
+                        'name': {
+                            '$ref': '#/definitions/apple/definitions/name'
+                        }
+                    },
+                    'definitions': {
+                        'resource_uri': {
+                            'type': 'string',
+                            'readOnly': True,
+                            'format': 'uri'
+                        },
+                        'name': {
+                            'type': 'string'
+                        }
+                    },
+                    'links': [
+                        {
+                            'href': '/apple/{id}/first_seed',
+                            'method': 'GET',
+                            'schema': {
+                                'properties': {
+
+                                }
+                            },
+                            'rel': 'first_seed'
+                        },
+                        {
+                            'href': '/apple',
+                            'method': 'GET',
+                            'rel': 'instances'
+                        },
+                        {
+                            'href': '/apple/{id}/seed_count',
+                            'method': 'GET',
+                            'schema': {
+                                'properties': {
+
+                                }
+                            },
+                            'rel': 'seed_count'
+                        },
+                        {
+                            'targetSchema': {
+                                'type': 'array',
+                                'items': {
+                                    '$ref': '#/definitions/seed'
+                                }
+                            },
+                            'href': '/apple/{id}/seeds',
+                            'rel': 'seeds'
+                        },
+                        {
+                            'method': 'GET',
+                            'href': '/apple/{id}',
+                            'rel': 'self'
+                        }
+                    ]
+                },
+                '_pagination': {
+                    'type': 'object',
+                    'properties': {
+                        'page': {
+                            'type': 'integer',
+                            'minimum': 1,
+                            'default': 1
+                        },
+                        'per_page': {
+                            'type': 'integer',
+                            'minimum': 1,
+                            'default': 20,
+                            'maximum': 100
+                        }
+                    }
+                },
+                'seed': {
+                    'type': 'object',
+                    'properties': {
+                        'resource_uri': {
+                            '$ref': '#/definitions/seed/definitions/resource_uri'
+                        },
+                        'name': {
+                            '$ref': '#/definitions/seed/definitions/name'
+                        }
+                    },
+                    'definitions': {
+                        'resource_uri': {
+                            'type': 'string',
+                            'readOnly': True,
+                            'format': 'uri'
+                        },
+                        'name': {
+                            'type': 'string'
+                        }
+                    },
+                    'links': [
+                        {
+                            'href': '/seed',
+                            'method': 'GET',
+                            'rel': 'instances'
+                        },
+                        {
+                            'method': 'GET',
+                            'href': '/seed/{id}',
+                            'rel': 'self'
+                        }
+                    ]
+                }
             }
         }, 200)
+
 
 class TestRelationshipField(PresstTestCase):
     def test_self(self):
