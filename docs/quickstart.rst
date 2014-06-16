@@ -97,6 +97,8 @@ exclude_polymorphic    Whether to exclude fields that are inherited from the par
                        polymorphic model. *Defaults to False*
 required_fields        Fields that are automatically imported from the model are automatically
                        required if their columns are not `nullable` and do not have a `default`.
+read_only_fields       A list of fields that are returned by the resource but are ignored in `POST`
+                       and `PATCH` requests. Useful for e.g. timestamps.
 =====================  ==============================================================================
 
 

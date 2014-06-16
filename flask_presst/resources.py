@@ -79,7 +79,7 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
                            never be marshalled [#f1]_. *Default: 'id'*
     required_fields        A list of fields that must be given in `POST` requests.
     read_only_fields       A list of fields that are returned by the resource but are ignored in `POST`
-                           and `PATCH` requests.
+                           and `PATCH` requests. Useful for e.g. timestamps.
     =====================  ==============================================================================
 
     .. rubric:: Footnotes
