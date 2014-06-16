@@ -28,18 +28,18 @@ class PresstApi(Api):
     def get_resource_class(self, reference, module_name=None):
         """
 
-        Accepts a reference of a resource and returns the matching :class:`PrestoResource`.
+        Accepts a reference of a resource and returns the matching :class:`PresstResource`.
 
         References can be one of:
 
-        - a :class:`PrestoResource`
+        - a :class:`PresstResource`
         - an endpoint name for the resource
         - the full class path of the resource (or class name if :attr:`module` is set)
         - the :class:`Model` class of a :class:`ModelResource`
 
         :param reference: The resource reference
         :param module_name: module name for lazy loading of class.
-        :return: :class:`PrestoResource`
+        :return: :class:`PresstResource`
         """
         if isinstance(reference, PresstResource):  # pragma: no cover
             return reference.__class__
