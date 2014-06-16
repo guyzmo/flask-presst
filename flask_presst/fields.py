@@ -4,6 +4,8 @@ Contains some additional field types that are not included in Flask-RESTful.
 import datetime
 from flask import current_app
 from flask.ext.restful.fields import *
+from jsonschema import ValidationError, validate
+from jsonschema.validators import validator_for
 from werkzeug.utils import cached_property
 from flask_presst.references import Reference
 
@@ -82,15 +84,31 @@ class KeyValue(Raw):
 class JSON(Raw):
     """
     For passing through raw JSON data.
+
+    :param dict schema: An optional `JSON schema <http://json-schema.org/>`_ for validation
     """
 
-    @staticmethod
-    def python_type(value):
+    def __init__(self, schema=None, *args, **kwargs):
+        super(JSON, self).__init__(*args, **kwargs)
+
+        if schema is not None:
+            validator_class = validator_for(schema)
+            validator_class.check_schema(schema)
+
+            self.validator = validator_class(schema)
+        else:
+            self.validator = None
+
+    def python_type(self, value):
         """
         :returns: value
         """
-        return value  # NOTE only works with request.json, not request.args.
-
+        if self.validator:
+            try:
+                self.validator.validate(value)  # NOTE only works with request.json, not request.args.
+            except ValidationError as ve:
+                raise TypeError("Failed validating '{}' in schema: {}".format(ve.validator, ve.schema))
+        return value
 
 class Date(Raw):
     """

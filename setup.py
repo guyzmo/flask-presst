@@ -20,6 +20,7 @@ setup(
         'Flask>=0.8',
         'Flask-RESTful>=0.2.10',
         'Flask-SQLAlchemy>=1.0',
+        'jsonschema>=2.3.0',
         'iso8601>=0.1.8',
         'blinker>=1.3',
         'six>=1.3.0'
