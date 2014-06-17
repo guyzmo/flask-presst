@@ -19,6 +19,9 @@ __all__ = (
     'PresstArgument',
     'Reference',
     'marshal_with_field',
+
+    'fields',
+    'signals',
 )
 
 
