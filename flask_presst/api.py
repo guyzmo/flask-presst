@@ -51,10 +51,12 @@ class PresstApi(Api):
             if reference.lower() in self._presst_resources:
                 return self._presst_resources[reference.lower()]
             else:
-                if not module_name or ('.' in reference):
+                if '.' in reference:
                     module_name, class_name = reference.rsplit('.', 1)
                 else:
                     class_name = reference
+                if not module_name:
+                    raise RuntimeError('Unable to resolve resource reference: "{}"'.format(reference))
                 module = import_module(module_name)
                 return getattr(module, class_name)  # TODO check if this is actually a `Resource`
 
