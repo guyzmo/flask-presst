@@ -199,6 +199,81 @@ class TestRelationship(PresstTestCase):
         }, 200)
 
 
+
+class TestResourceNesting(PresstTestCase):
+
+    def setUp(self):
+        class City(TestPresstResource):
+            streets = Street()
+
+            name = fields.String()
+
+        class Street(TestPresstResource):
+            houses = StreetHouse()
+
+            name = fields.String()
+
+        class StreetHouse(TestPresstResource):
+            tags = Relationship(Tag)
+
+            description = fields.String()
+            number = fields.Integer()
+
+        class Tag(TestPresstResource):
+            name = fields.String()
+
+            items = [
+                {'id': 1, 'name': 'hotel'},
+                {'id': 2, 'name': 'hostel'},
+                {'id': 3, 'name': 'kiosk'}
+            ]
+
+
+    def test_get_bottom(self):
+
+        self.client.post('/city', data={
+            'name': 'Copenhagen',
+            'streets': [{
+                'name': 'Istedgade',
+                'houses': [
+                    {
+                        'number': 1,
+                        'description': '1st house'
+                    },
+                    {
+                        'number': 2,
+                        'description': '2nd house',
+                        'tags': [
+                            {
+                                'name': 'restaurant'
+                            },
+                            {
+                                'name': 'hotel',
+                                'resource_uri': '/tag/1'
+                            },
+                            '/tag/3'
+                        ]
+                    }
+                ]
+            }]
+        })
+
+        response = self.client.get('/city/1/street/1/house/2')
+
+        self.assertEqual({
+            'resource_uri': '/city/1/street/1/house/2',
+            'number': 2,
+            'description': '2nd house'
+        }, response.json)
+
+        response = self.client.get('/tag/4')
+
+        self.assertEqual({
+            'resource_uri': '/tag/4',
+            'name': 'restaurant'
+        }, response.json)
+
+
 class TestRelationshipField(PresstTestCase):
     def test_self(self):
         class Node(TestPresstResource):
@@ -308,6 +383,7 @@ class TestRelationshipField(PresstTestCase):
         self.request('PATCH', '/apple/3', {'seeds': ['/seed/1']},
                      {'seeds': [{'name': 'seed-1', 'resource_uri': '/seed/1'}],
                       'resource_uri': '/apple/3'}, 200)
+
 
 
 if __name__ == '__main__':
