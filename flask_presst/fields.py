@@ -10,9 +10,9 @@ from werkzeug.utils import cached_property
 from flask_presst.references import Reference
 
 
-class _RelationshipField(Raw):
+class RelationshipField(Raw):
     def __init__(self, resource, embedded=False, relationship_name=None, *args, **kwargs):
-        super(_RelationshipField, self).__init__(*args, **kwargs)
+        super(RelationshipField, self).__init__(*args, **kwargs)
         self.bound_resource = None
         self.resource = resource
         self.embedded = embedded
@@ -36,7 +36,7 @@ class _RelationshipField(Raw):
                                                      getattr(self.bound_resource, '__module__', None))
 
 
-class ToMany(_RelationshipField):
+class ToMany(RelationshipField):
     """
 
     :param resource: resource class, resource name, or SQLAlchemy model
@@ -57,7 +57,7 @@ class ToMany(_RelationshipField):
         return lambda values: [reference(value) for value in values]
 
 
-class ToOne(_RelationshipField):
+class ToOne(RelationshipField):
     """
 
     :param resource: resource class, resource name, or SQLAlchemy model

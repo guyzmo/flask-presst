@@ -11,7 +11,7 @@ from flask_presst.signals import before_create_item, after_create_item, before_c
     after_create_relationship, before_delete_relationship, after_delete_relationship, before_update_item, \
     before_delete_item, after_delete_item, after_update_item, on_filter_read, on_filter_update, \
     on_filter_delete
-from flask_presst.fields import _RelationshipField, Array, KeyValue, Date, JSON
+from flask_presst.fields import RelationshipField, Array, KeyValue, Date, JSON
 from flask_presst.nesting import NestedProxy
 from flask_presst.parsing import PresstArgument
 import six
@@ -39,7 +39,8 @@ class PresstResourceMeta(MethodViewType):
             class_._meta = meta
 
             for name, m in six.iteritems(members):
-                if isinstance(m, (_RelationshipField, NestedProxy)):
+                # FIXME hasattr(m, 'bound_resource') is a workaround for broken flask.ext.* imports.
+                if isinstance(m, (RelationshipField, NestedProxy)) or hasattr(m, 'bound_resource'):
                     m.bound_resource = class_
                     if m.relationship_name is None:
                         m.relationship_name = name
