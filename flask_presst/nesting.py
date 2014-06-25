@@ -1,10 +1,9 @@
 from functools import wraps
 from flask import request
-from flask.ext.restful import reqparse, abort, Resource
+from flask_restful import reqparse, abort, Resource
 from flask.views import http_method_funcs, View, MethodView
 import six
 from werkzeug.utils import cached_property
-from flask.ext.presst.utils.routes import route_from
 from flask_presst.parsing import PresstArgument
 
 

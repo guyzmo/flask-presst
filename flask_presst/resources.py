@@ -1,8 +1,8 @@
 import datetime
 from flask import request, current_app, _request_ctx_stack
-from flask.ext.restful import reqparse, Resource, abort, marshal
-from flask.ext.restful.fields import Boolean, String, Integer, DateTime, Raw
-from flask.ext.sqlalchemy import BaseQuery, Pagination, get_state
+from flask_restful import reqparse, Resource, abort, marshal
+from flask_restful.fields import Boolean, String, Integer, DateTime, Raw
+from flask_sqlalchemy import BaseQuery, Pagination, get_state
 from flask.views import MethodViewType
 from sqlalchemy.dialects import postgres
 from sqlalchemy.orm import class_mapper

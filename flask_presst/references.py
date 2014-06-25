@@ -17,7 +17,7 @@ class Reference(object):
 
     @staticmethod
     def _resolve_resource_class(reference):
-        from flask.ext.presst import PresstResource
+        from flask_presst import PresstResource
 
         if inspect.isclass(reference) and issubclass(reference, PresstResource):
             return reference

@@ -1,7 +1,7 @@
 import inspect
-from flask.ext.restful import fields as restful_fields
-from flask.ext.restful.reqparse import Argument
-from flask.ext.presst.utils.parsedate import parsedate_to_datetime
+from flask_restful import fields as restful_fields
+from flask_restful.reqparse import Argument
+from flask_presst.utils.parsedate import parsedate_to_datetime
 from flask_presst.fields import Array, KeyValue, JSON, Raw, Date
 from iso8601 import iso8601
 import datetime

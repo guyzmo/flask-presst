@@ -3,11 +3,12 @@ Contains some additional field types that are not included in Flask-RESTful.
 """
 import datetime
 from flask import current_app
-from flask.ext.restful.fields import *
+from flask_restful.fields import *
 from jsonschema import ValidationError, validate
 from jsonschema.validators import validator_for
 from werkzeug.utils import cached_property
 from flask_presst.references import Reference
+
 
 
 class _RelationshipField(Raw):

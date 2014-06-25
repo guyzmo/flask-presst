@@ -1,7 +1,7 @@
 from functools import partial
 from importlib import import_module
 import inspect
-from flask.ext.restful import Api, abort
+from flask_restful import Api, abort
 import six
 from flask_presst.schema import HyperSchema
 from flask_presst.resources import PresstResource, ModelResource

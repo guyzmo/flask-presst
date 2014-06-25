@@ -27,6 +27,10 @@ class TestFields(PresstTestCase):
 
         self.api.add_resource(PressResource)
 
+    def test_import_module_name(self):
+        self.assertEqual(fields.String.__module__, 'flask_restful.fields')
+        self.assertEqual(fields.Date.__module__, 'flask_presst.fields')
+
     def test_get_date(self):
         self.request('GET', '/press/1', None,
             {'resource_uri': '/press/1',
