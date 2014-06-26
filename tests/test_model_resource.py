@@ -398,6 +398,7 @@ class TestPolymorphicModelResource(PresstTestCase):
         class FruitResource(PolymorphicModelResource):
             class Meta:
                 model = Fruit
+                resource_name = 'fruit'
                 exclude_fields = ['table']
 
         class CitrusFruitResource(ModelResource):
@@ -417,18 +418,21 @@ class TestPolymorphicModelResource(PresstTestCase):
                      {'name': 'Banana', 'color': 'yellow', 'resource_uri': '/fruit/1'}, 200)
 
         self.request('POST', '/citrus', {'name': 'Lemon', 'color': 'yellow'},
-                     {'name': 'Lemon', 'sweetness': 0, 'color': 'yellow', 'resource_uri': '/citrus/2'}, 200)
+                     {'name': 'Lemon', 'sweetness': None, 'color': 'yellow', 'resource_uri': '/citrus/2'}, 200)
 
         self.request('GET', '/fruit', None, [
             {'color': 'yellow', 'name': 'Banana', 'resource_uri': '/fruit/1'},
             {'citrus': {'color': 'yellow',
                         'name': 'Lemon',
                         'resource_uri': '/citrus/2',
-                        'sweetness': 0},
+                        'sweetness': None},
              'color': 'yellow',
              'name': 'Lemon',
              'resource_uri': '/fruit/2'}
         ], 200)
+
+        self.request('POST', '/citrus', {'name': 'Grapefruit', 'color': 'orange', 'sweetness': 2},
+                     {'name': 'Grapefruit', 'sweetness': 2, 'color': 'orange', 'resource_uri': '/citrus/3'}, 200)
 
     def test_exclude_polymorphic(self):
         class CitrusFruitAltResource(ModelResource):

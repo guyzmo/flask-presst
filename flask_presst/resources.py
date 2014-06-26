@@ -329,10 +329,11 @@ class ModelResourceMeta(PresstResourceMeta):
                         if not field_class:
                             field_class = class_._get_field_from_python_type(field_type)
 
-                        if column.default and column.default.is_scalar:
-                            fields[name] = field_class(default=column.default.arg)
-                        else:
-                            fields[name] = field_class()
+                        default = None
+                        if column.default is not None and column.default.is_scalar:
+                            default = column.default.arg
+
+                        fields[name] = field_class(default=default)
 
                         if not (column.nullable or column.default):
                             required_fields.append(name)
