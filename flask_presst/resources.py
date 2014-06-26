@@ -259,8 +259,9 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
 
         for name in limit_fields or self._fields: # FIXME handle this in PresstArgument.
             if name not in self._read_only_fields:
+                field = self._fields[name]
                 required = name in self._required_fields
-                parser.add_argument(name, type=self._fields[name], required=required, ignore=not required)
+                parser.add_argument(name, type=field, default=field.default, required=required)
 
         return parser.parse_args()
 
@@ -328,9 +329,10 @@ class ModelResourceMeta(PresstResourceMeta):
                         if not field_class:
                             field_class = class_._get_field_from_python_type(field_type)
 
-                        # TODO implement support for ColumnDefault
-                        # fields[name] = field_class(default=column.default)
-                        fields[name] = field_class()
+                        if column.default and column.default.is_scalar:
+                            fields[name] = field_class(default=column.default.arg)
+                        else:
+                            fields[name] = field_class()
 
                         if not (column.nullable or column.default):
                             required_fields.append(name)
