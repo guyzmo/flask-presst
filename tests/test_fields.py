@@ -38,13 +38,12 @@ class TestFields(PresstTestCase):
              'name': 'Press 1'}, 200)
 
     def test_post_read_only(self):
-        self.request('POST', '/press/1',
-            {
-                'name': 'Press I'
-            },
-            {'resource_uri': '/press/1',
-             'last_serviced': 'Wed, 12 Feb 2014 15:08:00 -0000',
-             'name': 'Press I'}, 200)
+        response = self.client.post('/press/1', data={'name': 'Press I'})
+
+        self.assert200(response)
+        self.assertEqual({'resource_uri': '/press/1',
+                          'last_serviced': 'Wed, 12 Feb 2014 15:08:00 -0000',
+                          'name': 'Press I'}, response.json)
 
         self.request('POST', '/press/1',
             {

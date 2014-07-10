@@ -2,6 +2,8 @@ import json
 import unittest
 from flask import Flask
 from flask.ext.restful import abort
+from flask.ext.testing import TestCase
+from flask.testing import FlaskClient
 import six
 from flask.ext.presst import PresstResource, PresstApi
 
@@ -37,7 +39,7 @@ class TestPresstResource(PresstResource):
     def create_item(cls, dct):
         """This method must either return the created item or abort with the appropriate error."""
         item_id = len(cls.items) + 1
-        dct.update(item_id)
+        dct.update({'id': item_id})
         cls.items.append(dct)
         return dct
 
@@ -57,13 +59,29 @@ class TestPresstResource(PresstResource):
         return None, 204
 
 
-class PresstTestCase(unittest.TestCase):
+class ApiClient(FlaskClient):
+    def open(self, *args, **kw):
+        """
+        Sends HTTP Authorization header with  the ``HTTP_AUTHORIZATION`` config value
+        unless :param:`authorize` is ``False``.
+        """
+        headers = kw.pop('headers', [])
+
+        if 'data' in kw and (kw.pop('force_json', False) or not isinstance(kw['data'], str)):
+            kw['data'] = json.dumps(kw['data'])
+            kw['content_type'] = 'application/json'
+
+        return super(ApiClient, self).open(*args, headers=headers, **kw)
+
+class PresstTestCase(TestCase):
+    def create_app(self):
+        app = Flask(__name__)
+        app.test_client_class = ApiClient
+        app.config['TESTING'] = True
+        return app
+
     def setUp(self):
-        self.app = app = Flask(__name__)
-
-        app.testing = True
-
-        self.api = PresstApi(app)
+        self.api = PresstApi(self.app)
 
     def tearDown(self):
         pass

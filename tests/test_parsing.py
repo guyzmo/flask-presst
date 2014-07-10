@@ -4,6 +4,7 @@ from flask.ext.restful import reqparse
 from pytz import UTC
 from werkzeug.exceptions import HTTPException
 from flask.ext.presst import PresstArgument, fields
+from flask.ext.presst.references import ItemWrapper
 from tests import PresstTestCase, TestPresstResource
 
 
@@ -100,10 +101,6 @@ class ParsingTest(PresstTestCase):
         parser = reqparse.RequestParser(argument_class=PresstArgument)
 
         parser.add_argument('press', type=fields.ToOne('press'))
-
-        # app context required to look up resource
-        with self.assertRaises(RuntimeError):
-            fields.ToOne('press').python_type
 
         with self.app.test_request_context('/',
                                            data=json.dumps({'press': '/press/1'}),

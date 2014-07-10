@@ -11,9 +11,9 @@ from flask_presst.signals import before_create_item, after_create_item, before_c
     after_create_relationship, before_delete_relationship, after_delete_relationship, before_update_item, \
     before_delete_item, after_delete_item, after_update_item, on_filter_read, on_filter_update, \
     on_filter_delete
-from flask_presst.fields import _RelationshipField, Array, KeyValue, Date, JSON
+from flask_presst.fields import _RelationshipField, Array, KeyValue, Date, JSON, ToOne, ToMany
 from flask_presst.nesting import NestedProxy
-from flask_presst.parsing import PresstArgument
+from flask_presst.parsing import PresstArgument, SchemaParser
 import six
 
 
@@ -35,6 +35,7 @@ class PresstResourceMeta(MethodViewType):
             class_._id_field = meta.get('id_field', 'id')
             class_._required_fields = meta.get('required_fields', [])
             class_._fields = fields = dict()
+            class_._relation_attrs = relation_attrs = []
             class_._read_only_fields = set(meta.get('read_only_fields', []))
             class_._meta = meta
 
@@ -47,7 +48,10 @@ class PresstResourceMeta(MethodViewType):
                 if isinstance(m, NestedProxy):
                     nested_types[m.relationship_name] = m
                 elif isinstance(m, Raw):
-                    fields[m.attribute or name] = m
+                    field_name = m.attribute or name
+                    fields[field_name] = m
+                    if isinstance(m, (ToOne, ToMany)):
+                        relation_attrs.append(field_name)
 
         return class_
 
@@ -97,6 +101,7 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
     _fields = None
     _read_only_fields = None
     _required_fields = None
+    _relation_attrs = None
 
     def get(self, id=None, **kwargs):
         if id is None:
@@ -106,18 +111,57 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
             item = self.get_item_for_id(id)
             return self.marshal_item(item)
 
-    def post(self, id=None, *args, **kwargs):
-        if id is None:
-            return self.marshal_item(self.create_item(self.request_parse_item()))
+    @classmethod
+    def request_make_item(cls, id=None, data=None):
+
+        # if post/patch
+
+        if id and data:
+            item = cls.parse_update_item(id, data, partial=False)
+        elif id:
+            item = cls.get_item_for_id(id)
+        elif data:
+            item = cls.parse_create_item(data)
         else:
-            return self.marshal_item(self.update_item(id, self.request_parse_item()))
+            raise AttributeError()
+
+        return item
+
+
+    @classmethod
+    def parse_item(cls, data, partial=False):
+        parser = SchemaParser(cls._fields, cls._required_fields, cls._read_only_fields)
+        # TODO handle read-only fields
+        return parser.parse(data, partial=partial)
+
+    @classmethod
+    def parse_create_item(cls, data):
+        return cls.create_item(cls.parse_item(data))
+
+    @classmethod
+    def parse_update_item(cls, id, data, partial=True):
+        return cls.update_item(id, cls.parse_item(data), partial=partial)
+
+    def post(self, id=None, *args, **kwargs):
+
+        # TODO on post also handle array of items.
+
+        data = self.parse_item(request.json)
+        print(data, request.json)
+
+        if id is None:
+            return self.marshal_item(self.create_item(data))
+        else:
+            return self.marshal_item(self.update_item(id, data))
 
     def patch(self, id):
         if id is None:
             abort(400, message='PATCH is not permitted on collections.')
         else:
             # TODO consider abort(400) if request.JSON is not a dictionary.
-            changes = self.request_parse_item(limit_fields=(name for name in self._fields if name in request.json))
+
+            changes = self.parse_item(request.json, partial=True)
+
             return self.marshal_item(self.update_item(id, changes, partial=True))
 
     def delete(self, id, *args, **kwargs):

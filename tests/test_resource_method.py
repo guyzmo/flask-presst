@@ -25,6 +25,7 @@ class TestResourceMethod(PresstTestCase):
 
             @resource_method('GET')
             def sweeter_than(self, citrus, other):
+                # FIXME do not use Reference for these things
                 return citrus['sweetness'] > other['sweetness']
 
             @resource_method('POST')
