@@ -14,6 +14,7 @@ setup(
     test_suite='nose.collector',
     description='REST API framework for Flask and SQLAlchemy',
     setup_requires=[
+        'Flask-Testing',
         'nose>=1.1.2',
     ],
     install_requires=[
