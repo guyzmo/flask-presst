@@ -18,7 +18,7 @@ setup(
         'nose>=1.1.2',
     ],
     install_requires=[
-        'Flask>=0.8',
+        'Flask>=0.10',
         'Flask-RESTful>=0.2.10',
         'Flask-SQLAlchemy>=1.0',
         'jsonschema>=2.3.0',
