@@ -13,7 +13,7 @@ setup(
     license='MIT',
     test_suite='nose.collector',
     description='REST API framework for Flask and SQLAlchemy',
-    setup_requires=[
+    tests_require=[
         'Flask-Testing>=0.4.1',
         'nose>=1.1.2',
     ],
