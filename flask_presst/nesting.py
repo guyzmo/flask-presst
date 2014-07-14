@@ -4,7 +4,8 @@ from flask_restful import reqparse, abort, Resource
 from flask.views import http_method_funcs, View, MethodView
 import six
 from werkzeug.utils import cached_property
-from flask_presst.parsing import PresstArgument
+from flask.ext.presst.references import ResourceRef
+from flask_presst.parse import PresstArgument
 
 
 class NestedProxy(object):
@@ -90,61 +91,105 @@ class Relationship(NestedProxy, MethodView):
     the relationship must return a query object. Therefore, the :func:`sqlalchemy.orm.relationship` must have the
     attribute :attr:`lazy` set to ``'dynamic'``. The same goes for any :func:`backref()`.
 
-    :param resource: resource class, resource name, or SQLAlchemy model
+    :param resource: target resource name
+    :param str backref: hint needed when there is a required `ToOne` field referencing back from the target resource
     :param str relationship_name: alternate attribute name in resource item
     """
 
     def __init__(self, resource,
-                 relationship_name=None, **kwargs):
+                 relationship_name=None,
+                 backref=None, **kwargs):
         super(Relationship, self).__init__(kwargs.pop('methods', ['GET', 'POST', 'DELETE']))
-        self.resource = resource
+        self.reference_str = resource
         self.relationship_name = relationship_name
         self.bound_resource = kwargs.pop('bound_resource', None)
+        self.backref = backref
 
     @cached_property
-    def resource_class(self):
-        return self.bound_resource.api.get_resource_class(self.resource, self.bound_resource.__module__)
+    def resource(self):
+        return ResourceRef(self.reference_str).resolve()
 
     def view_factory(self, name, bound_resource):
         return self.as_view(name,
                             bound_resource=bound_resource,
-                            resource=self.resource,
+                            resource=self.reference_str,
                             relationship_name=self.relationship_name,
+                            backref=self.backref,
                             methods=self.methods)
 
-    def _resolve_item_id_from_request_data(self):
-        if not isinstance(request.json, six.string_types):
-            abort(400, message='Need resource URI in body of JSON request.')
+    def _get_or_create_item(self, data, resolve=None):
+        if isinstance(data, six.text_type):
+            return self.resource.get_item_from_uri(data)
+        elif isinstance(data, dict) and 'resource_uri' in data:
+            return self.resource.get_item_from_uri(data.pop('resource_uri'), changes=data)
+        else:
+            return self.resource.request_make_item(data=data, resolve=resolve)
 
-        resource_class, item_id = self.resource_class.api.parse_resource_uri(request.json)
+    def _get_item(self, data):
+        if isinstance(data, six.text_type):
+            return self.resource.get_item_from_uri(data)
+        elif isinstance(data, dict) and 'resource_uri' in data:
+            return self.resource.get_item_from_uri(data.pop('resource_uri'))
+        else:
+            abort(400, message='Resource URI missing in JSON dictionary')
 
-        if self.resource_class != resource_class:
-            abort(400, message='Wrong resource item type, expected {0}, got {1}'.format(
-                self.resource_class.resource_name,
-                self.resource_class.resource_name
-            ))
+    @staticmethod
+    def _request_parse_items(fn, *args, **kwargs):
+        data = request.json
 
-        return item_id
+        if data is None:
+            abort(400, message='JSON required')
+
+        if not isinstance(data, (dict, list, six.text_type)):
+            abort(400, message='JSON dictionary, string, or array required')
+
+        if isinstance(data, list):
+            return [fn(d, *args, **kwargs) for d in data], True
+        else:
+            return fn(data, *args, **kwargs), False
 
     def get(self, parent_id):
         parent_item = self.bound_resource.get_item_for_id(parent_id)
-        return self.resource_class.marshal_item_list(
-            self.resource_class.get_item_list_for_relationship(self.relationship_name, parent_item))
+        return self.resource.marshal_item_list(
+            self.bound_resource.get_relationship(parent_item, self.relationship_name))
 
-    def post(self, parent_id, item_id=None):
+    def post(self, parent_id):
         parent_item = self.bound_resource.get_item_for_id(parent_id)
 
-        if not item_id:  # NOTE not implemented: POST /parent/A/child/B; instead get item from request.data
-            item_id = self._resolve_item_id_from_request_data()
+        if self.backref:
+            resolve = {self.backref: parent_item}
+        else:
+            resolve = None
 
-        return self.resource_class.marshal_item(
-            self.resource_class.create_item_relationship(item_id, self.relationship_name, parent_item))
+        item_or_items, is_list = self._request_parse_items(self._get_or_create_item, resolve=resolve)
 
-    def delete(self, parent_id, item_id=None):
+        self.bound_resource.begin()
+
+        if is_list:
+            result = [self.bound_resource.add_to_relationship(parent_item, self.relationship_name, item)
+                      for item in item_or_items]
+
+            self.bound_resource.commit()
+
+            return self.resource.marshal_item_list(result)
+        else:
+            result = self.bound_resource.add_to_relationship(parent_item, self.relationship_name, item_or_items)
+
+            self.bound_resource.commit()
+
+            return self.resource.marshal_item(result)
+
+    def delete(self, parent_id):
         parent_item = self.bound_resource.get_item_for_id(parent_id)
+        item_or_items, is_list = self._request_parse_items(self._get_item)
 
-        if not item_id:  # NOTE not implemented: DELETE /parent/A/child/B;, instead get item from request.data
-            item_id = self._resolve_item_id_from_request_data()
+        self.bound_resource.begin()
 
-        self.resource_class.delete_item_relationship(item_id, self.relationship_name, parent_item)
+        if is_list:
+            for item in item_or_items:
+                self.bound_resource.remove_from_relationship(parent_item, self.relationship_name, item)
+        else:
+            self.bound_resource.remove_from_relationship(parent_item, self.relationship_name, item_or_items)
+
+        self.bound_resource.commit()
         return None, 204

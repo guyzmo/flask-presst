@@ -1,6 +1,7 @@
 from collections import namedtuple
 from importlib import import_module
 import inspect
+from flask import current_app
 from flask.ext.restful import Resource
 import six
 
@@ -93,6 +94,9 @@ class ResourceRef(object):
 
         if inspect.isclass(r) and issubclass(r, Resource):
             return r
+
+        if hasattr(current_app, 'presst'):
+            return current_app.presst.get_resource_class(r)
 
         try:
             if isinstance(r, six.string_types):

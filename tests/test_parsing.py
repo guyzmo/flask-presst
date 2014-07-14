@@ -5,7 +5,7 @@ from pytz import UTC
 from werkzeug.exceptions import HTTPException
 from flask.ext.presst import PresstArgument, fields
 from flask.ext.presst.references import ItemWrapper
-from tests import PresstTestCase, TestPresstResource
+from tests import PresstTestCase, SimpleResource
 
 
 class ParsingTest(PresstTestCase):
@@ -88,7 +88,7 @@ class ParsingTest(PresstTestCase):
                 parser.parse_args()
 
     def test_parse_resource_field(self):
-        class PressResource(TestPresstResource):
+        class PressResource(SimpleResource):
             items = [{'id': 1, 'name': 'Press 1'}]
 
             name = fields.String()

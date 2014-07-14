@@ -12,8 +12,8 @@ from flask_presst.signals import before_create_item, after_create_item, before_c
     before_delete_item, after_delete_item, after_update_item, on_filter_read, on_filter_update, \
     on_filter_delete
 from flask_presst.fields import _RelationshipField, Array, KeyValue, Date, JSON, ToOne, ToMany
-from flask_presst.nesting import NestedProxy
-from flask_presst.parsing import PresstArgument, SchemaParser
+from flask_presst.nesting import NestedProxy, Relationship
+from flask_presst.parse import PresstArgument, SchemaParser
 import six
 
 
@@ -35,8 +35,8 @@ class PresstResourceMeta(MethodViewType):
             class_._id_field = meta.get('id_field', 'id')
             class_._required_fields = meta.get('required_fields', [])
             class_._fields = fields = dict()
-            class_._relation_attrs = relation_attrs = []
             class_._read_only_fields = set(meta.get('read_only_fields', []))
+            class_._relationships = relationships = dict()
             class_._meta = meta
 
             for name, m in six.iteritems(members):
@@ -46,12 +46,12 @@ class PresstResourceMeta(MethodViewType):
                         m.relationship_name = name
 
                 if isinstance(m, NestedProxy):
+                    if isinstance(m, Relationship):
+                        relationships[m.relationship_name] = m
                     nested_types[m.relationship_name] = m
                 elif isinstance(m, Raw):
                     field_name = m.attribute or name
                     fields[field_name] = m
-                    if isinstance(m, (ToOne, ToMany)):
-                        relation_attrs.append(field_name)
 
         return class_
 
@@ -99,9 +99,9 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
     _meta = None
     _id_field = None
     _fields = None
+    _relationships = None
     _read_only_fields = None
     _required_fields = None
-    _relation_attrs = None
 
     def get(self, id=None, **kwargs):
         if id is None:
@@ -112,55 +112,108 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
             return self.marshal_item(item)
 
     @classmethod
-    def request_make_item(cls, id=None, data=None):
-
+    def request_make_item(cls, id=None, data=None, resolve=None):
         # if post/patch
 
         if id and data:
-            item = cls.parse_update_item(id, data, partial=False)
+            item = cls.parse_update_item(id, data, partial=False, resolve=resolve)
         elif id:
             item = cls.get_item_for_id(id)
         elif data:
-            item = cls.parse_create_item(data)
+            item = cls.parse_create_item(data, resolve=resolve)
         else:
             raise AttributeError()
 
         return item
 
+    @classmethod
+    def get_item_from_uri(cls, value, changes=None):
+        resource, id = cls.api.parse_resource_uri(value)
+
+        if cls != resource:
+            abort(400, msg='Wrong resource item type, expected {0}, got {1}'.format(
+                cls.resource_name,
+                resource.resource_name))
+
+        return cls.request_make_item(id, data=changes)
 
     @classmethod
-    def parse_item(cls, data, partial=False):
+    def parse_item(cls, data, partial=False, resolve=None):
         parser = SchemaParser(cls._fields, cls._required_fields, cls._read_only_fields)
         # TODO handle read-only fields
-        return parser.parse(data, partial=partial)
+        return parser.parse(data, partial=partial, resolve=resolve)
 
     @classmethod
-    def parse_create_item(cls, data):
-        return cls.create_item(cls.parse_item(data))
+    def parse_create_item(cls, data, resolve=None):
+        return cls.create_item(cls.parse_item(data, resolve=resolve)) #) commit=commit)
 
     @classmethod
-    def parse_update_item(cls, id, data, partial=True):
-        return cls.update_item(id, cls.parse_item(data), partial=partial)
+    def parse_update_item(cls, id, data, partial=True, resolve=None):
+        return cls.update_item(id, cls.parse_item(data, resolve=resolve, partial=partial))#, commit=commit)
+
+    @classmethod
+    def begin(cls):
+        """
+        Called at the beginning of a create or update operation.
+        May be a no-op
+        """
+        pass
+
+    @classmethod
+    def commit(cls):
+        """
+        Called at the end of a create or update operation.
+        Should flush all changes and fail if necessary.
+        """
+        pass
+
+    def _request_get_data(self):
+        # TODO upcoming in Flask 0.11: 'is_json':
+        # if not request.is_json:
+        #     abort(415)
+
+        request_data = request.json
+
+        if request_data is None:
+            abort(400, message='JSON required')
+
+        if not isinstance(request_data, (dict, list)):
+            abort(400, message='JSON dictionary or array required')
+
+        return request_data
 
     def post(self, id=None, *args, **kwargs):
+        request_data = self._request_get_data()
+
+        self.begin()
 
         # TODO on post also handle array of items.
+        if isinstance(request_data, list) and id is None:
+            # bulk submissions not yet supported
+            items = [self.create_item(self.parse_item(d)) for d in request_data]
 
-        data = self.parse_item(request.json)
-        print(data, request.json)
+            self.commit()
+            return [self.marshal_item(item) for item in items]
+
+        data = self.parse_item(request_data)
 
         if id is None:
-            return self.marshal_item(self.create_item(data))
+            item = self.create_item(data)
         else:
-            return self.marshal_item(self.update_item(id, data))
+            item = self.update_item(id, data)
+
+        self.commit()
+        return self.marshal_item(item)
 
     def patch(self, id):
+        request_data = self._request_get_data()
+
         if id is None:
-            abort(400, message='PATCH is not permitted on collections.')
+            abort(400, message='PATCH is not permitted on collections')
         else:
             # TODO consider abort(400) if request.JSON is not a dictionary.
 
-            changes = self.parse_item(request.json, partial=True)
+            changes = self.parse_item(request_data, partial=True)
 
             return self.marshal_item(self.update_item(id, changes, partial=True))
 
@@ -204,34 +257,34 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
         raise NotImplementedError()
 
     @classmethod
-    def get_item_list_for_relationship(cls, relationship, parent_item):  # pragma: no cover
+    def get_relationship(cls, item, relationship):  # pragma: no cover
         """
-        Return the list of items for a relationship. Must be implemented in nested resources.
+        Return the list of items for a relationship. Must be implemented in the parents of nested resources.
 
-        :param str relationship: name of the relationship in the parent level resource
-        :param parent_item: instance of the item from the parent level resource
-        """
-        raise NotImplementedError()
-
-    @classmethod
-    def create_item_relationship(cls, id_, relationship, parent_item):  # pragma: no cover
-        """
-        Add an item to a relationship. Must be implemented in nested resources.
-
-        :param id_: the id of the item to add to the relationship
-        :param str relationship: name of the relationship in the parent level resource
-        :param parent_item: instance of the item from the parent level resource
+        :param item: instance of the item from the parent level resource
+        :param str relationship: name of the relationship from the parent resource
         """
         raise NotImplementedError()
 
     @classmethod
-    def delete_item_relationship(cls, id_, relationship, parent_item):  # pragma: no cover
+    def add_to_relationship(cls, item, relationship, child):  # pragma: no cover
         """
-        Delete an item from a relationship. Must be implemented in nested resources.
+        Add a child item to a relationship. Must be implemented in the parents of nested resources.
 
-        :param id_: the id of the item to remove from the relationship
-        :param str relationship: name of the relationship in the parent level resource
-        :param parent_item: instance of the item from the parent level resource
+        :param item: instance of the item from the parent resource
+        :param str relationship: name of the relationship from the parent resource
+        :param child: item to remove from the relationship
+        """
+        raise NotImplementedError()
+
+    @classmethod
+    def remove_from_relationship(cls, item, relationship, child):  # pragma: no cover
+        """
+        Delete a child item from a relationship. Must be implemented in the parents of nested resources.
+
+        :param item: instance of the item from the parent resource
+        :param str relationship: name of the relationship from the parent resource
+        :param child: item to remove from the relationship
         """
         raise NotImplementedError()
 
@@ -439,6 +492,15 @@ class ModelResource(six.with_metaclass(ModelResourceMeta, PresstResource)):
         return cls._model
 
     @classmethod
+    def begin(cls):
+        cls._get_session()
+
+    @classmethod
+    def commit(cls):
+        # TODO handle errors
+        cls._get_session().commit()
+
+    @classmethod
     def _process_filter_signal(cls, query, **kwargs):
         if request.method in ('HEAD', 'GET'):
             signal = on_filter_read
@@ -469,60 +531,56 @@ class ModelResource(six.with_metaclass(ModelResourceMeta, PresstResource)):
         return cls._process_filter_signal(query)
 
     @classmethod
-    def get_item_list_for_relationship(cls, relationship, parent_item):
-        query = getattr(parent_item, relationship)
+    def get_relationship(cls, item, relationship):
+        query = getattr(item, relationship)
+
+
 
         if isinstance(query, list):
             abort(500, message='Nesting not supported for this resource.')
 
-        return cls._process_filter_signal(query)
+        # FIXME build dynamic query with backref
+
+        return query
 
     @classmethod
-    def create_item_relationship(cls, id_, relationship, parent_item):
-        item = cls.get_item_for_id(id_)
+    def add_to_relationship(cls, item, relationship, child):
 
         before_create_relationship.send(cls,
-                                        parent_item=parent_item,
+                                        parent_item=item,
                                         relationship=relationship,
-                                        item=item)
-
+                                        item=child)
+        #
         session = cls._get_session()
-
-        try:
-            getattr(parent_item, relationship).append(item)
-            session.commit()
-        except:
-            session.rollback()
-            raise
+        #
+        # try:
+        getattr(item, relationship).append(child)
+        #     session.commit()
+        # except:
+        #     session.rollback()
+        #     raise
 
         after_create_relationship.send(cls,
-                                       parent_item=parent_item,
+                                       parent_item=item,
                                        relationship=relationship,
-                                       item=item)
-        return item
+                                       item=child)
+
+        return child
 
     @classmethod
-    def delete_item_relationship(cls, id_, relationship, parent_item):
-        item = cls.get_item_for_id(id_)
+    def remove_from_relationship(cls, item, relationship, child):
 
         before_delete_relationship.send(cls,
-                                        parent_item=parent_item,
+                                        parent_item=item,
                                         relationship=relationship,
-                                        item=item)
+                                        item=child)
 
-        session = cls._get_session()
-
-        try:
-            getattr(parent_item, relationship).remove(item)
-            session.commit()
-        except:
-            session.rollback()
-            raise
+        getattr(item, relationship).remove(child)
 
         after_delete_relationship.send(cls,
-                                       parent_item=parent_item,
+                                       parent_item=item,
                                        relationship=relationship,
-                                       item=item)
+                                       item=child)
 
     @classmethod
     def get_item_for_id(cls, id_):
@@ -544,7 +602,7 @@ class ModelResource(six.with_metaclass(ModelResourceMeta, PresstResource)):
 
         try:
             session.add(item)
-            session.commit()
+            #session.commit()
         except:
             session.rollback()
             raise
@@ -553,18 +611,19 @@ class ModelResource(six.with_metaclass(ModelResourceMeta, PresstResource)):
         return item
 
     @classmethod
-    def update_item(cls, id_, dct, partial=False):
+    def update_item(cls, id_, changes, partial=False):
         item = cls.get_item_for_id(id_)
 
         session = cls._get_session()
+        #session.begin(subtransactions=True)
 
         try:
-            before_update_item.send(cls, item=item, changes=dct, partial=partial)
+            before_update_item.send(cls, item=item, changes=changes, partial=partial)
 
-            for key, value in six.iteritems(dct):
+            for key, value in six.iteritems(changes):
                 setattr(item, key, value)
 
-            session.commit()
+            #session.commit()
         except:
             session.rollback()
             raise

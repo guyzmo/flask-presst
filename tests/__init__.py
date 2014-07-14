@@ -8,7 +8,7 @@ import six
 from flask.ext.presst import PresstResource, PresstApi
 
 
-class TestPresstResource(PresstResource):
+class SimpleResource(PresstResource):
     items = []
 
     @classmethod
@@ -23,17 +23,20 @@ class TestPresstResource(PresstResource):
         return cls.items
 
     @classmethod
-    def get_item_list_for_relationship(cls, relationship, parent_item):
-        return (cls.get_item_for_id(id_) for id_ in parent_item[relationship])
+    def get_relationship(cls, item, relationship):
+        child_resource = cls._relationships[relationship].resource
+        return (child_resource.get_item_for_id(id_) for id_ in item[relationship])
 
     @classmethod
-    def create_item_relationship(cls, id_, relationship, parent_item):
-        parent_item[relationship].append(id_)
-        return cls.get_item_for_id(id_)
+    def add_to_relationship(cls, item, relationship, child):
+        child_resource = cls._relationships[relationship].resource
+        item[relationship].append(child_resource.item_get_id(child))
+        return child
 
     @classmethod
-    def delete_item_relationship(cls, id_, relationship, parent_item):
-        parent_item[relationship].remove(id_)
+    def remove_from_relationship(cls, item, relationship, child):
+        child_resource = cls._relationships[relationship].resource
+        item[relationship].remove(child_resource.item_get_id(child))
 
     @classmethod
     def create_item(cls, dct):
@@ -85,6 +88,23 @@ class PresstTestCase(TestCase):
 
     def tearDown(self):
         pass
+
+    def _without(self, dct, without):
+        return {k: v for k, v in dct.items() if k not in without}
+
+    def assertEqualWithout(self, first, second, without, msg=None):
+        if isinstance(first, list) and isinstance(second, list):
+            self.assertEqual(
+                [self._without(v, without) for v in first],
+                [self._without(v, without) for v in second],
+                msg=msg
+            )
+        elif isinstance(first, dict) and self.assertEqual(second, dict):
+            self.assertEqual(self._without(first, without),
+                             self._without(second, without),
+                             msg=msg)
+        else:
+            self.assertEqual(first, second)
 
     def request(self, method, url, data, *result):
         with self.app.test_client() as client:

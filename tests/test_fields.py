@@ -1,6 +1,6 @@
 from datetime import datetime
 from flask_presst import fields
-from tests import PresstTestCase, TestPresstResource
+from tests import PresstTestCase, SimpleResource
 from pytz import UTC
 
 
@@ -8,7 +8,7 @@ class TestFields(PresstTestCase):
     def setUp(self):
         super(TestFields, self).setUp()
 
-        class PressResource(TestPresstResource):
+        class PressResource(SimpleResource):
             items = [
                 {
                     'id': 1,

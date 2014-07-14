@@ -59,6 +59,14 @@ class TestModelResource(PresstTestCase):
         self.assertEqual(self.FruitResource.resource_name, 'fruit')
         self.assertEqual(self.TreeResource.resource_name, 'tree')
 
+    def test_create_no_json(self):
+        response = self.client.post('/fruit', data='invalid')
+        self.assert400(response)
+
+    def test_create_json_string(self):
+        response = self.client.post('/fruit', data='invalid', force_json=True)
+        self.assert400(response)
+
     def test_create(self):
         self.request('POST', '/fruit', {'name': 'Apple'},
                      {'sweetness': 5, 'name': 'Apple', 'resource_uri': '/fruit/1', 'tree': None}, 200)

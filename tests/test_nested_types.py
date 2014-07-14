@@ -1,14 +1,14 @@
 import unittest
 from flask.ext.restful import marshal_with
 from flask.ext.presst import fields, Relationship, resource_method
-from tests import TestPresstResource, PresstTestCase
+from tests import SimpleResource, PresstTestCase
 
 
 class TestRelationship(PresstTestCase):
     def setUp(self):
         super(TestRelationship, self).setUp()
 
-        class Seed(TestPresstResource):
+        class Seed(SimpleResource):
             items = [
                 {'id': 1, 'name': 'S1'},
                 {'id': 2, 'name': 'S2'},
@@ -17,7 +17,7 @@ class TestRelationship(PresstTestCase):
 
             name = fields.String()
 
-        class Apple(TestPresstResource):
+        class Apple(SimpleResource):
             items = [{'id': 1, 'seeds': [1, 2], 'name': 'A1'}]
             name = fields.String()
             seeds = Relationship(resource=Seed)
@@ -201,14 +201,14 @@ class TestRelationship(PresstTestCase):
 
 class TestRelationshipField(PresstTestCase):
     def test_self(self):
-        class Node(TestPresstResource):
+        class Node(SimpleResource):
             items = []
             parent = fields.ToOne('self')
 
         self.assertEqual(Node.parent.resource_class, Node)
 
     def node_resource_factory(self, embedded=False):
-        class Node(TestPresstResource):
+        class Node(SimpleResource):
             items = []
 
             name = fields.String()
@@ -257,17 +257,17 @@ class TestRelationshipField(PresstTestCase):
                       'resource_uri': '/node/1'}, 200)
 
     def test_many(self):
-        class Seed(TestPresstResource):
+        class Seed(SimpleResource):
             items = [{'id': i, 'name': 'seed-{}'.format(i)} for i in range(1, 7)]
             name = fields.String()
 
-        class Apple(TestPresstResource):
+        class Apple(SimpleResource):
             seeds = fields.ToMany(Seed, embedded=True)
 
         for a in range(1, 4):
             Apple.items.append({'id': a, 'seeds': [Seed.get_item_for_id(i) for i in (a, a + 3)]})
 
-        class Tree(TestPresstResource):
+        class Tree(SimpleResource):
             items = [{'id': 1, 'apples': list(Apple.items)}]
             name = fields.String()
             apples = fields.ToMany(Apple)

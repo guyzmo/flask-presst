@@ -75,8 +75,13 @@ class SchemaParser(object):
             'required': self.required_fields or []
         }
 
-    def parse(self, obj, partial=False):
-        converted = {}
+    def parse(self, obj, partial=False, resolve=None):
+        """
+        :param obj: JSON-object to parse
+        :param bool partial: Whether to allow omitting required fields
+        :param dict resolve: An optional dictionary of properties to pre-fill rather than load from fields.
+        """
+        converted = dict(resolve) if resolve else {}
 
         try:
             for key, value in six.iteritems(obj):
@@ -97,7 +102,7 @@ class SchemaParser(object):
                     converted[key] = python_type(value)
                 else:
                     field.validate(value)
-                    converted[key] = field.convert(value)
+                    converted[key] = field.convert(value)  # pass item
 
             if not partial:
                 for key in self.required_fields:

@@ -1,9 +1,9 @@
 from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.presst import fields, ModelResource
-from tests import PresstTestCase, TestPresstResource
+from tests import PresstTestCase, SimpleResource
 
 
-class VegetableResource(TestPresstResource):
+class VegetableResource(SimpleResource):
     name = fields.String()
 
     class Meta:
@@ -55,3 +55,4 @@ class TestReference(PresstTestCase):
     def test_get_resource_for_model(self):
         self.assertEqual(self.api.get_resource_for_model(self.Fruit), self.FruitResource)
         self.assertEqual(self.api.get_resource_for_model(self.Pet), None)
+

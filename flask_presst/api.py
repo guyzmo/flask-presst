@@ -72,6 +72,9 @@ class PresstApi(Api):
             abort(400, message='Resource {} is not defined'.format(uri))
 
     def get_item_for_resource_uri(self, uri, expected_resource=None):
+        if not isinstance(uri, six.text_type):
+            abort(400, message='Resource URI must be a string')
+
         resource_class, id_ = self.parse_resource_uri(uri)
 
         if expected_resource != resource_class:

@@ -1,11 +1,11 @@
 from werkzeug import exceptions
 from flask.ext.presst import fields, Reference
 from flask.ext.presst.references import ItemWrapper
-from tests import PresstTestCase, TestPresstResource
+from tests import PresstTestCase, SimpleResource
 
 
 class TestReference(PresstTestCase):
-    class Fruit(TestPresstResource):
+    class Fruit(SimpleResource):
         items = [{'id': 1, 'name': 'Banana'}]
 
         name = fields.String()
@@ -13,7 +13,7 @@ class TestReference(PresstTestCase):
         class Meta:
             resource_name = 'fruit'
 
-    class Vegetable(TestPresstResource):
+    class Vegetable(SimpleResource):
         items = [{'id': 1, 'name': 'Carrot'}]
 
     def setUp(self):

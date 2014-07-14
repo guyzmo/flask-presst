@@ -188,7 +188,7 @@ class HyperSchema(View):
                     'targetSchema': {
                         'type': 'array',
                         'items': {
-                            '$ref': '#/definitions/{}'.format(child.resource_class.endpoint)
+                            '$ref': '#/definitions/{}'.format(child.resource.endpoint)
                         }
                     }
                 })

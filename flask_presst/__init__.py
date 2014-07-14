@@ -3,7 +3,7 @@ from flask_restful import unpack
 from flask_presst.api import PresstApi
 from flask_presst.resources import PresstResource, ModelResource, PolymorphicModelResource
 from flask_presst.nesting import Relationship, resource_method
-from flask_presst.parsing import PresstArgument
+from flask_presst.parse import PresstArgument
 from flask_presst.references import Reference
 
 

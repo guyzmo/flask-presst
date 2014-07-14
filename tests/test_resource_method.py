@@ -1,13 +1,13 @@
 import json
 from flask.ext.presst import fields, resource_method, Reference
-from tests import PresstTestCase, TestPresstResource
+from tests import PresstTestCase, SimpleResource
 
 
 class TestResourceMethod(PresstTestCase):
     def setUp(self):
         super(TestResourceMethod, self).setUp()
 
-        class Citrus(TestPresstResource):
+        class Citrus(SimpleResource):
             items = [{'id': 1, 'name': 'Orange', 'sweetness': 3},
                      {'id': 2, 'name': 'Lemon', 'sweetness': 1},
                      {'id': 3, 'name': 'Clementine', 'sweetness': 5}]
