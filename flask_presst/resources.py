@@ -695,10 +695,10 @@ class PolymorphicModelResource(ModelResource):
     .. code-block:: javascript
 
         {
-            "resource_uri": "/polymorphic_resource/1",
+            "_uri": "/polymorphic_resource/1",
             // polymorphic_resource properties
             "base_resource": {
-                "resource_uri": "/base_resource/1",
+                "_uri": "/base_resource/1",
                 // base_resource properties
             }
         }
