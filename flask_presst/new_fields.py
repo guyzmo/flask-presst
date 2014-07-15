@@ -240,13 +240,13 @@ class ToOne(Raw):
                     {
                         "type": "object",
                         "properties": {
-                            "resource_uri": {
+                            "_uri": {
                                 "type": "string",
                                 "format": "uri",
                                 "pattern": resource.instance_uri_pattern
                             }
                         },
-                        "required": ["resource_uri"]
+                        "required": ["_uri"]
                     },
                     resource.schema
                 ]
@@ -277,9 +277,9 @@ class ToOne(Raw):
         if isinstance(value, six.text_type):
             resource_uri = value
         elif isinstance(value, dict):
-            if 'resource_uri' in value:
+            if '_uri' in value:
                 request_data = dict(value)
-                resource_uri = request_data.pop('resource_uri')
+                resource_uri = request_data.pop('_uri')
             else:
                 request_data = value
 

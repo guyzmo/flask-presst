@@ -80,7 +80,7 @@ class TestResourceBulkEmbedded(PresstTestCase):
 
         self.assert200(response)
         self.assertEqual(response.json, {
-            'resource_uri': '/street/1',
+            '_uri': '/street/1',
             'name': 'Unter den Linden',
             'city': '/city/1',
             'addresses': []
@@ -103,17 +103,17 @@ class TestResourceBulkEmbedded(PresstTestCase):
         self.assert200(response)
         self.assertEqual(response.json,
                          {'addresses': [{'number': 1,
-                                         'resource_uri': '/address/1',
+                                         '_uri': '/address/1',
                                          'street': '/street/1'},
                                         {'number': 2,
-                                         'resource_uri': '/address/2',
+                                         '_uri': '/address/2',
                                          'street': '/street/1'},
                                         {'number': 3,
-                                         'resource_uri': '/address/3',
+                                         '_uri': '/address/3',
                                          'street': '/street/1'}],
                           'city': '/city/1',
                           'name': 'Noerrebrogade',
-                          'resource_uri': '/street/1'})
+                          '_uri': '/street/1'})
 
     def test_create_bulk(self):
         response = self.client.post('/city', data=[
@@ -124,9 +124,9 @@ class TestResourceBulkEmbedded(PresstTestCase):
 
         self.assert200(response)
         self.assertEqual(response.json, [
-            {'name': 'Aarhus', 'resource_uri': '/city/1'},
-            {'name': 'Copenhagen', 'resource_uri': '/city/2'},
-            {'name': 'Roskilde', 'resource_uri': '/city/3'}
+            {'name': 'Aarhus', '_uri': '/city/1'},
+            {'name': 'Copenhagen', '_uri': '/city/2'},
+            {'name': 'Roskilde', '_uri': '/city/3'}
         ])
 
     def test_create_bulk_invalid(self):
@@ -167,17 +167,17 @@ class TestResourceBulkEmbedded(PresstTestCase):
             {
                 'name': 'Foo Rd.',
                 'city': '/city/1',
-                'resource_uri': '/street/1',
+                '_uri': '/street/1',
                 'addresses': []
             },
             {
                 'name': 'Bar St.',
                 'city': '/city/1',
-                'resource_uri': '/street/2',
+                '_uri': '/street/2',
                 'addresses': [
                     {
                         'street': '/street/2',
-                        'resource_uri': '/address/1',
+                        '_uri': '/address/1',
                         'number': 123
                     }
                 ]
@@ -216,12 +216,12 @@ class TestResourceBulkEmbedded(PresstTestCase):
         self.assertEqual({
             'addresses': [
                 {
-                    'resource_uri': '/address/1',
+                    '_uri': '/address/1',
                     'street': '/street/2',
                     'number': 1
                 }
             ],
-            'resource_uri': '/street/2',
+            '_uri': '/street/2',
             'city': '/city/1',
             'name': 'Foo'
         }, response.json)
@@ -229,7 +229,7 @@ class TestResourceBulkEmbedded(PresstTestCase):
         self.assertEqual([
             {
                 'city': '/city/1',
-                'resource_uri': '/street/1',
+                '_uri': '/street/1',
                 'addresses': [],
                 'name': 'Foo Foo'
             },
@@ -238,10 +238,10 @@ class TestResourceBulkEmbedded(PresstTestCase):
                     {
                         'street': '/street/2',
                         'number': 1,
-                        'resource_uri': '/address/1'
+                        '_uri': '/address/1'
                     }
                 ],
-                'resource_uri': '/street/2',
+                '_uri': '/street/2',
                 'city': '/city/1',
                 'name': 'Foo'
             }
@@ -273,24 +273,24 @@ class TestResourceBulkEmbedded(PresstTestCase):
                 'city': '/city/1',
                 'addresses': [
                     {
-                        'resource_uri': '/address/1',
+                        '_uri': '/address/1',
                         'number': 1,
                         'street': '/street/1'
                     }
                 ],
-                'resource_uri': '/street/1',
+                '_uri': '/street/1',
                 'name': 'Foo St.'
             },
             {
                 'city': '/city/1',
                 'addresses': [
                     {
-                        'resource_uri': '/address/2',
+                        '_uri': '/address/2',
                         'number': 1,
                         'street': '/street/2'
                     }
                 ],
-                'resource_uri': '/street/2',
+                '_uri': '/street/2',
                 'name': 'Bar St.'
             }
         ])
@@ -372,18 +372,18 @@ class TestResourceModelMix(PresstTestCase):
         self.assertEqual(response.json, {
             'city': '/city/1',
             'name': 'foo',
-            'resource_uri': '/tag/1'
+            '_uri': '/tag/1'
         })
 
         self.assert200(self.client.post('/tag', data={'city': '/city/1', 'name': 'bar'}))
         self.assert200(self.client.get('/tag/2'))
 
-        response = self.client.post('/city/1/tags', data={'resource_uri': '/tag/2'})
+        response = self.client.post('/city/1/tags', data={'_uri': '/tag/2'})
         self.assert200(response)
 
         self.assertEqual(self.client.get('/city/1/tags').json, [
-            {'city': '/city/1', 'name': 'foo', 'resource_uri': '/tag/1'},
-            {'city': '/city/1', 'name': 'bar', 'resource_uri': '/tag/2'}
+            {'city': '/city/1', 'name': 'foo', '_uri': '/tag/1'},
+            {'city': '/city/1', 'name': 'bar', '_uri': '/tag/2'}
         ])
 
     def test_delete_simple(self):
@@ -398,7 +398,7 @@ class TestResourceModelMix(PresstTestCase):
         self.assertEqual(len(self.client.get('/city/1/tags').json), 3)
 
         self.client.delete('/city/1/tags', data=['/tag/1', '/tag/3'], force_json=True)
-        self.client.delete('/city/1/tags', data={'resource_uri': '/tag/2'})
+        self.client.delete('/city/1/tags', data={'_uri': '/tag/2'})
 
         self.assertEqual(self.client.get('/city/1/tags').json, [])
 

@@ -17,30 +17,6 @@ class Reference(object):
 
         return self.resource.resolve_item(value, resolved_properties=resolve, create=True, update=True, commit=commit, parse_only=True)
 
-        # resource_uri = None
-        # request_data = None
-        #
-        # if isinstance(value, six.text_type):
-        #     resource_uri = value
-        # elif isinstance(value, dict):
-        #     if 'resource_uri' in value:
-        #         request_data = dict(value)
-        #         resource_uri = request_data.pop('resource_uri')
-        #     else:
-        #         request_data = value
-        #
-        # if resource_uri:
-        #     resource, id = self.resource.api.parse_resource_uri(value)
-        #
-        #     if self.resource != resource:
-        #         raise ValueError('Wrong resource item type, expected {0}, got {1}'.format(
-        #             self.resource.resource_name,
-        #             resource.resource_name))
-        #
-        #     return self.resource.request_make_item(id, data=request_data, resolve=resolve, commit=commit)
-        # else:
-        #     return self.resource.request_make_item(data=request_data, resolve=resolve, commit=commit)
-
     def __repr__(self):
         return "<Reference '{}'>".format(self.resource_class.resource_name)
 
@@ -186,7 +162,7 @@ class ItemWrapper(object):
 
     @property
     def uri(self):
-        return self.resource.item_get_resource_uri(self.item)
+        return self.resource.item_get_uri(self.item)
 
     def raw(self):
         return self.item

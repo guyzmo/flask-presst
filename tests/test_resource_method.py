@@ -64,7 +64,7 @@ class TestResourceMethod(PresstTestCase):
     def test_convert_argument(self):
         with self.app.test_client() as client:
             self.assertEqual(self.parse_response(client.post('/citrus/3/sweeten?by=2')),
-                             ({"name": "Clementine", "resource_uri": "/citrus/3", "sweetness": 7}, 200))
+                             ({"name": "Clementine", "_uri": "/citrus/3", "sweetness": 7}, 200))
 
     def test_required_argument(self):
         with self.app.test_client() as client:
@@ -111,7 +111,7 @@ class TestResourceMethod(PresstTestCase):
                         'sweetness': {
                             'type': 'integer'
                         },
-                        'resource_uri': {
+                        '_uri': {
                             'format': 'uri',
                             'readOnly': True,
                             'type': 'string'
@@ -124,8 +124,8 @@ class TestResourceMethod(PresstTestCase):
                         'sweetness': {
                             '$ref': '#/definitions/citrus/definitions/sweetness'
                         },
-                        'resource_uri': {
-                            '$ref': '#/definitions/citrus/definitions/resource_uri'
+                        '_uri': {
+                            '$ref': '#/definitions/citrus/definitions/_uri'
                         }
                     },
                     'type': 'object',
@@ -175,7 +175,7 @@ class TestResourceMethod(PresstTestCase):
                             'schema': {
                                 'properties': {
                                     'other': {
-                                        '$ref': '#/definitions/citrus/definitions/resource_uri'
+                                        '$ref': '#/definitions/citrus/definitions/_uri'
                                     }
                                 }
                             },

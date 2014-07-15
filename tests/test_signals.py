@@ -108,12 +108,12 @@ class TestResourceMethod(PresstTestCase):
         self.request('GET', '/location', None, [], 200)
         self.assertEqual(self.recorder.last_action, ('filter_read', self.LocationResource, {}))
 
-        self.request('POST', '/location', {'name': 'Yard'}, {'name': 'Yard', 'resource_uri': '/location/1'}, 200)
+        self.request('POST', '/location', {'name': 'Yard'}, {'name': 'Yard', '_uri': '/location/1'}, 200)
         self.assertEqual(self.recorder.actions[-3], ('filter_read', self.LocationResource, {}))
         self.assertEqual(self.recorder.actions[-2][0], 'before_create_item')
         self.assertEqual(self.recorder.actions[-1][0], 'after_create_item')
 
-        self.request('POST', '/location/1', {'name': 'House'}, {'name': 'House', 'resource_uri': '/location/1'}, 200)
+        self.request('POST', '/location/1', {'name': 'House'}, {'name': 'House', '_uri': '/location/1'}, 200)
         self.assertEqual(self.recorder.actions[-3][0], 'filter_update')
 
         self.assertEqual(self.recorder.actions[-2][::2][0], 'before_update_item')
@@ -121,13 +121,13 @@ class TestResourceMethod(PresstTestCase):
 
         self.assertEqual(self.recorder.last_action[0], 'after_update_item')
 
-        self.request('PATCH', '/location/1', {}, {'name': 'House', 'resource_uri': '/location/1'}, 200)
+        self.request('PATCH', '/location/1', {}, {'name': 'House', '_uri': '/location/1'}, 200)
         self.assertEqual(self.recorder.actions[-3][0], 'filter_update')
         self.assertEqual(self.recorder.last_action[0], 'after_update_item')
 
         self.request('GET', '/location/1/flags', None, [], 200)
         self.request('POST', '/flag', {'location': '/location/1'},
-                     {'location': '/location/1', 'resource_uri': '/flag/1'}, 200)
+                     {'location': '/location/1', '_uri': '/flag/1'}, 200)
 
         self.request('DELETE', '/location/1/flags', '/flag/1', None, 204)
         self.request('GET', '/location/1/flags', None, [], 200)
@@ -141,14 +141,14 @@ class TestResourceMethod(PresstTestCase):
         self.request('GET', '/flag', None, [], 200)
 
     def test_filter(self):
-        self.request('POST', '/location', {'name': 'Yard'}, {'name': 'Yard', 'resource_uri': '/location/1'}, 200)
-        self.request('POST', '/location', {'name': 'House'}, {'name': 'House', 'resource_uri': '/location/2'}, 200)
-        self.request('POST', '/location', {'name': 'Shed'}, {'name': 'Shed', 'resource_uri': '/location/3'}, 200)
-        self.request('POST', '/location', {'name': 'Harbor'}, {'name': 'Harbor', 'resource_uri': '/location/4'}, 200)
+        self.request('POST', '/location', {'name': 'Yard'}, {'name': 'Yard', '_uri': '/location/1'}, 200)
+        self.request('POST', '/location', {'name': 'House'}, {'name': 'House', '_uri': '/location/2'}, 200)
+        self.request('POST', '/location', {'name': 'Shed'}, {'name': 'Shed', '_uri': '/location/3'}, 200)
+        self.request('POST', '/location', {'name': 'Harbor'}, {'name': 'Harbor', '_uri': '/location/4'}, 200)
 
         self.request('GET', '/limitedlocation', None, [
-            {'name': 'House', 'resource_uri': '/limitedlocation/2'},
-            {'name': 'Harbor', 'resource_uri': '/limitedlocation/4'}
+            {'name': 'House', '_uri': '/limitedlocation/2'},
+            {'name': 'Harbor', '_uri': '/limitedlocation/4'}
         ], 200)
 
     def test_relationship(self):

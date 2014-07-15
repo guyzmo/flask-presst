@@ -119,8 +119,8 @@ class Relationship(NestedProxy, MethodView):
     def _get_or_create_item(self, data, resolve=None):
         if isinstance(data, six.text_type):
             return self.resource.get_item_from_uri(data)
-        elif isinstance(data, dict) and 'resource_uri' in data:
-            return self.resource.get_item_from_uri(data.pop('resource_uri'), changes=data)
+        elif isinstance(data, dict) and '_uri' in data:
+            return self.resource.get_item_from_uri(data.pop('_uri'), changes=data)
         else:
             return self.resource.request_make_item(data=data, resolve=resolve, commit=False)
 

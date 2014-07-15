@@ -33,7 +33,7 @@ class TestFields(PresstTestCase):
 
     def test_get_date(self):
         self.request('GET', '/press/1', None,
-            {'resource_uri': '/press/1',
+            {'_uri': '/press/1',
              'last_serviced': 'Wed, 12 Feb 2014 15:08:00 -0000',
              'name': 'Press 1'}, 200)
 
@@ -41,7 +41,7 @@ class TestFields(PresstTestCase):
         response = self.client.post('/press/1', data={'name': 'Press I'})
 
         self.assert200(response)
-        self.assertEqual({'resource_uri': '/press/1',
+        self.assertEqual({'_uri': '/press/1',
                           'last_serviced': 'Wed, 12 Feb 2014 15:08:00 -0000',
                           'name': 'Press I'}, response.json)
 
@@ -50,6 +50,6 @@ class TestFields(PresstTestCase):
                 'name': 'Press 1',
                 'last_serviced': 'Wed, 12 Feb 2014 15:10:00 -0000'
             },
-            {'resource_uri': '/press/1',
+            {'_uri': '/press/1',
              'last_serviced': 'Wed, 12 Feb 2014 15:08:00 -0000', # read-only fields are ignored; could throw error.
              'name': 'Press 1'}, 200)

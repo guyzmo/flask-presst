@@ -49,7 +49,7 @@ class ToMany(_RelationshipField):
     :param bool embedded: whether to embed the whole items in the output (otherwise formats them as uris)
     """
     def format(self, item_list):
-        marshal_fn = self.resource_class.item_get_resource_uri \
+        marshal_fn = self.resource_class.item_get_uri \
             if not self.embedded else self.resource_class.marshal_item
 
         return list(marshal_fn(item) for item in item_list)
@@ -75,7 +75,7 @@ class ToOne(_RelationshipField):
 
     def format(self, item):
         if not self.embedded:
-            return self.resource_class.item_get_resource_uri(item)
+            return self.resource_class.item_get_uri(item)
         return self.resource_class.marshal_item(item)
 
 

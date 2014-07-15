@@ -24,7 +24,7 @@ class HyperSchema(View):
         if full:
             return {'$ref': '#/definitions/{}'.format(resource.endpoint)}
         else:
-            return {'$ref': '#/definitions/{}/definitions/resource_uri'.format(resource.endpoint)}
+            return {'$ref': '#/definitions/{}/definitions/_uri'.format(resource.endpoint)}
 
     def _get_field_type(self, field):
 
@@ -114,12 +114,12 @@ class HyperSchema(View):
             definitions[name] = definition
             properties[name] = {'$ref': '#/definitions/{}/definitions/{}'.format(resource.endpoint, name)}
 
-        definitions['resource_uri'] = {
+        definitions['_uri'] = {
             'type': 'string',
             'format': 'uri',
             'readOnly': True
         }
-        properties['resource_uri'] = self._get_ref(resource, False)
+        properties['_uri'] = self._get_ref(resource, False)
         return definitions, properties
 
     def get_links(self, resource):

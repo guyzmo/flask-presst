@@ -90,7 +90,7 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
     .. rubric:: Footnotes
 
     .. [#f1] Adventurous people can override :meth:`marshal_item` to include `id_field` instead of or in addition to
-       ``'resource_uri'``.
+       ``'_uri'``.
 
     """
     api = None
@@ -111,97 +111,6 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
         else:
             item = self.get_item_for_id(id)
             return self.marshal_item(item)
-
-    @classmethod
-    def resolve_item(cls, data, create=False, update=False, commit=True, resolved_properties=None, parse_only=False):
-        if isinstance(data, six.text_type):
-            return cls.get_item_from_uri(data)
-        elif isinstance(data, dict):
-            item = None
-            if '_id' in data:
-                item = cls.get_item_for_id(data.pop('_id'))
-            elif 'resource_uri' in data:
-                item = cls.get_item_from_uri(data.pop('resource_uri'))
-            if item:
-                if update and data:
-                    item_changes = cls.parse_item(data, resolve=resolved_properties, partial=True)
-                    return EmbeddedJob(cls, item_changes, item=item, commit=commit)
-                return item
-            elif not create:
-                abort(400, message='Resource URI missing in JSON dictionary')
-            else:
-                item_data = cls.parse_item(data, resolve=resolved_properties)
-                return EmbeddedJob(cls, item_data, commit=commit)
-        else:
-            abort(400, message='Invalid item reference')
-
-    @classmethod
-    def get_item_from_uri(cls, value, changes=None):
-        resource, id = cls.api.parse_resource_uri(value)
-
-        if cls != resource:
-            abort(400, msg='Wrong resource item type, expected {0}, got {1}'.format(
-                cls.resource_name,
-                resource.resource_name))
-
-        return cls.get_item_for_id(id)
-
-    @classmethod
-    def parse_item(cls, data, partial=False, resolve=None):
-        parser = SchemaParser(cls._fields, cls._required_fields, cls._read_only_fields)
-        # TODO handle read-only fields
-        return parser.parse(data, partial=partial, resolve=resolve)
-
-    @classmethod
-    def begin(cls):
-        """
-        Called at the beginning of a create or update operation.
-        May be a no-op
-        """
-        pass
-
-    @classmethod
-    def commit(cls):
-        """
-        Called at the end of a create or update operation.
-        Should flush all changes and fail if necessary.
-        """
-        pass
-
-    @classmethod
-    def rollback(cls):
-        pass
-
-    @property
-    def session(self):
-        class Session(object):
-            def __init__(self, resource):
-                self.resource = resource
-
-            def __enter__(self):
-                self.resource.begin()
-
-            def __exit__(self, type, value, traceback):
-                if type:
-                    self.resource.rollback()
-                else:
-                    self.resource.commit()
-
-        return Session(self)
-
-    def _request_get_data(self):
-        # TODO upcoming in Flask 0.11: 'is_json':
-        # if not request.is_json:
-        #     abort(415)
-        request_data = request.json
-
-        if request_data is None:
-            abort(400, message='JSON required')
-
-        if not isinstance(request_data, (dict, list)):
-            abort(400, message='JSON dictionary or array required')
-
-        return request_data
 
     def post(self, id=None, *args, **kwargs):
         request_data = self._request_get_data()
@@ -248,6 +157,76 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
         else:
             self.delete_item(id)
             return None, 204
+
+    @classmethod
+    def resolve_item(cls, data, create=False, update=False, commit=True, resolved_properties=None, parse_only=False):
+        if isinstance(data, six.text_type):
+            return cls.get_item_from_uri(data)
+        elif isinstance(data, dict):
+            item = None
+            if '_id' in data:
+                item = cls.get_item_for_id(data.pop('_id'))
+            elif '_uri' in data:
+                item = cls.get_item_from_uri(data.pop('_uri'))
+            if item:
+                if update and data:
+                    item_changes = cls.parse_item(data, resolve=resolved_properties, partial=True)
+                    return EmbeddedJob(cls, item_changes, item=item, commit=commit)
+                return item
+            elif not create:
+                abort(400, message='Resource URI missing in JSON dictionary')
+            else:
+                item_data = cls.parse_item(data, resolve=resolved_properties)
+                return EmbeddedJob(cls, item_data, commit=commit)
+        else:
+            abort(400, message='Invalid item reference')
+
+    @classmethod
+    def get_item_from_uri(cls, value, changes=None):
+        resource, id = cls.api.parse_resource_uri(value)
+
+        if cls != resource:
+            abort(400, msg='Wrong resource item type, expected {0}, got {1}'.format(
+                cls.resource_name,
+                resource.resource_name))
+
+        return cls.get_item_for_id(id)
+
+    @classmethod
+    def parse_item(cls, data, partial=False, resolve=None):
+        parser = SchemaParser(cls._fields, cls._required_fields, cls._read_only_fields)
+        # TODO handle read-only fields
+        return parser.parse(data, partial=partial, resolve=resolve)
+
+    @classmethod
+    def begin(cls):
+        """
+        Called at the beginning of a create or update operation.
+        May be a no-op
+        """
+        pass
+
+    @classmethod
+    def commit(cls):
+        """
+        Called at the end of a create or update operation.
+        Should flush all changes and fail if necessary.
+        """
+        pass
+
+    def _request_get_data(self):
+        # TODO upcoming in Flask 0.11: 'is_json':
+        # if not request.is_json:
+        #     abort(415)
+        request_data = request.json
+
+        if request_data is None:
+            abort(400, message='JSON required')
+
+        if not isinstance(request_data, (dict, list)):
+            abort(400, message='JSON dictionary or array required')
+
+        return request_data
 
     @classmethod
     def get_item_for_id(cls, id_):  # pragma: no cover
@@ -344,7 +323,7 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
         raise NotImplementedError()
 
     @classmethod
-    def item_get_resource_uri(cls, item):
+    def item_get_uri(cls, item):
         """Returns the `resource_uri` of an item.
 
         .. seealso:: :meth:`item_get_id()`
@@ -358,7 +337,7 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
         """
         Marshals the item using the resource fields and returns a JSON-compatible dictionary.
         """
-        marshaled = {'resource_uri': cls.item_get_resource_uri(item)}
+        marshaled = {'_uri': cls.item_get_uri(item)}
         marshaled.update(marshal(item, cls._fields))
         return marshaled
 
@@ -370,22 +349,6 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
         .. seealso:: :meth:`marshal_item`
         """
         return list(cls.marshal_item(item) for item in items)
-
-    def request_parse_item(self, limit_fields=None):
-        """
-        Helper method to parse an item from the request.
-
-        :param limit_fields: optional list of field names to parse; if not set, all fields will be parsed.
-        """
-        parser = reqparse.RequestParser(argument_class=PresstArgument)
-
-        for name in limit_fields or self._fields: # FIXME handle this in PresstArgument.
-            if name not in self._read_only_fields:
-                field = self._fields[name]
-                required = name in self._required_fields
-                parser.add_argument(name, type=field, default=field.default, required=required)
-
-        return parser.parse_args()
 
 
 class ModelResourceMeta(PresstResourceMeta):
@@ -438,6 +401,7 @@ class ModelResourceMeta(PresstResourceMeta):
                     elif isinstance(column.type, postgres.HSTORE):
                         field_type = dict
                         field_class = KeyValue
+                    # Numeric/Decimal
                     elif hasattr(postgres, 'JSON') and isinstance(column.type, postgres.JSON):
                         field_type = lambda data: data
                         field_class = JSON

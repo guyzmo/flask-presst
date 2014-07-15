@@ -39,18 +39,18 @@ class TestRelationship(PresstTestCase):
     def test_get(self):
         self.assertEqual(self.Apple.seeds.relationship_name, 'seeds')
 
-        self.request('GET', '/apple', None, [{"name": "A1", "resource_uri": "/apple/1"}], 200)
+        self.request('GET', '/apple', None, [{"name": "A1", "_uri": "/apple/1"}], 200)
         self.request('GET', '/apple/1/seeds', None, [
-            {"name": "S1", "resource_uri": "/seed/1"},
-            {"name": "S2", "resource_uri": "/seed/2"}], 200)
+            {"name": "S1", "_uri": "/seed/1"},
+            {"name": "S2", "_uri": "/seed/2"}], 200)
 
     def test_patch_not_allowed(self):
         self.request('PATCH', '/apple/1/seeds', None, None, 405)
         self.request('PATCH', '/apple/1/seeds/1', {}, None, 404)  # NOTE may change to 405.
 
     def test_post(self):
-        self.request('GET', '/seed/3', None, {'name': 'S3', 'resource_uri': '/seed/3'}, 200)
-        self.request('POST', '/apple/1/seeds', '/seed/3', {"name": "S3", "resource_uri": "/seed/3"}, 200)
+        self.request('GET', '/seed/3', None, {'name': 'S3', '_uri': '/seed/3'}, 200)
+        self.request('POST', '/apple/1/seeds', '/seed/3', {"name": "S3", "_uri": "/seed/3"}, 200)
         self.request('GET', '/apple/1/seed_count', None, 3, 200)
 
     def test_delete(self):
@@ -68,7 +68,7 @@ class TestRelationship(PresstTestCase):
 
     def test_marshal(self):
         self.request('GET', '/apple/1/first_seed', None,
-                     {'first': {'name': 'S1', 'resource_uri': '/seed/1'}, 'id': 1}, 200)
+                     {'first': {'name': 'S1', '_uri': '/seed/1'}, 'id': 1}, 200)
 
     def test_get_schema(self):
         self.api.enable_schema()
@@ -86,15 +86,15 @@ class TestRelationship(PresstTestCase):
                 'apple': {
                     'type': 'object',
                     'properties': {
-                        'resource_uri': {
-                            '$ref': '#/definitions/apple/definitions/resource_uri'
+                        '_uri': {
+                            '$ref': '#/definitions/apple/definitions/_uri'
                         },
                         'name': {
                             '$ref': '#/definitions/apple/definitions/name'
                         }
                     },
                     'definitions': {
-                        'resource_uri': {
+                        '_uri': {
                             'type': 'string',
                             'readOnly': True,
                             'format': 'uri'
@@ -165,15 +165,15 @@ class TestRelationship(PresstTestCase):
                 'seed': {
                     'type': 'object',
                     'properties': {
-                        'resource_uri': {
-                            '$ref': '#/definitions/seed/definitions/resource_uri'
+                        '_uri': {
+                            '$ref': '#/definitions/seed/definitions/_uri'
                         },
                         'name': {
                             '$ref': '#/definitions/seed/definitions/name'
                         }
                     },
                     'definitions': {
-                        'resource_uri': {
+                        '_uri': {
                             'type': 'string',
                             'readOnly': True,
                             'format': 'uri'
@@ -228,19 +228,19 @@ class TestRelationshipField(PresstTestCase):
         self.api.add_resource(Node)
 
         self.request('GET', '/node/1', None,
-                     {'name': 'child', 'parent': '/node/2', 'resource_uri': '/node/1'}, 200)
+                     {'name': 'child', 'parent': '/node/2', '_uri': '/node/1'}, 200)
         self.request('GET', '/node/3', None,
-                     {'name': 'grandparent', 'parent': None, 'resource_uri': '/node/3'}, 200)
+                     {'name': 'grandparent', 'parent': None, '_uri': '/node/3'}, 200)
 
     def test_update(self):
         Node = self.node_resource_factory(embedded=False)
         self.api.add_resource(Node)
 
         self.request('PATCH', '/node/1', {'parent': '/node/3'},
-                     {'name': 'child', 'parent': '/node/3', 'resource_uri': '/node/1'}, 200)
+                     {'name': 'child', 'parent': '/node/3', '_uri': '/node/1'}, 200)
 
         self.request('PATCH', '/node/1', {'parent': None},
-                     {'name': 'child', 'parent': None, 'resource_uri': '/node/1'}, 200)
+                     {'name': 'child', 'parent': None, '_uri': '/node/1'}, 200)
 
     def test_embedded(self):
         # NOTE: circular embedding is bad practice. do not do this.
@@ -252,9 +252,9 @@ class TestRelationshipField(PresstTestCase):
                       'parent': {'name': 'parent',
                                  'parent': {'name': 'grandparent',
                                             'parent': None,
-                                            'resource_uri': '/node/3'},
-                                 'resource_uri': '/node/2'},
-                      'resource_uri': '/node/1'}, 200)
+                                            '_uri': '/node/3'},
+                                 '_uri': '/node/2'},
+                      '_uri': '/node/1'}, 200)
 
     def test_many(self):
         class Seed(SimpleResource):
@@ -278,36 +278,36 @@ class TestRelationshipField(PresstTestCase):
         self.request('GET', '/tree/1', None,
                      {'apples': ['/apple/1', '/apple/2', '/apple/3'],
                       'name': None,
-                      'resource_uri': '/tree/1'}, 200)
+                      '_uri': '/tree/1'}, 200)
 
         self.request('GET', '/apple/1', None,
                      {'seeds': [
-                         {'name': 'seed-1', 'resource_uri': '/seed/1'},
-                         {'name': 'seed-4', 'resource_uri': '/seed/4'}],
-                      'resource_uri': '/apple/1'}, 200)
+                         {'name': 'seed-1', '_uri': '/seed/1'},
+                         {'name': 'seed-4', '_uri': '/seed/4'}],
+                      '_uri': '/apple/1'}, 200)
 
         self.request('PATCH', '/tree/1', {'apples': ['/apple/1', '/apple/2']},
                      {'apples': ['/apple/1', '/apple/2'],
                       'name': None,
-                      'resource_uri': '/tree/1'}, 200)
+                      '_uri': '/tree/1'}, 200)
 
         self.request('GET', '/apple/3', None,
                      {'seeds': [
-                         {'name': 'seed-3', 'resource_uri': '/seed/3'},
-                         {'name': 'seed-6', 'resource_uri': '/seed/6'}],
-                      'resource_uri': '/apple/3'}, 200)
+                         {'name': 'seed-3', '_uri': '/seed/3'},
+                         {'name': 'seed-6', '_uri': '/seed/6'}],
+                      '_uri': '/apple/3'}, 200)
 
         self.request('PATCH', '/apple/3', {'seeds': ['/seed/3']},
-                     {'seeds': [{'name': 'seed-3', 'resource_uri': '/seed/3'}],
-                      'resource_uri': '/apple/3'}, 200)
+                     {'seeds': [{'name': 'seed-3', '_uri': '/seed/3'}],
+                      '_uri': '/apple/3'}, 200)
 
         self.request('PATCH', '/apple/3', {'seeds': []},
                      {'seeds': [],
-                      'resource_uri': '/apple/3'}, 200)
+                      '_uri': '/apple/3'}, 200)
 
         self.request('PATCH', '/apple/3', {'seeds': ['/seed/1']},
-                     {'seeds': [{'name': 'seed-1', 'resource_uri': '/seed/1'}],
-                      'resource_uri': '/apple/3'}, 200)
+                     {'seeds': [{'name': 'seed-1', '_uri': '/seed/1'}],
+                      '_uri': '/apple/3'}, 200)
 
 
 if __name__ == '__main__':

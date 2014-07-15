@@ -69,21 +69,21 @@ class TestModelResource(PresstTestCase):
 
     def test_create(self):
         self.request('POST', '/fruit', {'name': 'Apple'},
-                     {'sweetness': 5, 'name': 'Apple', 'resource_uri': '/fruit/1', 'tree': None}, 200)
+                     {'sweetness': 5, 'name': 'Apple', '_uri': '/fruit/1', 'tree': None}, 200)
 
         self.request('POST', '/fruit', {'name': 'Apple', 'sweetness': 9001},
-                     {'sweetness': 9001, 'name': 'Apple', 'resource_uri': '/fruit/2', 'tree': None}, 200)
+                     {'sweetness': 9001, 'name': 'Apple', '_uri': '/fruit/2', 'tree': None}, 200)
 
         self.request('POST', '/fruit', {'sweetness': 1}, None, 400)
 
-        self.request('POST', '/tree', {'name': 'Apple'}, {'name': 'Apple', 'resource_uri': '/tree/1'}, 200)
+        self.request('POST', '/tree', {'name': 'Apple'}, {'name': 'Apple', '_uri': '/tree/1'}, 200)
 
         self.request('POST', '/fruit', {'name': 'Apple', 'tree': '/tree/1'},
-                     {'sweetness': 5, 'name': 'Apple', 'resource_uri': '/fruit/3', 'tree': '/tree/1'}, 200)
+                     {'sweetness': 5, 'name': 'Apple', '_uri': '/fruit/3', 'tree': '/tree/1'}, 200)
 
 
     def test_get(self):
-        apple = lambda id: {'sweetness': 5, 'name': 'Apple', 'resource_uri': '/fruit/{}'.format(id), 'tree': None}
+        apple = lambda id: {'sweetness': 5, 'name': 'Apple', '_uri': '/fruit/{}'.format(id), 'tree': None}
 
         for i in range(1, 10):
             self.request('POST', '/fruit', {'name': 'Apple'}, apple(i), 200)
@@ -92,7 +92,7 @@ class TestModelResource(PresstTestCase):
             self.request('GET', '/fruit/{}'.format(i + 1), None, None, 404)
 
     def test_pagination(self):
-        apple = lambda id: {'sweetness': 5, 'name': 'Apple', 'resource_uri': '/fruit/{}'.format(id), 'tree': None}
+        apple = lambda id: {'sweetness': 5, 'name': 'Apple', '_uri': '/fruit/{}'.format(id), 'tree': None}
 
         for i in range(1, 10):
             self.request('POST', '/fruit', {'name': 'Apple'}, apple(i), 200)
@@ -131,23 +131,23 @@ class TestModelResource(PresstTestCase):
 
     def test_update(self):
         self.request('POST', '/fruit', {'name': 'Apple'},
-                     {'sweetness': 5, 'name': 'Apple', 'resource_uri': '/fruit/1', 'tree': None}, 200)
+                     {'sweetness': 5, 'name': 'Apple', '_uri': '/fruit/1', 'tree': None}, 200)
 
         # TODO implement support for ColumnDefault
         # FIXME defaults with update
         # self.request('POST', '/fruit/1', {'name': 'Golden Apple'},
-        #              {'sweetness': 5, 'name': 'Golden Apple', 'resource_uri': '/fruit/1', 'tree': None}, 200)
+        #              {'sweetness': 5, 'name': 'Golden Apple', '_uri': '/fruit/1', 'tree': None}, 200)
 
         self.request('POST', '/fruit/1', {'name': 'Golden Apple', 'sweetness': 0},
-                     {'sweetness': 0, 'name': 'Golden Apple', 'resource_uri': '/fruit/1', 'tree': None}, 200)
+                     {'sweetness': 0, 'name': 'Golden Apple', '_uri': '/fruit/1', 'tree': None}, 200)
 
         self.request('POST', '/fruit/1', {}, None, 400)
 
     def test_patch(self):
 
-        self.request('POST', '/tree', {'name': 'Apple tree'}, {'name': 'Apple tree', 'resource_uri': '/tree/1'}, 200)
+        self.request('POST', '/tree', {'name': 'Apple tree'}, {'name': 'Apple tree', '_uri': '/tree/1'}, 200)
 
-        expected_apple = {'sweetness': 5, 'name': 'Apple', 'resource_uri': '/fruit/1', 'tree': None}
+        expected_apple = {'sweetness': 5, 'name': 'Apple', '_uri': '/fruit/1', 'tree': None}
         self.request('POST', '/fruit', {'name': 'Apple'}, expected_apple, 200)
 
         changes = [
@@ -164,7 +164,7 @@ class TestModelResource(PresstTestCase):
             self.request('PATCH', '/fruit/1', change, expected_apple, 200)
 
     def test_delete(self):
-        self.request('POST', '/tree', {'name': 'Apple tree'}, {'name': 'Apple tree', 'resource_uri': '/tree/1'}, 200)
+        self.request('POST', '/tree', {'name': 'Apple tree'}, {'name': 'Apple tree', '_uri': '/tree/1'}, 200)
         self.request('DELETE', '/tree/1', {'name': 'Apple tree'}, None, 204)
         self.request('DELETE', '/tree/1', {'name': 'Apple tree'}, None, 404)
         self.request('DELETE', '/tree/2', {'name': 'Apple tree'}, None, 404)
@@ -177,19 +177,19 @@ class TestModelResource(PresstTestCase):
         self.api.add_resource(OopsResource)
 
     def test_relationship_post(self):
-        self.request('POST', '/tree', {'name': 'Apple tree'}, {'name': 'Apple tree', 'resource_uri': '/tree/1'}, 200)
+        self.request('POST', '/tree', {'name': 'Apple tree'}, {'name': 'Apple tree', '_uri': '/tree/1'}, 200)
         self.request('GET', '/tree/1/fruits', None, [], 200)
 
         self.request('POST', '/fruit', {'name': 'Apple'},
-                     {'name': 'Apple', 'resource_uri': '/fruit/1', 'sweetness': 5, 'tree': None}, 200)
+                     {'name': 'Apple', '_uri': '/fruit/1', 'sweetness': 5, 'tree': None}, 200)
 
         self.request('POST', '/tree/1/fruits', '/fruit/1',
-                     {'name': 'Apple', 'resource_uri': '/fruit/1', 'sweetness': 5, 'tree': '/tree/1'}, 200)
+                     {'name': 'Apple', '_uri': '/fruit/1', 'sweetness': 5, 'tree': '/tree/1'}, 200)
 
     def test_relationship_get(self):
         self.test_relationship_post()
         self.request('GET', '/tree/1/fruits', None,
-                     [{'name': 'Apple', 'resource_uri': '/fruit/1', 'sweetness': 5, 'tree': '/tree/1'}], 200)
+                     [{'name': 'Apple', '_uri': '/fruit/1', 'sweetness': 5, 'tree': '/tree/1'}], 200)
 
     def test_relationship_delete(self):
         self.test_relationship_post()
@@ -204,7 +204,7 @@ class TestModelResource(PresstTestCase):
                 'fruit': {
                     'type': 'object',
                     'definitions': {
-                        'resource_uri': {
+                        '_uri': {
                             'type': 'string',
                             'readOnly': True,
                             'format': 'uri'
@@ -217,14 +217,14 @@ class TestModelResource(PresstTestCase):
                         }
                     },
                     'properties': {
-                        'resource_uri': {
-                            '$ref': '#/definitions/fruit/definitions/resource_uri'
+                        '_uri': {
+                            '$ref': '#/definitions/fruit/definitions/_uri'
                         },
                         'name': {
                             '$ref': '#/definitions/fruit/definitions/name'
                         },
                         'tree': {
-                            '$ref': '#/definitions/tree/definitions/resource_uri'
+                            '$ref': '#/definitions/tree/definitions/_uri'
                         },
                         'sweetness': {
                             '$ref': '#/definitions/fruit/definitions/sweetness'
@@ -268,7 +268,7 @@ class TestModelResource(PresstTestCase):
                 'tree': {
                     'type': 'object',
                     'definitions': {
-                        'resource_uri': {
+                        '_uri': {
                             'type': 'string',
                             'readOnly': True,
                             'format': 'uri'
@@ -278,8 +278,8 @@ class TestModelResource(PresstTestCase):
                         }
                     },
                     'properties': {
-                        'resource_uri': {
-                            '$ref': '#/definitions/tree/definitions/resource_uri'
+                        '_uri': {
+                            '$ref': '#/definitions/tree/definitions/_uri'
                         },
                         'name': {
                             '$ref': '#/definitions/tree/definitions/name'
@@ -369,10 +369,10 @@ class TestModelResourceFields(PresstTestCase):
 
     def test_post_to_many(self):
         self.request('POST', '/machine', {'name': 'Press I'},
-                     {'name': 'Press I', 'resource_uri': '/machine/1', 'type': None}, 200)
+                     {'name': 'Press I', '_uri': '/machine/1', 'type': None}, 200)
 
         self.request('POST', '/type', {'name': 'Press', 'machines': ['/machine/1']},
-                     {'name': 'Press', 'resource_uri': '/type/1', 'machines': ['/machine/1']}, 200)
+                     {'name': 'Press', '_uri': '/type/1', 'machines': ['/machine/1']}, 200)
 
 
 class TestPolymorphicModelResource(PresstTestCase):
@@ -423,24 +423,24 @@ class TestPolymorphicModelResource(PresstTestCase):
 
     def test_polymorphic(self):
         self.request('POST', '/fruit', {'name': 'Banana', 'color': 'yellow'},
-                     {'name': 'Banana', 'color': 'yellow', 'resource_uri': '/fruit/1'}, 200)
+                     {'name': 'Banana', 'color': 'yellow', '_uri': '/fruit/1'}, 200)
 
         self.request('POST', '/citrus', {'name': 'Lemon', 'color': 'yellow'},
-                     {'name': 'Lemon', 'sweetness': None, 'color': 'yellow', 'resource_uri': '/citrus/2'}, 200)
+                     {'name': 'Lemon', 'sweetness': None, 'color': 'yellow', '_uri': '/citrus/2'}, 200)
 
         self.request('GET', '/fruit', None, [
-            {'color': 'yellow', 'name': 'Banana', 'resource_uri': '/fruit/1'},
+            {'color': 'yellow', 'name': 'Banana', '_uri': '/fruit/1'},
             {'citrus': {'color': 'yellow',
                         'name': 'Lemon',
-                        'resource_uri': '/citrus/2',
+                        '_uri': '/citrus/2',
                         'sweetness': None},
              'color': 'yellow',
              'name': 'Lemon',
-             'resource_uri': '/fruit/2'}
+             '_uri': '/fruit/2'}
         ], 200)
 
         self.request('POST', '/citrus', {'name': 'Grapefruit', 'color': 'orange', 'sweetness': 2},
-                     {'name': 'Grapefruit', 'sweetness': 2, 'color': 'orange', 'resource_uri': '/citrus/3'}, 200)
+                     {'name': 'Grapefruit', 'sweetness': 2, 'color': 'orange', '_uri': '/citrus/3'}, 200)
 
     def test_exclude_polymorphic(self):
         class CitrusFruitAltResource(ModelResource):
@@ -453,7 +453,7 @@ class TestPolymorphicModelResource(PresstTestCase):
         self.api.add_resource(CitrusFruitAltResource)
 
         self.request('POST', '/citrus', {'name': 'Lemon', 'sweetness': 1},
-                     {'name': 'Lemon', 'sweetness': 1, 'color': None, 'resource_uri': '/citrus/1'}, 200)
+                     {'name': 'Lemon', 'sweetness': 1, 'color': None, '_uri': '/citrus/1'}, 200)
 
         self.request('GET', '/citrus_alt/1', None,
-                     {'sweetness': 1, 'resource_uri': '/citrus_alt/1'}, 200)
+                     {'sweetness': 1, '_uri': '/citrus_alt/1'}, 200)

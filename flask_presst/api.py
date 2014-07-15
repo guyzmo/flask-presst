@@ -71,7 +71,7 @@ class PresstApi(Api):
         except KeyError:
             abort(400, message='Resource {} is not defined'.format(uri))
 
-    def get_item_for_resource_uri(self, uri, expected_resource=None):
+    def get_item_for_uri(self, uri, expected_resource=None):
         if not isinstance(uri, six.text_type):
             abort(400, message='Resource URI must be a string')
 
