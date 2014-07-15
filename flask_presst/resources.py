@@ -7,6 +7,7 @@ from flask.views import MethodViewType
 from sqlalchemy.dialects import postgres
 from sqlalchemy.orm import class_mapper
 from sqlalchemy.orm.exc import NoResultFound
+from flask.ext.presst.references import EmbeddedJob
 from flask_presst.signals import before_create_item, after_create_item, before_create_relationship, \
     after_create_relationship, before_delete_relationship, after_delete_relationship, before_update_item, \
     before_delete_item, after_delete_item, after_update_item, on_filter_read, on_filter_update, \
@@ -112,19 +113,27 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
             return self.marshal_item(item)
 
     @classmethod
-    def request_make_item(cls, id=None, data=None, resolve=None):
-        # if post/patch
-
-        if id and data:
-            item = cls.parse_update_item(id, data, partial=False, resolve=resolve)
-        elif id:
-            item = cls.get_item_for_id(id)
-        elif data:
-            item = cls.parse_create_item(data, resolve=resolve)
+    def resolve_item(cls, data, create=False, update=False, commit=True, resolved_properties=None, parse_only=False):
+        if isinstance(data, six.text_type):
+            return cls.get_item_from_uri(data)
+        elif isinstance(data, dict):
+            item = None
+            if '_id' in data:
+                item = cls.get_item_for_id(data.pop('_id'))
+            elif 'resource_uri' in data:
+                item = cls.get_item_from_uri(data.pop('resource_uri'))
+            if item:
+                if update and data:
+                    item_changes = cls.parse_item(data, resolve=resolved_properties, partial=True)
+                    return EmbeddedJob(cls, item_changes, item=item, commit=commit)
+                return item
+            elif not create:
+                abort(400, message='Resource URI missing in JSON dictionary')
+            else:
+                item_data = cls.parse_item(data, resolve=resolved_properties)
+                return EmbeddedJob(cls, item_data, commit=commit)
         else:
-            raise AttributeError()
-
-        return item
+            abort(400, message='Invalid item reference')
 
     @classmethod
     def get_item_from_uri(cls, value, changes=None):
@@ -135,21 +144,13 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
                 cls.resource_name,
                 resource.resource_name))
 
-        return cls.request_make_item(id, data=changes)
+        return cls.get_item_for_id(id)
 
     @classmethod
     def parse_item(cls, data, partial=False, resolve=None):
         parser = SchemaParser(cls._fields, cls._required_fields, cls._read_only_fields)
         # TODO handle read-only fields
         return parser.parse(data, partial=partial, resolve=resolve)
-
-    @classmethod
-    def parse_create_item(cls, data, resolve=None):
-        return cls.create_item(cls.parse_item(data, resolve=resolve)) #) commit=commit)
-
-    @classmethod
-    def parse_update_item(cls, id, data, partial=True, resolve=None):
-        return cls.update_item(id, cls.parse_item(data, resolve=resolve, partial=partial))#, commit=commit)
 
     @classmethod
     def begin(cls):
@@ -167,11 +168,31 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
         """
         pass
 
+    @classmethod
+    def rollback(cls):
+        pass
+
+    @property
+    def session(self):
+        class Session(object):
+            def __init__(self, resource):
+                self.resource = resource
+
+            def __enter__(self):
+                self.resource.begin()
+
+            def __exit__(self, type, value, traceback):
+                if type:
+                    self.resource.rollback()
+                else:
+                    self.resource.commit()
+
+        return Session(self)
+
     def _request_get_data(self):
         # TODO upcoming in Flask 0.11: 'is_json':
         # if not request.is_json:
         #     abort(415)
-
         request_data = request.json
 
         if request_data is None:
@@ -190,20 +211,24 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
         # TODO on post also handle array of items.
         if isinstance(request_data, list) and id is None:
             # bulk submissions not yet supported
-            items = [self.create_item(self.parse_item(d)) for d in request_data]
+            items = EmbeddedJob.complete([self.resolve_item(d, create=True, commit=False) for d in request_data])
 
             self.commit()
+
             return [self.marshal_item(item) for item in items]
 
-        data = self.parse_item(request_data)
+        data = EmbeddedJob.complete(self.parse_item(request_data))
 
         if id is None:
+            # ItemWrapper.create(self, data)
             item = self.create_item(data)
         else:
-            item = self.update_item(id, data)
+            # ItemWrapper.read(self, id).update(data)
+            item = self.update_item(self.get_item_for_id(id), data)
 
         self.commit()
-        return self.marshal_item(item)
+        # TODO should return 201 Created if id is None
+        return self.marshal_item(item), 200
 
     def patch(self, id):
         request_data = self._request_get_data()
@@ -212,10 +237,10 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
             abort(400, message='PATCH is not permitted on collections')
         else:
             # TODO consider abort(400) if request.JSON is not a dictionary.
-
             changes = self.parse_item(request_data, partial=True)
+            item = self.update_item(self.get_item_for_id(id), EmbeddedJob.complete(changes), partial=True)
 
-            return self.marshal_item(self.update_item(id, changes, partial=True))
+            return self.marshal_item(item)
 
     def delete(self, id, *args, **kwargs):
         if id is None:
@@ -289,7 +314,7 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
         raise NotImplementedError()
 
     @classmethod
-    def create_item(cls, dct):  # pragma: no cover
+    def create_item(cls, dct, commit=True):  # pragma: no cover
         """
         Must be implemented to create a new item in the resource collection.
 
@@ -299,12 +324,12 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
         raise NotImplementedError()
 
     @classmethod
-    def update_item(cls, id_, dct, partial=False):  # pragma: no cover
+    def update_item(cls, item, changes, partial=False, commit=True):  # pragma: no cover
         """
         Must be implemented to update an item in the resource collection.
 
-        :param id_: id of the item to update
-        :param dict dct: dictionary of changes
+        :param item: item to update
+        :param dict changes: dictionary of changes
         :param bool partial: whether this is a `PATCH` change
         """
         raise NotImplementedError()
@@ -493,12 +518,16 @@ class ModelResource(six.with_metaclass(ModelResourceMeta, PresstResource)):
 
     @classmethod
     def begin(cls):
-        cls._get_session()
+        cls._get_session().begin(subtransactions=True)
 
     @classmethod
     def commit(cls):
         # TODO handle errors
         cls._get_session().commit()
+
+    @classmethod
+    def rollback(cls):
+        cls._get_session().rollback()
 
     @classmethod
     def _process_filter_signal(cls, query, **kwargs):
@@ -590,10 +619,11 @@ class ModelResource(six.with_metaclass(ModelResourceMeta, PresstResource)):
             abort(404)
 
     @classmethod
-    def create_item(cls, dct):
+    def create_item(cls, properties, commit=True):
         # noinspection PyCallingNonCallable
         item = cls._model()
-        for key, value in six.iteritems(dct):
+
+        for key, value in six.iteritems(properties):
             setattr(item, key, value)
 
         before_create_item.send(cls, item=item)
@@ -602,7 +632,8 @@ class ModelResource(six.with_metaclass(ModelResourceMeta, PresstResource)):
 
         try:
             session.add(item)
-            #session.commit()
+            if commit:
+                session.commit()
         except:
             session.rollback()
             raise
@@ -611,11 +642,8 @@ class ModelResource(six.with_metaclass(ModelResourceMeta, PresstResource)):
         return item
 
     @classmethod
-    def update_item(cls, id_, changes, partial=False):
-        item = cls.get_item_for_id(id_)
-
+    def update_item(cls, item, changes, partial=False, commit=True):
         session = cls._get_session()
-        #session.begin(subtransactions=True)
 
         try:
             before_update_item.send(cls, item=item, changes=changes, partial=partial)
@@ -623,7 +651,8 @@ class ModelResource(six.with_metaclass(ModelResourceMeta, PresstResource)):
             for key, value in six.iteritems(changes):
                 setattr(item, key, value)
 
-            #session.commit()
+            if commit:
+                session.commit()
         except:
             session.rollback()
             raise

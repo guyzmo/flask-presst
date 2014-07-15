@@ -49,7 +49,7 @@ class TestResourceBulkEmbedded(PresstTestCase):
         db.create_all()
 
         class CityResource(ModelResource):
-            streets = Relationship('street')
+            streets = Relationship('street', backref='city')
 
             class Meta:
                 model = City
@@ -141,6 +141,18 @@ class TestResourceBulkEmbedded(PresstTestCase):
 
         self.assert404(self.client.get('/city/1'))
 
+    def test_create_bulk_relationship_invalid(self):
+        self.assert200(self.client.post('/city', data={'name': 'Foo'}))
+
+        response = self.client.post('/city/1/streets', data=[
+            {'name': 'Foo St.'},
+            {'foo_name': 'fail'},
+            {'name': 'Bar Rd.'}
+        ])
+
+        self.assert400(response)
+        self.assertEqual([], self.client.get('/city/1/streets').json)
+
     def test_create_bulk_relationship(self):
         self.client.post('/city', data={
             'name': 'New Foo'
@@ -201,7 +213,7 @@ class TestResourceBulkEmbedded(PresstTestCase):
         })
 
         self.assert200(response)
-        self.assertEqual(response.json, {
+        self.assertEqual({
             'addresses': [
                 {
                     'resource_uri': '/address/1',
@@ -212,9 +224,9 @@ class TestResourceBulkEmbedded(PresstTestCase):
             'resource_uri': '/street/2',
             'city': '/city/1',
             'name': 'Foo'
-        })
+        }, response.json)
 
-        self.assertEqual(self.client.get('/street').json, [
+        self.assertEqual([
             {
                 'city': '/city/1',
                 'resource_uri': '/street/1',
@@ -227,13 +239,14 @@ class TestResourceBulkEmbedded(PresstTestCase):
                         'street': '/street/2',
                         'number': 1,
                         'resource_uri': '/address/1'
-                    }],
+                    }
+                ],
                 'resource_uri': '/street/2',
                 'city': '/city/1',
                 'name': 'Foo'
             }
 
-        ])
+        ], self.client.get('/street').json)
 
     def test_create_bulk_embedded(self):
         self.assert200(self.client.post('/city', data={'name': 'Foo'}))
@@ -351,6 +364,7 @@ class TestResourceModelMix(PresstTestCase):
     def test_create_simple(self):
 
         self.assert200(self.client.post('/city', data={'name': 'Foo'}))
+        self.assert200(self.client.get('/city/1'))
 
         response = self.client.post('/city/1/tags', data={'name': 'foo'})
 
@@ -362,6 +376,7 @@ class TestResourceModelMix(PresstTestCase):
         })
 
         self.assert200(self.client.post('/tag', data={'city': '/city/1', 'name': 'bar'}))
+        self.assert200(self.client.get('/tag/2'))
 
         response = self.client.post('/city/1/tags', data={'resource_uri': '/tag/2'})
         self.assert200(response)
@@ -384,5 +399,18 @@ class TestResourceModelMix(PresstTestCase):
 
         self.client.delete('/city/1/tags', data=['/tag/1', '/tag/3'], force_json=True)
         self.client.delete('/city/1/tags', data={'resource_uri': '/tag/2'})
+
+        self.assertEqual(self.client.get('/city/1/tags').json, [])
+
+    def test_create_bulk_relationship_invalid(self):
+        self.assert200(self.client.post('/city', data={'name': 'Foo'}))
+
+        response = self.client.post('/city/1/tags', data=[
+            {'name': 'foo'},
+            {'foo': 'bar'},  # TODO session in simple-resource
+            {'name': 'bat'}
+        ])
+
+        self.assert400(response)
 
         self.assertEqual(self.client.get('/city/1/tags').json, [])

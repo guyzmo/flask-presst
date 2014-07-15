@@ -108,7 +108,8 @@ class SchemaParser(object):
                 for key in self.required_fields:
                     if key not in converted:
                         raise ParsingException(message='Missing required field: {}'.format(key))
+
+            return converted
         except ParsingException as e:
             abort(400, message=e.message)
 
-        return converted

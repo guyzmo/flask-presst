@@ -7,24 +7,29 @@ from flask_restful.fields import *
 from jsonschema import ValidationError, validate
 from jsonschema.validators import validator_for
 from werkzeug.utils import cached_property
-from flask_presst.references import Reference
-
+from flask_presst.references import Reference, ResourceRef
 
 
 class _RelationshipField(Raw):
     def __init__(self, resource, embedded=False, relationship_name=None, *args, **kwargs):
         super(_RelationshipField, self).__init__(*args, **kwargs)
         self.bound_resource = None
-        self.resource = resource
+        self._resource = ResourceRef(resource)
         self.embedded = embedded
         self.relationship_name = None
+
+    @cached_property
+    def resource(self):
+        if self._resource.reference_str == 'self':
+            return self.bound_resource
+        return self._resource.resolve()
 
     @cached_property
     def python_type(self):
         """
         A callable that converts a uri into a matching instance of type :attr:`resource_class`.
         """
-        return Reference(self.resource_class)
+        return Reference(self.resource)
 
     @cached_property
     def resource_class(self):

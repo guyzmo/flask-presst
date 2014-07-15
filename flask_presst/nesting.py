@@ -4,7 +4,7 @@ from flask_restful import reqparse, abort, Resource
 from flask.views import http_method_funcs, View, MethodView
 import six
 from werkzeug.utils import cached_property
-from flask.ext.presst.references import ResourceRef
+from flask.ext.presst.references import ResourceRef, ItemWrapper, ItemListWrapper, EmbeddedJob
 from flask_presst.parse import PresstArgument
 
 
@@ -43,7 +43,6 @@ class ResourceMethod(NestedProxy):
 
     def view_factory(self, name, bound_resource):
         def view(*args, **kwargs):
-
             # NOTE this may be inefficient with certain collection types that do not support lazy loading:
             if self.collection:
                 item_or_items = bound_resource.get_item_list()
@@ -55,7 +54,7 @@ class ResourceMethod(NestedProxy):
             kwargs.update(self._parser.parse_args())
             resource_instance = bound_resource()
 
-            return self._fn.__call__(resource_instance, item_or_items, *args, **kwargs)
+            return self._fn.__call__(resource_instance, item_or_items, *args, **EmbeddedJob.complete(kwargs))
 
         return view
 
@@ -123,15 +122,7 @@ class Relationship(NestedProxy, MethodView):
         elif isinstance(data, dict) and 'resource_uri' in data:
             return self.resource.get_item_from_uri(data.pop('resource_uri'), changes=data)
         else:
-            return self.resource.request_make_item(data=data, resolve=resolve)
-
-    def _get_item(self, data):
-        if isinstance(data, six.text_type):
-            return self.resource.get_item_from_uri(data)
-        elif isinstance(data, dict) and 'resource_uri' in data:
-            return self.resource.get_item_from_uri(data.pop('resource_uri'))
-        else:
-            abort(400, message='Resource URI missing in JSON dictionary')
+            return self.resource.request_make_item(data=data, resolve=resolve, commit=False)
 
     @staticmethod
     def _request_parse_items(fn, *args, **kwargs):
@@ -149,47 +140,29 @@ class Relationship(NestedProxy, MethodView):
             return fn(data, *args, **kwargs), False
 
     def get(self, parent_id):
-        parent_item = self.bound_resource.get_item_for_id(parent_id)
-        return self.resource.marshal_item_list(
-            self.bound_resource.get_relationship(parent_item, self.relationship_name))
+        parent = ItemWrapper.read(self.bound_resource, parent_id)
+        return parent.get_relationship(self.relationship_name, target_resource=self.resource).marshal()
 
     def post(self, parent_id):
-        parent_item = self.bound_resource.get_item_for_id(parent_id)
+        #parent_item = self.bound_resource.get_item_for_id(parent_id)
+        parent = ItemWrapper.read(self.bound_resource, parent_id)
 
         if self.backref:
-            resolve = {self.backref: parent_item}
+            resolve = {self.backref: parent.raw()}
         else:
             resolve = None
 
-        item_or_items, is_list = self._request_parse_items(self._get_or_create_item, resolve=resolve)
+        item_or_items = ItemListWrapper.resolve(self.resource,
+                                                request.json,
+                                                resolved_properties=resolve,
+                                                create=True,
+                                                update=True,
+                                                commit=False)
 
-        self.bound_resource.begin()
-
-        if is_list:
-            result = [self.bound_resource.add_to_relationship(parent_item, self.relationship_name, item)
-                      for item in item_or_items]
-
-            self.bound_resource.commit()
-
-            return self.resource.marshal_item_list(result)
-        else:
-            result = self.bound_resource.add_to_relationship(parent_item, self.relationship_name, item_or_items)
-
-            self.bound_resource.commit()
-
-            return self.resource.marshal_item(result)
+        return parent.add_to_relationship(self.relationship_name, item_or_items, commit=True).marshal()
 
     def delete(self, parent_id):
-        parent_item = self.bound_resource.get_item_for_id(parent_id)
-        item_or_items, is_list = self._request_parse_items(self._get_item)
-
-        self.bound_resource.begin()
-
-        if is_list:
-            for item in item_or_items:
-                self.bound_resource.remove_from_relationship(parent_item, self.relationship_name, item)
-        else:
-            self.bound_resource.remove_from_relationship(parent_item, self.relationship_name, item_or_items)
-
-        self.bound_resource.commit()
+        parent = ItemWrapper.read(self.bound_resource, parent_id)
+        item_or_items = ItemListWrapper.resolve(self.resource, request.json, create=False, update=False)
+        parent.remove_from_relationship(self.relationship_name, item_or_items, commit=True)
         return None, 204

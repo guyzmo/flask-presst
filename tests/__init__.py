@@ -39,18 +39,17 @@ class SimpleResource(PresstResource):
         item[relationship].remove(child_resource.item_get_id(child))
 
     @classmethod
-    def create_item(cls, dct):
+    def create_item(cls, properties, commit=False):
         """This method must either return the created item or abort with the appropriate error."""
         item_id = len(cls.items) + 1
-        dct.update({'id': item_id})
-        cls.items.append(dct)
-        return dct
+        properties.update({'id': item_id})
+        cls.items.append(properties)
+        return properties
 
     @classmethod
-    def update_item(cls, id_, dct, partial=False):
+    def update_item(cls, item, changes, partial=False, commit=False):
         "This method must either return the updated item or abort with the appropriate error."
-        item = cls.get_item_for_id(id_)
-        item.update(dct)
+        item.update(changes)
         return item
 
     @classmethod

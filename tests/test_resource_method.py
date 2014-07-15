@@ -35,7 +35,7 @@ class TestResourceMethod(PresstTestCase):
 
             sweeten.add_argument('by', location='args', type=int, required=True)
 
-        Citrus.sweeter_than.add_argument('other', type=Reference(Citrus))
+        Citrus.sweeter_than.add_argument('other', type=fields.ToOne(Citrus))
 
         self.Citrus = Citrus
         self.api.add_resource(Citrus)

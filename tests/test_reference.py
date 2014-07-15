@@ -1,4 +1,5 @@
 from werkzeug import exceptions
+from werkzeug.exceptions import HTTPException
 from flask.ext.presst import fields, Reference
 from flask.ext.presst.references import ItemWrapper
 from tests import PresstTestCase, SimpleResource
@@ -45,7 +46,7 @@ class TestReference(PresstTestCase):
     def test_reference_wrong_resource(self):
         reference = Reference(self.Fruit)
         with self.app.test_request_context('/'):
-            self.assertRaises(ValueError, lambda: reference('/vegetable/1'))
+            self.assertRaises(HTTPException, lambda: reference('/vegetable/1'))
 
 
 Vegetable = TestReference.Vegetable
