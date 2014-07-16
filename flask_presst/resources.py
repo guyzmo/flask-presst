@@ -1,21 +1,24 @@
 import datetime
 from flask import request, current_app, _request_ctx_stack
+import itertools
+from flask_presst.routes import action, ResourceSchema
 from flask_restful import reqparse, Resource, abort, marshal
-from flask_restful.fields import Boolean, String, Integer, DateTime, Raw
 from flask_sqlalchemy import BaseQuery, Pagination, get_state
 from flask.views import MethodViewType
 from sqlalchemy.dialects import postgres
 from sqlalchemy.orm import class_mapper
 from sqlalchemy.orm.exc import NoResultFound
-from flask.ext.presst.references import EmbeddedJob
+from flask_presst.fields import String, Integer, Boolean, List, DateTime, EmbeddedBase, Raw, KeyValue, Arbitrary, \
+    Date
+from flask_presst.references import EmbeddedJob
 from flask_presst.signals import before_create_item, after_create_item, before_create_relationship, \
     after_create_relationship, before_delete_relationship, after_delete_relationship, before_update_item, \
     before_delete_item, after_delete_item, after_update_item, on_filter_read, on_filter_update, \
     on_filter_delete
-from flask_presst.fields import _RelationshipField, Array, KeyValue, Date, JSON, ToOne, ToMany
-from flask_presst.nesting import NestedProxy, Relationship
+from flask_presst.routes import ResourceRoute, Relationship
 from flask_presst.parse import PresstArgument, SchemaParser
 import six
+from collections import OrderedDict
 
 
 LINK_HEADER_FORMAT_STR = '<{0}?page={1}&per_page={2}>; rel="{3}"'
@@ -32,7 +35,7 @@ class PresstResourceMeta(MethodViewType):
                 meta = {}
 
             class_.resource_name = meta.get('resource_name', class_.__name__).lower()
-            class_.nested_types = nested_types = {}
+            class_.routes = routes = dict(getattr(class_, 'routes', {}))
             class_._id_field = meta.get('id_field', 'id')
             class_._required_fields = meta.get('required_fields', [])
             class_._fields = fields = dict()
@@ -41,15 +44,15 @@ class PresstResourceMeta(MethodViewType):
             class_._meta = meta
 
             for name, m in six.iteritems(members):
-                if isinstance(m, (_RelationshipField, NestedProxy)):
+                if isinstance(m, (EmbeddedBase, ResourceRoute)):
                     m.bound_resource = class_
                     if m.relationship_name is None:
                         m.relationship_name = name
 
-                if isinstance(m, NestedProxy):
+                if isinstance(m, ResourceRoute):
                     if isinstance(m, Relationship):
                         relationships[m.relationship_name] = m
-                    nested_types[m.relationship_name] = m
+                    routes[m.relationship_name] = m
                 elif isinstance(m, Raw):
                     field_name = m.attribute or name
                     fields[field_name] = m
@@ -95,7 +98,8 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
     """
     api = None
     resource_name = None
-    nested_types = None
+    routes = {}
+    route_prefix = None
 
     _meta = None
     _id_field = None
@@ -103,6 +107,67 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
     _relationships = None
     _read_only_fields = None
     _required_fields = None
+
+    schema = ResourceSchema()
+
+    #@action('GET', collection=True)
+    #def schema(self, items):
+        # schema = OrderedDict()
+        #
+        # for schema_property in ('title', 'description'):
+        #     if schema_property in self._meta:
+        #         schema[schema_property] = self._meta[schema_property]
+        #
+        # links = [
+        #     {
+        #         'rel': 'self',
+        #         'href': self.api._complete_url('{}/{{id}}'.format(self.route_prefix), ''),
+        #         'method': 'GET',
+        #     },
+        #     {
+        #         'rel': 'instances',
+        #         'href': self.api._complete_url('{}'.format(self.route_prefix), ''),
+        #         'method': 'GET',
+        #         'schema': {
+        #             '$ref': self.api._complete_url('/schema#/definitions/_pagination', '')
+        #         }
+        #     }
+        # ]
+        #
+        # links = itertools.chain(links, *(route.get_links() for name, route in sorted(self.routes.items())
+        #                                  if name != 'schema'))
+        #
+        # schema['type'] = 'object'
+        # schema['definitions'] = definitions = {}
+        # schema['properties'] = properties = {}
+        # schema['required'] = self._required_fields
+        # schema['links'] = list(links)
+        #
+        # # fields:
+        # for name, field in sorted(self._fields.items()):
+        #     definition = field.schema
+        #
+        #     if '$ref' in definition:
+        #         properties[name] = definition
+        #         continue
+        #
+        #     if name in self._read_only_fields:
+        #         definition['readOnly'] = True
+        #
+        #     definitions[name] = definition
+        #     properties[name] = {'$ref': '#/definitions/{}'.format(name)}
+        #
+        # definitions['_uri'] = {
+        #     'type': 'string',
+        #     'format': 'uri',
+        #     'readOnly': True
+        # }
+        #
+        # properties['_uri'] = {
+        #     '$ref': '#/definitions/_uri'
+        # }
+        #
+        # return schema
 
     def get(self, id=None, **kwargs):
         if id is None:
@@ -398,13 +463,14 @@ class ModelResourceMeta(PresstResourceMeta):
 
                     if isinstance(column.type, postgres.ARRAY):
                         field_type = list
+                        field_class = lambda **kw: List(String, **kw)
                     elif isinstance(column.type, postgres.HSTORE):
                         field_type = dict
                         field_class = KeyValue
                     # Numeric/Decimal
                     elif hasattr(postgres, 'JSON') and isinstance(column.type, postgres.JSON):
                         field_type = lambda data: data
-                        field_class = JSON
+                        field_class = Arbitrary
                     else:
                         field_type = column.type.python_type
 
@@ -466,7 +532,7 @@ class ModelResource(six.with_metaclass(ModelResourceMeta, PresstResource)):
             six.text_type: String,
             int: Integer,
             bool: Boolean,
-            list: Array,
+            list: List,
             dict: KeyValue,
             datetime.date: Date,
             datetime.datetime: DateTime

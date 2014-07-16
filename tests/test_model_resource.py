@@ -35,6 +35,7 @@ class TestModelResource(PresstTestCase):
         class TreeResource(ModelResource):
             class Meta:
                 model = Tree
+                title = 'Tree -- A Tall Plant'
 
             fruits = Relationship('Fruit')
 
@@ -196,137 +197,182 @@ class TestModelResource(PresstTestCase):
         self.request('DELETE', '/tree/1/fruits', '/fruit/1', None, 204)
         #self.request('GET', '/apple/seed_count', None, 2, 200)
 
+    maxDiff = None
+
     def test_get_schema(self):
         self.api.enable_schema()
-        self.request('GET', '/', None, {
-            '$schema': 'http://json-schema.org/draft-04/hyper-schema#',
-            'definitions': {
-                'fruit': {
-                    'type': 'object',
-                    'definitions': {
-                        '_uri': {
-                            'type': 'string',
-                            'readOnly': True,
-                            'format': 'uri'
-                        },
-                        'name': {
-                            'type': 'string'
-                        },
-                        'sweetness': {
-                            'type': 'integer'
-                        }
-                    },
-                    'properties': {
-                        '_uri': {
-                            '$ref': '#/definitions/fruit/definitions/_uri'
-                        },
-                        'name': {
-                            '$ref': '#/definitions/fruit/definitions/name'
-                        },
-                        'tree': {
-                            '$ref': '#/definitions/tree/definitions/_uri'
-                        },
-                        'sweetness': {
-                            '$ref': '#/definitions/fruit/definitions/sweetness'
-                        }
-                    },
-                    'required': [
-                        'name'
-                    ],
-                    'links': [
-                        {
-                            'schema': {
-                                '$ref': '#/definitions/_pagination'
-                            },
-                            'method': 'GET',
-                            'rel': 'instances',
-                            'href': '/fruit'
-                        },
-                        {
-                            'method': 'GET',
-                            'rel': 'self',
-                            'href': '/fruit/{id}'
-                        }
+        self.maxDiff = None
+
+        expected_api_level_schema = {
+                             'properties': {
+                                 'tree': {
+                                     '$ref': '/tree/schema#'
+                                 },
+                                 'fruit': {
+                                     '$ref': '/fruit/schema#'
+                                 }
+                             },
+                             'definitions': {
+                                 '_pagination': {
+                                     'type': 'object',
+                                     'properties': {
+                                         'page': {
+                                             'type': 'integer',
+                                             'default': 1,
+                                             'minimum': 1
+                                         },
+                                         'per_page': {
+                                             'type': 'integer',
+                                             'default': 100,
+                                             'maximum': 100,
+                                             'minimum': 1
+                                         }
+                                     }
+                                 }
+                             },
+                             '$schema': 'http://json-schema.org/draft-04/hyper-schema#'
+        }
+
+        expected_fruit_schema = {
+            "definitions": {
+                "tree": {
+                    "oneOf": [
+                        {"$ref": "/tree/schema#/definitions/_uri"},
+                        {"$ref": "/tree/schema#"}
                     ]
                 },
-                '_pagination': {
-                    'type': 'object',
-                    'properties': {
-                        'page': {
-                            'type': 'integer',
-                            'default': 1,
-                            'minimum': 1
-                        },
-                        'per_page': {
-                            'type': 'integer',
-                            'maximum': 100,
-                            'default': 20,
-                            'minimum': 1
-                        }
+                "name": {
+                    "type": "string"
+                },
+                "sweetness": {
+                    "type": "integer"
+                },
+                "_uri": {
+                    "type": "string",
+                    "readOnly": True,
+                    "format": "uri"
+                }
+            },
+            "properties": {
+                "tree": {
+                    "$ref": "#/definitions/tree"
+                },
+                "name": {
+                    "$ref": "#/definitions/name"
+                },
+                "sweetness": {
+                    "$ref": "#/definitions/sweetness"
+                },
+                "_uri": {
+                    "$ref": "#/definitions/_uri"
+                }
+            },
+            "required": ["name"],
+            'type': 'object',
+            "links": [
+                {
+                    "method": "GET",
+                    "href": "/fruit/{id}",
+                    "rel": "self"
+                },
+                {
+                    "method": "GET",
+                    "href": "/fruit",
+                    "rel": "instances",
+                    "schema": {
+                        "$ref": "/schema#/definitions/_pagination"
                     }
+                }
+            ]
+        }
+
+        expected_tree_schema = {
+            'title': 'Tree -- A Tall Plant',
+            'definitions': {
+                '_uri': {
+                    'readOnly': True,
+                    'type': 'string',
+                    'format': 'uri'
                 },
-                'tree': {
-                    'type': 'object',
-                    'definitions': {
-                        '_uri': {
-                            'type': 'string',
-                            'readOnly': True,
-                            'format': 'uri'
-                        },
-                        'name': {
-                            'type': 'string'
-                        }
-                    },
-                    'properties': {
-                        '_uri': {
-                            '$ref': '#/definitions/tree/definitions/_uri'
-                        },
-                        'name': {
-                            '$ref': '#/definitions/tree/definitions/name'
-                        }
-                    },
-                    'required': [
-                        'name'
-                    ],
-                    'links': [
-                        {
-                            'schema': {
-                                '$ref': '#/definitions/_pagination'
-                            },
-                            'href': '/tree/{id}/fruits',
-                            'rel': 'fruits',
-                            'targetSchema': {
-                                'type': 'array',
-                                'items': {
-                                    '$ref': '#/definitions/fruit'
-                                }
-                            }
-                        },
-                        {
-                            'schema': {
-                                '$ref': '#/definitions/_pagination'
-                            },
-                            'method': 'GET',
-                            'rel': 'instances',
-                            'href': '/tree'
-                        },
-                        {
-                            'method': 'GET',
-                            'rel': 'self',
-                            'href': '/tree/{id}'
-                        }
-                    ]
+                'name': {
+                    'type': 'string'
                 }
             },
             'properties': {
-                'fruit': {
-                    '$ref': '#/definitions/fruit'
+                '_uri': {
+                    '$ref': '#/definitions/_uri'
                 },
-                'tree': {
-                    '$ref': '#/definitions/tree'
+                'name': {
+                    '$ref': '#/definitions/name'
                 }
-            }
-        }, 200)
+            },
+            'required': ['name'],
+            'type': 'object',
+            'links': [
+                {
+                    'href': '/tree/{id}',
+                    'rel': 'self',
+                    'method': 'GET'
+                }, {
+                    'href': '/tree',
+                    'rel': 'instances',
+                    'method': 'GET',
+                    'schema': {
+                        '$ref': '/schema#/definitions/_pagination'
+                    }
+                },
+
+                {
+                    'href': '/tree/{id}/fruits',
+                    'method': 'GET',
+                    'rel': 'fruits',
+                    'schema': {'$ref': '/schema#/definitions/_pagination'},
+                    'targetSchema': {
+                        'items': {'$ref': '/fruit/schema#'},
+                        'type': 'array'
+                    }
+                },
+                {
+                    'href': '/tree/{id}/fruits',
+                    'method': 'POST',
+                    'rel': 'fruits:create',
+                    'schema': {
+                        'oneOf': [
+                            {'$ref': '/fruit/schema#/definitions/_uri'},
+                            {'$ref': '/fruit/schema#'},
+                            {
+                                'items': {
+                                    'oneOf': [
+                                        {'$ref': '/fruit/schema#/definitions/_uri'},
+                                        {'$ref': '/fruit/schema#'}
+                                    ]
+                                },
+                                'type': 'array'
+                            }
+                        ]
+                    }
+                },
+                {
+                    'href': '/tree/{id}/fruits',
+                    'method': 'DELETE',
+                    'rel': 'fruits:delete',
+                    'schema': {
+                        'oneOf': [
+                            {'$ref': '/fruit/schema#/definitions/_uri'},
+                            {
+                                'items': {
+                                    '$ref': '/fruit/schema#/definitions/_uri'
+                                },
+                                'type': 'array'
+                            }
+                        ]
+                    }
+                },
+            ],
+        }
+
+        self.assertEqual(expected_fruit_schema, self.client.get('/fruit/schema').json)
+        self.assertEqual(expected_tree_schema, self.client.get('/tree/schema').json)
 
 
 class TestModelResourceFields(PresstTestCase):

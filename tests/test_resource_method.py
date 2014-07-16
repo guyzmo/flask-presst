@@ -1,5 +1,6 @@
 import json
-from flask.ext.presst import fields, resource_method, Reference
+import sys
+from flask.ext.presst import fields, action, Reference
 from tests import PresstTestCase, SimpleResource
 
 
@@ -15,27 +16,29 @@ class TestResourceMethod(PresstTestCase):
             name = fields.String()
             sweetness = fields.Integer()
 
-            @resource_method('GET')
-            def name_length(self, citrus, *args, **kwargs):
+            @action('GET')
+            def name_length(self, citrus):
                 return len(citrus['name'])
 
-            @resource_method('GET', collection=True)
+            @action('GET', collection=True)
             def count(self, item_list):
                 return len(item_list)
 
-            @resource_method('GET')
+            @action('GET')
             def sweeter_than(self, citrus, other):
                 # FIXME do not use Reference for these things
                 return citrus['sweetness'] > other['sweetness']
 
-            @resource_method('POST')
-            def sweeten(self, citrus, by):
+            sweeter_than.add_argument('other', fields.ToOne('Citrus'))
+
+            @action('POST')
+            def sweeten(self, citrus, by: fields.PositiveInteger()) -> fields.ToOne('Citrus'):
                 citrus['sweetness'] += by
                 return self.marshal_item(citrus)
 
-            sweeten.add_argument('by', location='args', type=int, required=True)
-
-        Citrus.sweeter_than.add_argument('other', type=fields.ToOne(Citrus))
+        if (sys.version_info < (3, 0, 0)):
+            Citrus.sweeten.add_argument('by', fields.PositiveInteger())
+            Citrus.sweeten.target_schema = fields.ToOne('Citrus')
 
         self.Citrus = Citrus
         self.api.add_resource(Citrus)
@@ -62,9 +65,8 @@ class TestResourceMethod(PresstTestCase):
             self.assertEqual({'id': 1, 'name': 'Orange', 'sweetness': 8}, self.Citrus.get_item_for_id(1))
 
     def test_convert_argument(self):
-        with self.app.test_client() as client:
-            self.assertEqual(self.parse_response(client.post('/citrus/3/sweeten?by=2')),
-                             ({"name": "Clementine", "_uri": "/citrus/3", "sweetness": 7}, 200))
+        response = self.client.post('/citrus/3/sweeten', data={'by': 2})
+        self.assertEqual({"name": "Clementine", "_uri": "/citrus/3", "sweetness": 7}, response.json)
 
     def test_required_argument(self):
         with self.app.test_client() as client:
@@ -76,118 +78,105 @@ class TestResourceMethod(PresstTestCase):
     def test_reference_argument(self):
         with self.app.test_client() as client:
             for citrus_id, other_id, val in ((1, 2, True), (1, 3, False), (2, 1, False), (3, 2, True)):
-                self.assertEqual(self.parse_response(client.get('/citrus/{}/sweeter_than'.format(citrus_id),
-                                                                data=json.dumps(
-                                                                    {'other': '/citrus/{}'.format(other_id)}),
-                                                                content_type='application/json')), (val, 200))
-
-    def test_2_level(self):
-        pass
+                response = client.get('/citrus/{}/sweeter_than'.format(citrus_id), data={'other': '/citrus/{}'.format(other_id)})
+                self.assertEqual(response.json, val)
 
     def test_get_schema(self):
-        self.request('GET', '/', None, {
-            'definitions': {
-                '_pagination': {
-                    'properties': {
-                        'per_page': {
-                            'minimum': 1,
-                            'maximum': 100,
-                            'default': 20,
-                            'type': 'integer'
-                        },
-                        'page': {
-                            'minimum': 1,
-                            'default': 1,
-                            'type': 'integer'
-                        }
-                    },
-                    'type': 'object'
-                },
-                'citrus': {
-                    'definitions': {
-                        'name': {
-                            'type': 'string'
-                        },
-                        'sweetness': {
-                            'type': 'integer'
-                        },
-                        '_uri': {
-                            'format': 'uri',
-                            'readOnly': True,
-                            'type': 'string'
-                        }
-                    },
-                    'properties': {
-                        'name': {
-                            '$ref': '#/definitions/citrus/definitions/name'
-                        },
-                        'sweetness': {
-                            '$ref': '#/definitions/citrus/definitions/sweetness'
-                        },
-                        '_uri': {
-                            '$ref': '#/definitions/citrus/definitions/_uri'
-                        }
-                    },
-                    'type': 'object',
-                    'links': [
-                        {
-                            'href': '/citrus/count',
-                            'rel': 'count',
-                            'schema': {
-                                'properties': {
+        response = self.client.get('/citrus/schema')
 
-                                }
-                            },
-                            'method': 'GET'
-                        },
-                        {
-                            'rel': 'instances',
-                            'href': '/citrus',
-                            'method': 'GET'
-                        },
-                        {
-                            'href': '/citrus/{id}/name_length',
-                            'rel': 'name_length',
-                            'schema': {
-                                'properties': {
-
-                                }
-                            },
-                            'method': 'GET'
-                        },
-                        {
-                            'rel': 'self',
-                            'href': '/citrus/{id}',
-                            'method': 'GET'
-                        },
-                        {
-                            'href': '/citrus/{id}/sweeten',
-                            'rel': 'sweeten',
-                            'schema': {
-                                # 'by' not included because argument is GET parameter and method is POST
-                                'properties': {}
-                            },
-                            'method': 'POST'
-                        },
-                        {
-                            'href': '/citrus/{id}/sweeter_than',
-                            'rel': 'sweeter_than',
-                            'schema': {
-                                'properties': {
-                                    'other': {
-                                        '$ref': '#/definitions/citrus/definitions/_uri'
-                                    }
-                                }
-                            },
-                            'method': 'GET'
-                        }
-                    ]
-                }
-            },
-            '$schema': 'http://json-schema.org/draft-04/hyper-schema#',
-            'properties': {
-                'citrus': {
-                    '$ref': '#/definitions/citrus'
-                }
-            }
-        }, 200)
+        self.assertEqual({
+                             'type': 'object',
+                             'properties': {
+                                 'name': {
+                                     '$ref': '#/definitions/name'
+                                 },
+                                 '_uri': {
+                                     '$ref': '#/definitions/_uri'
+                                 },
+                                 'sweetness': {
+                                     '$ref': '#/definitions/sweetness'
+                                 }
+                             },
+                             'definitions': {
+                                 'name': {
+                                     'type': 'string'
+                                 },
+                                 '_uri': {
+                                     'type': 'string',
+                                     'format': 'uri',
+                                     'readOnly': True
+                                 },
+                                 'sweetness': {
+                                     'type': 'integer'
+                                 }
+                             },
+                             'required': [],
+                             'links': [{
+                                           'href': '/citrus/{id}',
+                                           'rel': 'self',
+                                           'method': 'GET'
+                                       }, {
+                                           'schema': {
+                                               '$ref': '/schema#/definitions/_pagination'
+                                           },
+                                           'href': '/citrus',
+                                           'rel': 'instances',
+                                           'method': 'GET'
+                                       }, {
+                                           'href': '/citrus/count',
+                                           'schema': {
+                                               'type': 'object',
+                                               'properties': {}
+                                           },
+                                           'targetSchema': {},
+                                           'rel': 'count',
+                                           'method': 'GET'
+                                       }, {
+                                           'href': '/citrus/{id}/name_length',
+                                           'schema': {
+                                               'type': 'object',
+                                               'properties': {}
+                                           },
+                                           'targetSchema': {},
+                                           'rel': 'name_length',
+                                           'method': 'GET'
+                                       }, {
+                                           'href': '/citrus/{id}/sweeten',
+                                           'schema': {
+                                               'type': 'object',
+                                               'properties': {
+                                                   'by': {
+                                                       'type': 'integer',
+                                                       'minimum': 0
+                                                   }
+                                               },
+                                               'required': ['by']
+                                           },
+                                           'targetSchema': {
+                                               'oneOf': [{
+                                                             '$ref': '/citrus/schema#/definitions/_uri'
+                                                         }, {
+                                                             '$ref': '/citrus/schema#'
+                                                         }]
+                                           },
+                                           'rel': 'sweeten',
+                                           'method': 'POST'
+                                       }, {
+                                           'href': '/citrus/{id}/sweeter_than',
+                                           'schema': {
+                                               'type': 'object',
+                                               'properties': {
+                                                   'other': {
+                                                       'oneOf': [{
+                                                                     '$ref': '/citrus/schema#/definitions/_uri'
+                                                                 }, {
+                                                                     '$ref': '/citrus/schema#'
+                                                                 }]
+                                                   }
+                                               }
+                                           },
+                                           'targetSchema': {},
+                                           'rel': 'sweeter_than',
+                                           'method': 'GET'
+                                       }]
+                         }, response.json)

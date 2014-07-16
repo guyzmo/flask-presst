@@ -1,6 +1,6 @@
 import unittest
 from flask.ext.restful import marshal_with
-from flask.ext.presst import fields, Relationship, resource_method
+from flask.ext.presst import fields, Relationship, action
 from tests import SimpleResource, PresstTestCase
 
 
@@ -22,11 +22,11 @@ class TestRelationship(PresstTestCase):
             name = fields.String()
             seeds = Relationship(resource=Seed)
 
-            @resource_method('GET')
+            @action('GET')
             def seed_count(self, apple):
                 return len(apple['seeds'])
 
-            @resource_method('GET')
+            @action('GET')
             @marshal_with({'first': fields.ToOne('seed', embedded=True), 'id': fields.Integer()})
             def first_seed(self, apple):
                 first_seed_id = apple['seeds'][0]
@@ -70,134 +70,6 @@ class TestRelationship(PresstTestCase):
         self.request('GET', '/apple/1/first_seed', None,
                      {'first': {'name': 'S1', '_uri': '/seed/1'}, 'id': 1}, 200)
 
-    def test_get_schema(self):
-        self.api.enable_schema()
-        self.request('GET', '/', None, {
-            '$schema': 'http://json-schema.org/draft-04/hyper-schema#',
-            'properties': {
-                'apple': {
-                    '$ref': '#/definitions/apple'
-                },
-                'seed': {
-                    '$ref': '#/definitions/seed'
-                }
-            },
-            'definitions': {
-                'apple': {
-                    'type': 'object',
-                    'properties': {
-                        '_uri': {
-                            '$ref': '#/definitions/apple/definitions/_uri'
-                        },
-                        'name': {
-                            '$ref': '#/definitions/apple/definitions/name'
-                        }
-                    },
-                    'definitions': {
-                        '_uri': {
-                            'type': 'string',
-                            'readOnly': True,
-                            'format': 'uri'
-                        },
-                        'name': {
-                            'type': 'string'
-                        }
-                    },
-                    'links': [
-                        {
-                            'href': '/apple/{id}/first_seed',
-                            'method': 'GET',
-                            'schema': {
-                                'properties': {
-
-                                }
-                            },
-                            'rel': 'first_seed'
-                        },
-                        {
-                            'href': '/apple',
-                            'method': 'GET',
-                            'rel': 'instances'
-                        },
-                        {
-                            'href': '/apple/{id}/seed_count',
-                            'method': 'GET',
-                            'schema': {
-                                'properties': {
-
-                                }
-                            },
-                            'rel': 'seed_count'
-                        },
-                        {
-                            'targetSchema': {
-                                'type': 'array',
-                                'items': {
-                                    '$ref': '#/definitions/seed'
-                                }
-                            },
-                            'href': '/apple/{id}/seeds',
-                            'rel': 'seeds'
-                        },
-                        {
-                            'method': 'GET',
-                            'href': '/apple/{id}',
-                            'rel': 'self'
-                        }
-                    ]
-                },
-                '_pagination': {
-                    'type': 'object',
-                    'properties': {
-                        'page': {
-                            'type': 'integer',
-                            'minimum': 1,
-                            'default': 1
-                        },
-                        'per_page': {
-                            'type': 'integer',
-                            'minimum': 1,
-                            'default': 20,
-                            'maximum': 100
-                        }
-                    }
-                },
-                'seed': {
-                    'type': 'object',
-                    'properties': {
-                        '_uri': {
-                            '$ref': '#/definitions/seed/definitions/_uri'
-                        },
-                        'name': {
-                            '$ref': '#/definitions/seed/definitions/name'
-                        }
-                    },
-                    'definitions': {
-                        '_uri': {
-                            'type': 'string',
-                            'readOnly': True,
-                            'format': 'uri'
-                        },
-                        'name': {
-                            'type': 'string'
-                        }
-                    },
-                    'links': [
-                        {
-                            'href': '/seed',
-                            'method': 'GET',
-                            'rel': 'instances'
-                        },
-                        {
-                            'method': 'GET',
-                            'href': '/seed/{id}',
-                            'rel': 'self'
-                        }
-                    ]
-                }
-            }
-        }, 200)
-
 
 class TestRelationshipField(PresstTestCase):
     def test_self(self):
@@ -205,7 +77,7 @@ class TestRelationshipField(PresstTestCase):
             items = []
             parent = fields.ToOne('self')
 
-        self.assertEqual(Node.parent.resource_class, Node)
+        self.assertEqual(Node.parent.resource, Node)
 
     def node_resource_factory(self, embedded=False):
         class Node(SimpleResource):

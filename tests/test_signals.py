@@ -51,7 +51,7 @@ class TestResourceMethod(PresstTestCase):
         self.recorder = record = Recorder()
 
         class FlagResource(ModelResource):
-            location = fields.ToOne('Location', required=True)
+            location = fields.ToOne('Location', nullable=False)
 
             class Meta:
                 model = Flag

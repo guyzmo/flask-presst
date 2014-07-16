@@ -1,4 +1,5 @@
 import inspect
+from flask import request
 from flask_restful import fields as restful_fields, abort
 from flask_restful.reqparse import Argument
 from flask_presst.utils.parsedate import parsedate_to_datetime
@@ -63,17 +64,44 @@ class SchemaParser(object):
 
     def __init__(self, fields, required_fields=None, read_only_fields=None):  # TODO read-only fields
         self.fields = {key or field.attribute: field for key, field in fields.items()}
-        self.required_fields = required_fields or []
-        self.read_only_fields = read_only_fields or []
+        self.required_fields = set(required_fields or [])
+        self.read_only_fields = set(read_only_fields or [])
+
+    def add(self, name, field, required=False):
+        self.fields[name] = field
+        if required:
+            self.required_fields.add(name)
 
     @property
     def schema(self):
-        return {
+        schema = {
             'type': 'object',
-            # TODO readOnly fields
-            'properties': {key: field.schema for key, field in self.fields.items()},
-            'required': self.required_fields or []
+            # TODO readOnly fields properly designated
+            'properties': {key: field.schema for key, field in self.fields.items() if key not in self.read_only_fields},
         }
+
+        if self.required_fields:
+            schema['required'] = list(self.required_fields)
+
+        return schema
+
+    def parse_request(self):
+        # TODO depending on request method switch between request.json and request.args (GET)
+        # TODO alternatively: support both, with json taking priority
+        request_data = request.json
+
+        if not request_data and request.method in ('GET', 'HEAD'):
+            request_data = request.args
+
+        # on empty requirements, allow None:
+        if not self.fields and not request_data:
+            return {}
+
+        if not isinstance(request_data, dict):
+            abort(400, message='JSON dictionary required in the request body')
+
+        return self.parse(request_data, partial=False)
+
 
     def parse(self, obj, partial=False, resolve=None):
         """
@@ -94,15 +122,10 @@ class SchemaParser(object):
                 # NOTE silently ignoring read-only fields. This could throw an error.
                 if key in self.read_only_fields:
                     continue
-                    # raise ParsingException(message='Read-only field: {}'.format(key))
+                    # abort(message='Read-only field: {}'.format(key))
 
-                # Handle old-style fields:
-                if isinstance(field, restful_fields.Raw):
-                    python_type = PresstArgument._get_python_type_from_field(field)
-                    converted[key] = python_type(value)
-                else:
-                    field.validate(value)
-                    converted[key] = field.convert(value)  # pass item
+                field.validate(value)
+                converted[key] = field.convert(value)  # pass item
 
             if not partial:
                 for key in self.required_fields:

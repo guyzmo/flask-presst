@@ -2,7 +2,7 @@ import datetime
 from flask import Flask
 from flask.ext.sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import backref
-from flask.ext.presst import PresstApi, ModelResource, Relationship, fields, resource_method
+from flask.ext.presst import PresstApi, ModelResource, Relationship, fields, action
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite://'
@@ -30,14 +30,14 @@ db.create_all()
 class BookResource(ModelResource):
     author = fields.ToOne('author', embedded=True)
 
-    @resource_method('GET', collection=True)
+    @action('GET', collection=True)
     def published_after(self, books, year):
         return BookResource.marshal_item_list(
             books.filter(Book.year_published > year))
 
     published_after.add_argument('year', location='args', type=int, required=True)
 
-    @resource_method('GET')
+    @action('GET')
     def is_recent(self, item):
         return datetime.date.today().year <= item.year_published + 10
 

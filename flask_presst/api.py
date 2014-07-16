@@ -3,6 +3,7 @@ from importlib import import_module
 import inspect
 from flask_restful import Api, abort
 import six
+from werkzeug.utils import cached_property
 from flask_presst.schema import HyperSchema
 from flask_presst.resources import PresstResource, ModelResource
 from flask_presst.utils.routes import route_from
@@ -19,11 +20,18 @@ class PresstApi(Api):
         self._presst_resources = {}
         self._presst_resource_insts = {}
         self._model_resource_map = {}
+
+        self.pagination_max_per_page = 100
+        self.pagination_default_per_page = 100
+
         self.has_schema = False
 
     def _init_app(self, app):
         super(PresstApi, self)._init_app(app)
         app.presst = self
+
+        self.pagination_max_per_page = app.config.get('PRESST_MAX_PER_PAGE', 100)
+        self.pagination_default_per_page = app.config.get('PRESST_DEFAULT_PER_PAGE', 100)
 
     def get_resource_class(self, reference, module_name=None):
         """
@@ -94,10 +102,41 @@ class PresstApi(Api):
     def enable_schema(self):
         if not self.has_schema:
             self.has_schema = True
-            self.app.add_url_rule(self._complete_url('/', ''),
+            self.app.add_url_rule(self._complete_url('/schema', ''),
                                   view_func=self.output(HyperSchema.as_view('schema', self)),
                                   endpoint='schema',
                                   methods=['GET'])
+
+    @cached_property
+    def schema(self):
+        definitions = {
+            '_pagination': {
+                'type': 'object',
+                'properties': {
+                    'per_page': {
+                        'type': 'integer',
+                        'minimum': 1,
+                        'maximum': self.pagination_max_per_page,
+                        'default': self.pagination_default_per_page
+                    },
+                    'page': {
+                        'type': 'integer',
+                        'minimum': 1,
+                        'default': 1
+                    }
+                }
+            }
+        }
+
+        return {
+            '$schema': 'http://json-schema.org/draft-04/hyper-schema#',
+            'definitions': definitions,
+            'properties': {
+                resource.resource_name: {
+                    '$ref': self._complete_url('{}/schema#'.format(resource.route_prefix), '')
+                } for resource in self._presst_resources.values()
+            }
+        }
 
     def add_resource(self, resource, *urls, **kwargs):
 
@@ -115,9 +154,11 @@ class PresstApi(Api):
 
         pk_converter = resource._meta.get('pk_converter', 'int')
 
+        resource.route_prefix = '/{0}'.format(resource_name)
+
         urls = [
-            '/{0}'.format(resource_name),
-            '/{0}/<{1}:id>'.format(resource_name, pk_converter),
+            resource.route_prefix,
+            '{0}/<{1}:id>'.format(resource.route_prefix, pk_converter),
         ]
 
         self._presst_resources[resource_name] = resource
@@ -125,7 +166,7 @@ class PresstApi(Api):
         if issubclass(resource, ModelResource):
             self._model_resource_map[resource.get_model()] = resource
 
-        for name, child in six.iteritems(resource.nested_types):
+        for name, child in six.iteritems(resource.routes):
 
             if child.collection:
                 url = '/{0}/{1}'.format(resource_name, name)

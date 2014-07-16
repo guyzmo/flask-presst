@@ -5,7 +5,7 @@ from flask.views import View
 from flask_presst.references import Reference
 from flask_presst import fields
 from flask_presst.resources import ModelResource
-from flask_presst.nesting import ResourceMethod, Relationship
+from flask_presst.routes import ResourceAction, Relationship
 
 
 class HyperSchema(View):
@@ -66,11 +66,10 @@ class HyperSchema(View):
                 field_type = {
                     fields.Boolean: 'boolean',
                     fields.Integer: 'integer',
-                    fields.Float: 'integer',
+                    fields.Number: 'number',
                     fields.String: 'string',
                     fields.Array: 'array',
                     fields.Arbitrary: 'object',
-                    fields.JSON: 'object',
                     fields.KeyValue: 'object'
                 }[field.__class__]
             except KeyError:
@@ -102,7 +101,7 @@ class HyperSchema(View):
 
         # noinspection PyProtectedMember
         for name, field in resource._fields.items():
-            definition = self._get_field_type(field)
+            definition = field.schema
 
             if '$ref' in definition:
                 properties[name] = definition
@@ -153,7 +152,7 @@ class HyperSchema(View):
                 'href': self._complete_url(uri)
             }
 
-            if isinstance(child, ResourceMethod):
+            if isinstance(child, ResourceAction):
                 properties = {}
                 for arg in child._parser.args:
 
@@ -196,37 +195,4 @@ class HyperSchema(View):
             yield link
 
     def dispatch_request(self):
-        if hasattr(self.api, '_schema_dict'):
-            return self.api._schema_dict, 200
-
-        definitions = {
-            '_pagination': {
-                'type': 'object',
-                'properties': {
-                    'per_page': {
-                        'type': 'integer',
-                        'minimum': 1,
-                        'maximum': current_app.config.get('PRESST_MAX_PER_PAGE', 100),
-                        'default': current_app.config.get('PRESST_DEFAULT_PER_PAGE', 20)
-                    },
-                    'page': {
-                        'type': 'integer',
-                        'minimum': 1,
-                        'default': 1
-                    }
-                }
-            }
-        }
-
-        # noinspection PyProtectedMember
-        for resource in self.api._presst_resources.values():
-            definitions[resource.endpoint] = self.get_resource_definition(resource)
-
-        self.api._schema_dict = schema = {
-            '$schema': 'http://json-schema.org/draft-04/hyper-schema#',
-            'definitions': definitions,
-            'properties': dict((resource.endpoint, self._get_ref(resource, True))
-                                for resource in self.api._presst_resources.values())
-        }
-
-        return schema, 200
+        return self.api.schema, 200

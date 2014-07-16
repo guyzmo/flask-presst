@@ -17,10 +17,10 @@ The :func:`resource_method` decorator
 Request parsing with :func:`resource_method`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Methods decorated with :func:`resource_method` are wrapped into a :class:`ResourceMethod`, which itself contains
+Methods decorated with :func:`resource_method` are wrapped into a :class:`ResourceAction`, which itself contains
 a parser that is run whenever the method is called.
 
-.. autoclass:: flask.ext.presst.nesting.ResourceMethod
+.. autoclass:: flask.ext.presst.nesting.ResourceAction
    :members:
 
 Example code
