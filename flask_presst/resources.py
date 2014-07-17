@@ -163,7 +163,7 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
 
     @classmethod
     def resolve_item(cls, data, create=False, update=False, commit=True, resolved_properties=None, parse_only=False):
-        if create or update and request.method not in ('POST', 'PUT', 'PATCH'):
+        if (create or update) and request.method not in ('POST', 'PUT', 'PATCH'):
             create = update = False
 
         if isinstance(data, six.text_type):

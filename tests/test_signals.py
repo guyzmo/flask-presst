@@ -73,26 +73,17 @@ class TestResourceMethod(PresstTestCase):
                 model = Location
                 resource_name = 'limitedlocation'
 
-
-        @signals.on_filter_read.connect_via(LimitedLocationResource)
-        def on_filter_read(sender):
-            return lambda query: query.filter(Location.name.startswith('H'))
-
-
         for signal in [
-            signals.on_filter_read,
-            signals.on_filter_update,
-            signals.on_filter_delete,
             signals.before_create_item,
             signals.after_create_item,
             signals.before_update_item,
             signals.after_update_item,
             signals.before_delete_item,
             signals.after_delete_item,
-            signals.before_create_relationship,
-            signals.after_create_relationship,
-            signals.before_delete_relationship,
-            signals.after_delete_relationship]:
+            signals.before_add_relationship,
+            signals.after_add_relationship,
+            signals.before_remove_relationship,
+            signals.after_remove_relationship]:
 
             signal.connect(record.callback_for(signal.name.replace('-', '_')), LocationResource)
 
@@ -106,15 +97,12 @@ class TestResourceMethod(PresstTestCase):
         self.assertEqual(self.recorder.last_action, None)
 
         self.request('GET', '/location', None, [], 200)
-        self.assertEqual(self.recorder.last_action, ('filter_read', self.LocationResource, {}))
 
         self.request('POST', '/location', {'name': 'Yard'}, {'name': 'Yard', '_uri': '/location/1'}, 200)
-        self.assertEqual(self.recorder.actions[-3], ('filter_read', self.LocationResource, {}))
         self.assertEqual(self.recorder.actions[-2][0], 'before_create_item')
         self.assertEqual(self.recorder.actions[-1][0], 'after_create_item')
 
         self.request('POST', '/location/1', {'name': 'House'}, {'name': 'House', '_uri': '/location/1'}, 200)
-        self.assertEqual(self.recorder.actions[-3][0], 'filter_update')
 
         self.assertEqual(self.recorder.actions[-2][::2][0], 'before_update_item')
         self.assertEqual(self.recorder.actions[-2][::2][1]['changes'], {'name': u'House'})
@@ -122,7 +110,6 @@ class TestResourceMethod(PresstTestCase):
         self.assertEqual(self.recorder.last_action[0], 'after_update_item')
 
         self.request('PATCH', '/location/1', {}, {'name': 'House', '_uri': '/location/1'}, 200)
-        self.assertEqual(self.recorder.actions[-3][0], 'filter_update')
         self.assertEqual(self.recorder.last_action[0], 'after_update_item')
 
         self.request('GET', '/location/1/flags', None, [], 200)
@@ -133,23 +120,11 @@ class TestResourceMethod(PresstTestCase):
         self.request('GET', '/location/1/flags', None, [], 200)
 
         self.request('DELETE', '/location/1', None, None, 204)
-        self.assertEqual(self.recorder.actions[-3][0], 'filter_delete')
         self.assertEqual(self.recorder.actions[-2][0], 'before_delete_item')
         self.assertEqual(self.recorder.last_action[0], 'after_delete_item')
 
         self.request('GET', '/location/1/flags', None, None, 404)
         self.request('GET', '/flag', None, [], 200)
-
-    def test_filter(self):
-        self.request('POST', '/location', {'name': 'Yard'}, {'name': 'Yard', '_uri': '/location/1'}, 200)
-        self.request('POST', '/location', {'name': 'House'}, {'name': 'House', '_uri': '/location/2'}, 200)
-        self.request('POST', '/location', {'name': 'Shed'}, {'name': 'Shed', '_uri': '/location/3'}, 200)
-        self.request('POST', '/location', {'name': 'Harbor'}, {'name': 'Harbor', '_uri': '/location/4'}, 200)
-
-        self.request('GET', '/limitedlocation', None, [
-            {'name': 'House', '_uri': '/limitedlocation/2'},
-            {'name': 'Harbor', '_uri': '/limitedlocation/4'}
-        ], 200)
 
     def test_relationship(self):
         pass
