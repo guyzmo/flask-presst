@@ -4,9 +4,8 @@ __all__ = (
     'before_create_item', 'after_create_item',
     'before_update_item', 'after_update_item',
     'before_delete_item', 'after_delete_item',
-    'before_create_relationship', 'after_create_relationship',
-    'before_delete_relationship', 'after_delete_relationship',
-    'on_filter_read', 'on_filter_update', 'on_filter_delete'
+    'before_add_relationship', 'after_add_relationship',
+    'before_remove_relationship', 'after_remove_relationship',
 )
 
 _signals = Namespace()
@@ -23,16 +22,10 @@ before_delete_item = _signals.signal('before-delete-item')
 
 after_delete_item = _signals.signal('after-delete-item')
 
-before_create_relationship = _signals.signal('before-create-relationship')
+before_add_relationship = _signals.signal('before-add-relationship')
 
-after_create_relationship = _signals.signal('after-create-relationship')
+after_add_relationship = _signals.signal('after-add-relationship')
 
-before_delete_relationship = _signals.signal('before-delete-relationship')
+before_remove_relationship = _signals.signal('before-remove-relationship')
 
-after_delete_relationship = _signals.signal('after-delete-relationship')
-
-on_filter_read = _signals.signal('filter-read')
-
-on_filter_update = _signals.signal('filter-update')
-
-on_filter_delete = _signals.signal('filter-delete')
+after_remove_relationship = _signals.signal('after-remove-relationship')

@@ -13,10 +13,7 @@ from flask_presst.routes import ResourceSchema
 from flask_presst.fields import String, Integer, Boolean, List, DateTime, EmbeddedBase, Raw, KeyValue, Arbitrary, \
     Date
 from flask_presst.references import EmbeddedJob
-from flask_presst.signals import before_create_item, after_create_item, before_create_relationship, \
-    after_create_relationship, before_delete_relationship, after_delete_relationship, before_update_item, \
-    before_delete_item, after_delete_item, after_update_item, on_filter_read, on_filter_update, \
-    on_filter_delete
+from flask_presst.signals import *
 from flask_presst.routes import ResourceRoute, Relationship
 from flask_presst.parse import SchemaParser
 
@@ -166,6 +163,9 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
 
     @classmethod
     def resolve_item(cls, data, create=False, update=False, commit=True, resolved_properties=None, parse_only=False):
+        if create or update and request.method not in ('POST', 'PUT', 'PATCH'):
+            create = update = False
+
         if isinstance(data, six.text_type):
             return cls.get_item_from_uri(data)
         elif isinstance(data, dict):
@@ -492,23 +492,6 @@ class ModelResource(six.with_metaclass(ModelResourceMeta, PresstResource)):
         cls._get_session().rollback()
 
     @classmethod
-    def _process_filter_signal(cls, query, **kwargs):
-        if request.method in ('HEAD', 'GET'):
-            signal = on_filter_read
-        elif request.method in ('POST', 'PATCH'):
-            signal = on_filter_update
-        elif request.method in ('DELETE',):
-            signal = on_filter_delete
-        else:
-            return query
-
-        for _, response in signal.send(cls, **kwargs):
-            if callable(response):
-                query = response(query)
-
-        return query
-
-    @classmethod
     def get_item_list(cls):
         """
         Pagination is only supported for resources accessed through :class:`Relationship` if
@@ -519,13 +502,11 @@ class ModelResource(six.with_metaclass(ModelResourceMeta, PresstResource)):
         if isinstance(query, list):
             abort(500, message='Nesting not supported for this resource.')
 
-        return cls._process_filter_signal(query)
+        return query
 
     @classmethod
     def get_relationship(cls, item, relationship):
         query = getattr(item, relationship)
-
-
 
         if isinstance(query, list):
             abort(500, message='Nesting not supported for this resource.')
@@ -537,41 +518,34 @@ class ModelResource(six.with_metaclass(ModelResourceMeta, PresstResource)):
     @classmethod
     def add_to_relationship(cls, item, relationship, child):
 
-        before_create_relationship.send(cls,
-                                        parent_item=item,
-                                        relationship=relationship,
-                                        item=child)
-        #
-        session = cls._get_session()
-        #
-        # try:
-        getattr(item, relationship).append(child)
-        #     session.commit()
-        # except:
-        #     session.rollback()
-        #     raise
+        before_add_relationship.send(cls,
+                                     item=item,
+                                     relationship=relationship,
+                                     child=child)
 
-        after_create_relationship.send(cls,
-                                       parent_item=item,
-                                       relationship=relationship,
-                                       item=child)
+        getattr(item, relationship).append(child)
+
+        after_add_relationship.send(cls,
+                                    item=item,
+                                    relationship=relationship,
+                                    child=child)
 
         return child
 
     @classmethod
     def remove_from_relationship(cls, item, relationship, child):
 
-        before_delete_relationship.send(cls,
-                                        parent_item=item,
+        before_remove_relationship.send(cls,
+                                        item=item,
                                         relationship=relationship,
-                                        item=child)
+                                        child=child)
 
         getattr(item, relationship).remove(child)
 
-        after_delete_relationship.send(cls,
-                                       parent_item=item,
+        after_remove_relationship.send(cls,
+                                       item=item,
                                        relationship=relationship,
-                                       item=child)
+                                       child=child)
 
     @classmethod
     def get_item_for_id(cls, id_):

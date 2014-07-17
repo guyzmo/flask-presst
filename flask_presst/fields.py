@@ -255,10 +255,6 @@ class KeyValue(Raw):
         return {k: self.container.convert(v) for k, v in value.items()}
 
 
-#
-# class ResourceUriBase(Raw):
-#     pass
-
 class EmbeddedBase(object):
     pass
 
