@@ -10,9 +10,9 @@ class VegetableResource(SimpleResource):
         resource_name = 'vegetable'
 
 
-class TestReference(PresstTestCase):
+class TestAPI(PresstTestCase):
     def setUp(self):
-        super(TestReference, self).setUp()
+        super(TestAPI, self).setUp()
 
         app = self.app
         app.config['SQLALCHEMY_ENGINE'] = 'sqlite://'
@@ -56,3 +56,35 @@ class TestReference(PresstTestCase):
         self.assertEqual(self.api.get_resource_for_model(self.Fruit), self.FruitResource)
         self.assertEqual(self.api.get_resource_for_model(self.Pet), None)
 
+    def test_get_schema(self):
+        response = self.client.get('/schema')
+
+        self.assertEqual({
+                             "$schema": "http://json-schema.org/draft-04/hyper-schema#",
+                             "definitions": {
+                                 "_pagination": {
+                                     "properties": {
+                                         "per_page": {
+                                             "minimum": 1,
+                                             "type": "integer",
+                                             "default": 20,
+                                             "maximum": 100
+                                         },
+                                         "page": {
+                                             "minimum": 1,
+                                             "type": "integer",
+                                             "default": 1
+                                         }
+                                     },
+                                     "type": "object"
+                                 }
+                             },
+                             "properties": {
+                                 "fruit": {
+                                     "$ref": "/fruit/schema#"
+                                 },
+                                 "vegetable": {
+                                     "$ref": "/vegetable/schema#"
+                                 }
+                             }
+                         }, response.json)

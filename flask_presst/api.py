@@ -17,22 +17,26 @@ class PresstApi(Api):
     """
 
     def __init__(self, *args, **kwargs):
+        self.pagination_max_per_page = None
+        self.pagination_default_per_page = None
         super(PresstApi, self).__init__(*args, **kwargs)
         self._presst_resources = {}
         self._presst_resource_insts = {}
         self._model_resource_map = {}
 
-        self.pagination_max_per_page = 100
-        self.pagination_default_per_page = 100
-
-        self.has_schema = False
 
     def _init_app(self, app):
         super(PresstApi, self)._init_app(app)
         app.presst = self
 
         self.pagination_max_per_page = app.config.get('PRESST_MAX_PER_PAGE', 100)
-        self.pagination_default_per_page = app.config.get('PRESST_DEFAULT_PER_PAGE', 100)
+        self.pagination_default_per_page = app.config.get('PRESST_DEFAULT_PER_PAGE', 20)
+
+        # Add Schema URL rule
+        self.app.add_url_rule(self._complete_url('/schema', ''),
+                      view_func=self.output(HyperSchema.as_view('schema', self)),
+                      endpoint='schema',
+                      methods=['GET'])
 
     def get_resource_class(self, reference, module_name=None):
         """
@@ -99,14 +103,6 @@ class PresstApi(Api):
             return self._model_resource_map[model]
         except KeyError:
             return None
-
-    def enable_schema(self):
-        if not self.has_schema:
-            self.has_schema = True
-            self.app.add_url_rule(self._complete_url('/schema', ''),
-                                  view_func=self.output(HyperSchema.as_view('schema', self)),
-                                  endpoint='schema',
-                                  methods=['GET'])
 
     @cached_property
     def schema(self):

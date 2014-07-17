@@ -296,29 +296,6 @@ class Relationship(ResourceRoute, MethodView):
                             backref=self.backref,
                             methods=self.methods)
 
-    def _get_or_create_item(self, data, resolve=None):
-        if isinstance(data, six.text_type):
-            return self.resource.get_item_from_uri(data)
-        elif isinstance(data, dict) and '_uri' in data:
-            return self.resource.get_item_from_uri(data.pop('_uri'), changes=data)
-        else:
-            return self.resource.request_make_item(data=data, resolve=resolve, commit=False)
-
-    @staticmethod
-    def _request_parse_items(fn, *args, **kwargs):
-        data = request.json
-
-        if data is None:
-            abort(400, message='JSON required')
-
-        if not isinstance(data, (dict, list, six.text_type)):
-            abort(400, message='JSON dictionary, string, or array required')
-
-        if isinstance(data, list):
-            return [fn(d, *args, **kwargs) for d in data], True
-        else:
-            return fn(data, *args, **kwargs), False
-
     def get(self, parent_id):
         parent = ItemWrapper.read(self.bound_resource, parent_id)
         return parent.get_relationship(self.relationship_name, target_resource=self.resource).marshal()

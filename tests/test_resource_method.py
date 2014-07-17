@@ -47,7 +47,6 @@ class TestResourceMethod(PresstTestCase):
 
         self.Citrus = Citrus
         self.api.add_resource(Citrus)
-        self.api.enable_schema()
 
     def test_item_method(self):
         with self.app.test_client() as client:

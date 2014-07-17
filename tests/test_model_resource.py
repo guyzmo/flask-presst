@@ -200,7 +200,6 @@ class TestModelResource(PresstTestCase):
     maxDiff = None
 
     def test_get_schema(self):
-        self.api.enable_schema()
         self.maxDiff = None
 
         expected_api_level_schema = {

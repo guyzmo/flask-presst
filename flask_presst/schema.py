@@ -15,4 +15,3 @@ class HyperSchema(View):
     def dispatch_request(self):
         # TODO enforce Content-Type: application/schema+json (overwritten by Flask-RESTful)
         return self.api.schema, 200
-
