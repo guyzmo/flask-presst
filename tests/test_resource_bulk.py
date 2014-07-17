@@ -137,7 +137,7 @@ class TestResourceBulkEmbedded(PresstTestCase):
         ])
 
         self.assert400(response)
-        self.assertEqual(response.json, {'message': 'Unknown field: foo'})
+        self.assertEqual(response.json, {'message': 'Missing required field: name'})
 
         self.assert404(self.client.get('/city/1'))
 
@@ -352,7 +352,7 @@ class TestResourceModelMix(PresstTestCase):
             items = []
 
             city = fields.ToOne('city')
-            name = fields.String()
+            name = fields.String(nullable=False)
 
             class Meta:
                 required_fields = ['city', 'name']

@@ -110,6 +110,7 @@ class ResourceSchema(ResourceRoute, View):
             '$ref': '#/definitions/_uri'
         }
 
+        # TODO enforce Content-Type: application/schema+json (overwritten by Flask-RESTful)
         return schema
 
 

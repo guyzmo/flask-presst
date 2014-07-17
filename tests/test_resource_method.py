@@ -29,16 +29,23 @@ class TestResourceMethod(PresstTestCase):
                 # FIXME do not use Reference for these things
                 return citrus['sweetness'] > other['sweetness']
 
-            sweeter_than.add_argument('other', fields.ToOne('Citrus'))
+            sweeter_than.add_argument('other', fields.ToOne('Citrus', nullable=False))
 
             @action('POST')
-            def sweeten(self, citrus, by: fields.PositiveInteger()) -> fields.ToOne('Citrus'):
+            def sweeten(self, citrus, by):
                 citrus['sweetness'] += by
                 return self.marshal_item(citrus)
 
-        if (sys.version_info < (3, 0, 0)):
-            Citrus.sweeten.add_argument('by', fields.PositiveInteger())
-            Citrus.sweeten.target_schema = fields.ToOne('Citrus')
+            sweeten.add_argument('by', fields.PositiveInteger(nullable=False))
+            sweeten.target_schema = fields.ToOne('Citrus', nullable=False)
+
+            # TODO unit tests for Python 3 functionality:
+            #
+            # @action('POST')
+            # def sweeten(self, citrus, by: fields.PositiveInteger()) -> fields.ToOne('Citrus'):
+            #     citrus['sweetness'] += by
+            #     return self.marshal_item(citrus)
+
 
         self.Citrus = Citrus
         self.api.add_resource(Citrus)
@@ -84,6 +91,7 @@ class TestResourceMethod(PresstTestCase):
     def test_get_schema(self):
         response = self.client.get('/citrus/schema')
 
+        self.maxDiff = None
         self.assertEqual({
                              'type': 'object',
                              'properties': {
@@ -99,7 +107,7 @@ class TestResourceMethod(PresstTestCase):
                              },
                              'definitions': {
                                  'name': {
-                                     'type': 'string'
+                                     'type': ['string', 'null']
                                  },
                                  '_uri': {
                                      'type': 'string',
@@ -107,7 +115,7 @@ class TestResourceMethod(PresstTestCase):
                                      'readOnly': True
                                  },
                                  'sweetness': {
-                                     'type': 'integer'
+                                     'type': ['integer', 'null']
                                  }
                              },
                              'required': [],
@@ -173,7 +181,8 @@ class TestResourceMethod(PresstTestCase):
                                                                      '$ref': '/citrus/schema#'
                                                                  }]
                                                    }
-                                               }
+                                               },
+                                               'required': ['other']
                                            },
                                            'targetSchema': {},
                                            'rel': 'sweeter_than',

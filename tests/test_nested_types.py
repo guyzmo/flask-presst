@@ -84,7 +84,7 @@ class TestRelationshipField(PresstTestCase):
             items = []
 
             name = fields.String()
-            parent = fields.ToOne('self', embedded=embedded)
+            parent = fields.ToOne('self', embedded=embedded, nullable=True)
 
         last = None
         for i, name in enumerate(('grandparent', 'parent', 'child')):

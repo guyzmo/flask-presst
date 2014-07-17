@@ -67,7 +67,7 @@ class SchemaParser(object):
         self.required_fields = set(required_fields or [])
         self.read_only_fields = set(read_only_fields or [])
 
-    def add(self, name, field, required=False):
+    def add(self, name, field, required=True):
         self.fields[name] = field
         if required:
             self.required_fields.add(name)
@@ -103,7 +103,7 @@ class SchemaParser(object):
         return self.parse(request_data, partial=False)
 
 
-    def parse(self, obj, partial=False, resolve=None):
+    def parse(self, obj, partial=False, resolve=None, strict=False):
         """
         :param obj: JSON-object to parse
         :param bool partial: Whether to allow omitting required fields
@@ -112,27 +112,47 @@ class SchemaParser(object):
         converted = dict(resolve) if resolve else {}
 
         try:
-            for key, value in six.iteritems(obj):
-                try:
-                    field = self.fields[key]
-                except KeyError:
-                    raise ParsingException(message='Unknown field: {}'.format(key))
-                    # TODO collect different exceptions.
-
+            for key, field in self.fields.items():
                 # NOTE silently ignoring read-only fields. This could throw an error.
                 if key in self.read_only_fields:
                     continue
                     # abort(message='Read-only field: {}'.format(key))
 
-                field.validate(value)
-                converted[key] = field.convert(value)  # pass item
+                # ignore fields that have been pre-resolved
+                if key in converted:
+                    continue
 
-            if not partial:
-                for key in self.required_fields:
-                    if key not in converted:
+                value = None
+
+                try:
+                    value = obj[key]
+                    field.validate(value)
+
+                except ValueError as e:
+                    raise ParsingException('Invalid field: {}; {}'.format(key, e.args[0]))
+                except KeyError:
+                    if partial:
+                        continue
+
+                    # TODO required fields is somewhat redundant (eq. to default or nullable), what to do?
+
+                    if field.default:
+                        value = field.default
+                    elif field.nullable:
+                        value = None
+                    elif key not in self.required_fields and not strict:
+                        value = None
+                    else:
                         raise ParsingException(message='Missing required field: {}'.format(key))
 
+                converted[key] = field.convert(value)
+
+            if strict:
+                unknown_fields = set(obj.keys()) - set(self.fields.keys())
+                if unknown_fields:
+                    raise ParsingException('Unknown field(s): {}'.format(','.join(unknown_fields)))
+
             return converted
+
         except ParsingException as e:
             abort(400, message=e.message)
-

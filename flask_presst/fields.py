@@ -8,7 +8,7 @@ from flask.ext.presst.references import ResourceRef
 
 
 class Raw(object):
-    def __init__(self, schema, default=None, attribute=None, nullable=False):
+    def __init__(self, schema, default=None, attribute=None, nullable=True):
         self._schema = schema
         self.default = default
         self.attribute = attribute
@@ -26,7 +26,7 @@ class Raw(object):
 
         if self.nullable:
             if "oneOf" in schema:
-                if not any('null' in o.get('type') for o in schema['oneOf']):
+                if not any('null' in choice.get('type', []) for choice in schema['oneOf']):
                     schema['oneOf'].append({'type': 'null'})
             else:
                 type_ = schema.get('type')
@@ -37,21 +37,23 @@ class Raw(object):
                     else:
                         schema['type'].append('null')
 
+        if self.default:
+            schema['default'] = self.default
+
         # Draft4Validator.check_schema(schema)
 
         return schema
 
+    @cached_property
+    def _validator(self):
+        Draft4Validator.check_schema(self.schema)
+        return Draft4Validator(self.schema, format_checker=FormatChecker())
+
     def validate(self, value):
-        Draft4Validator(self.schema, format_checker=FormatChecker()).validate(value)
-
-
-
-    def is_valid(self, value):
         try:
-            self.validate(value)
-        except ValidationError:
-            return False
-        return True
+            self._validator.validate(value)
+        except ValidationError as ve:
+            raise ValueError("Failed validating '{}' in schema: {}".format(ve.validator, ve.schema))
 
     def parse(self, value):
         """
@@ -117,35 +119,6 @@ class Arbitrary(Raw):
 JSON = Arbitrary
 
 
-# class JSON(Raw):
-#     """
-#     For passing through raw JSON data.
-#
-#     :param dict schema: An optional `JSON schema <http://json-schema.org/>`_ for validation
-#     """
-#
-#     def __init__(self, schema=None, *args, **kwargs):
-#         super(JSON, self).__init__(*args, **kwargs)
-#
-#         if schema is not None:
-#             validator_class = validator_for(schema)
-#             validator_class.check_schema(schema)
-#
-#             self.validator = validator_class(schema)
-#         else:
-#             self.validator = None
-#
-#     def python_type(self, value):
-#         """
-#         :returns: value
-#         """
-#         if self.validator:
-#             try:
-#                 self.validator.validate(value)  # NOTE only works with request.json, not request.args.
-#             except ValidationError as ve:
-#                 raise TypeError("Failed validating '{}' in schema: {}".format(ve.validator, ve.schema))
-#         return value
-
 class Object(Raw):
     def __init__(self, **kwargs):
         super(Object, self).__init__({"type": "object"}, **kwargs)
@@ -166,7 +139,7 @@ class Integer(Raw):
         if maximum is not None:
             schema['maximum'] = maximum
 
-        super(Integer, self).__init__(schema, **kwargs)
+        super(Integer, self).__init__(schema, default=default, **kwargs)
 
     def format(self, value):
         return int(value)
@@ -247,9 +220,13 @@ class List(Raw):
             }, **kwargs)
 
     def format(self, value):
+        if value is None:
+            return []
         return [self.container.format(v) for v in value]
 
     def convert(self, value):
+        if value is None:
+            return []
         return [self.container.convert(v) for v in value]
 
 
@@ -311,8 +288,10 @@ class ToOne(Raw, EmbeddedBase):
         return self._resource.resolve()
 
     def validate(self, value):
-        return True
-        # TODO TODO TODO
+        if value is None and not self.nullable:
+            raise ValueError('Reference is not nullable')
+
+        # TODO proper validation (now fails in convert step)
 
     def format(self, item):
         if not self.embedded:
@@ -336,7 +315,10 @@ class ToMany(List, EmbeddedBase):
         self.relationship_name = relationship_name
 
     def validate(self, value):
-        return True
+        if value is None and not self.nullable:
+            raise ValueError('Reference is not nullable')
+
+        # TODO proper validation (now fails in convert step)
 
 class ToManyKV(KeyValue, EmbeddedBase):
     def __init__(self, resource, relationship_name=None, embedded=False, **kwargs):
@@ -344,4 +326,7 @@ class ToManyKV(KeyValue, EmbeddedBase):
         self.relationship_name = relationship_name
 
     def validate(self, value):
-        return True
+        if value is None and not self.nullable:
+            raise ValueError('Reference is not nullable')
+
+        # TODO proper validation (now fails in convert step)

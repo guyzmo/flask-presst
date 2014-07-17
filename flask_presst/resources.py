@@ -110,65 +110,6 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
 
     schema = ResourceSchema()
 
-    #@action('GET', collection=True)
-    #def schema(self, items):
-        # schema = OrderedDict()
-        #
-        # for schema_property in ('title', 'description'):
-        #     if schema_property in self._meta:
-        #         schema[schema_property] = self._meta[schema_property]
-        #
-        # links = [
-        #     {
-        #         'rel': 'self',
-        #         'href': self.api._complete_url('{}/{{id}}'.format(self.route_prefix), ''),
-        #         'method': 'GET',
-        #     },
-        #     {
-        #         'rel': 'instances',
-        #         'href': self.api._complete_url('{}'.format(self.route_prefix), ''),
-        #         'method': 'GET',
-        #         'schema': {
-        #             '$ref': self.api._complete_url('/schema#/definitions/_pagination', '')
-        #         }
-        #     }
-        # ]
-        #
-        # links = itertools.chain(links, *(route.get_links() for name, route in sorted(self.routes.items())
-        #                                  if name != 'schema'))
-        #
-        # schema['type'] = 'object'
-        # schema['definitions'] = definitions = {}
-        # schema['properties'] = properties = {}
-        # schema['required'] = self._required_fields
-        # schema['links'] = list(links)
-        #
-        # # fields:
-        # for name, field in sorted(self._fields.items()):
-        #     definition = field.schema
-        #
-        #     if '$ref' in definition:
-        #         properties[name] = definition
-        #         continue
-        #
-        #     if name in self._read_only_fields:
-        #         definition['readOnly'] = True
-        #
-        #     definitions[name] = definition
-        #     properties[name] = {'$ref': '#/definitions/{}'.format(name)}
-        #
-        # definitions['_uri'] = {
-        #     'type': 'string',
-        #     'format': 'uri',
-        #     'readOnly': True
-        # }
-        #
-        # properties['_uri'] = {
-        #     '$ref': '#/definitions/_uri'
-        # }
-        #
-        # return schema
-
     def get(self, id=None, **kwargs):
         if id is None:
             item_list = self.get_item_list()
@@ -229,9 +170,9 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
             return cls.get_item_from_uri(data)
         elif isinstance(data, dict):
             item = None
-            if '_id' in data:
-                item = cls.get_item_for_id(data.pop('_id'))
-            elif '_uri' in data:
+            # if '_id' in data:
+            #     item = cls.get_item_for_id(data.pop('_id'))
+            if '_uri' in data:
                 item = cls.get_item_from_uri(data.pop('_uri'))
             if item:
                 if update and data:
@@ -453,8 +394,6 @@ class ModelResourceMeta(PresstResourceMeta):
                         (exclude_fields and name not in exclude_fields) or \
                         not (include_fields or exclude_fields):
 
-                    field_class = None
-
                     if meta.get('exclude_polymorphic', False) and column.table != mapper.tables[-1]:
                         continue
 
@@ -462,30 +401,24 @@ class ModelResourceMeta(PresstResourceMeta):
                         continue
 
                     if isinstance(column.type, postgres.ARRAY):
-                        field_type = list
                         field_class = lambda **kw: List(String, **kw)
                     elif isinstance(column.type, postgres.HSTORE):
-                        field_type = dict
                         field_class = KeyValue
                     # Numeric/Decimal
                     elif hasattr(postgres, 'JSON') and isinstance(column.type, postgres.JSON):
-                        field_type = lambda data: data
                         field_class = Arbitrary
                     else:
-                        field_type = column.type.python_type
-
-                    field_types[name] = field_type
+                        field_class = class_._get_field_from_python_type(column.type.python_type)
 
                     # Add to list of fields.
                     if not name in fields:
-                        if not field_class:
-                            field_class = class_._get_field_from_python_type(field_type)
-
                         default = None
+                        nullable = column.nullable
+
                         if column.default is not None and column.default.is_scalar:
                             default = column.default.arg
 
-                        fields[name] = field_class(default=default)
+                        fields[name] = field_class(default=default, nullable=nullable)
 
                         if not (column.nullable or column.default):
                             required_fields.append(name)
@@ -523,7 +456,6 @@ class ModelResource(six.with_metaclass(ModelResourceMeta, PresstResource)):
     """
     _model = None
     _model_id_column = None
-    _field_types = None
 
     @staticmethod
     def _get_field_from_python_type(python_type):

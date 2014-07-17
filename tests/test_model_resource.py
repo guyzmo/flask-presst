@@ -158,7 +158,7 @@ class TestModelResource(PresstTestCase):
             {'sweetness': 3},
             {},
             {'name': 'Golden Apple', 'tree': None},
-            ]
+        ]
 
         for change in changes:
             expected_apple.update(change)
@@ -238,14 +238,16 @@ class TestModelResource(PresstTestCase):
                 "tree": {
                     "oneOf": [
                         {"$ref": "/tree/schema#/definitions/_uri"},
-                        {"$ref": "/tree/schema#"}
+                        {"$ref": "/tree/schema#"},
+                        {"type": "null"}
                     ]
                 },
                 "name": {
                     "type": "string"
                 },
                 "sweetness": {
-                    "type": "integer"
+                    "type": ["integer", "null"],
+                    "default": 5,
                 },
                 "_uri": {
                     "type": "string",

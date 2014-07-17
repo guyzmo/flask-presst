@@ -80,7 +80,6 @@ class ParsingTest(PresstTestCase):
                                                content_type='application/json'):
 
                 self.assertEqual(request.json, {'arg': {'name': 'test', 'value': value}})
-                print(parser.parse_request())
                 self.assertEqual(parser.parse_request(), {'arg': {'name': 'test', 'value': value}})
 
         with self.app.test_request_context('/',
