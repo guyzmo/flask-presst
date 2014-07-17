@@ -60,24 +60,3 @@ pre-process and post-process most parts of the read, create, update cycle.
     will be applied to the ``query`` object. Often it may be preferable to simply replace
     :meth:`ModelResource.get_item_list` with a custom implementation:
 
-.. class:: on_filter_read
-
-    The signal takes no argument, but can return a callable that is passed a query object and must return a
-    query object. The basic no-op would be: ``lambda query: query``. Multiple listeners may process the query in order.
-
-    Usage example:
-
-    >>> @on_filter_read.connect_via(ArticleResource)
-    ... def on_filter_read_article(sender):
-    ...     return lambda query: query.filter(Article.status == 'published')
-
-.. class:::: on_filter_update
-
-    The signal takes no argument, but can return a callable that is passed a query object and must return a
-    query object. The basic no-op would be: ``lambda query: query``. Multiple listeners may process the query in order.
-
-.. class:: on_filter_delete
-
-    The signal takes no argument, but can return a callable that is passed a query object and must return a
-    query object. The basic no-op would be: ``lambda query: query``. Multiple listeners may process the query in order.
-

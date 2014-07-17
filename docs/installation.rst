@@ -10,5 +10,5 @@ Install Flask-Presst using ``pip``:
     pip install flask-presst
 
 
-Flask-Presst requires Python version 2.7 or 3.3.
+Flask-Presst requires Python version 2.7 or 3.3+.
 

@@ -81,7 +81,7 @@ class SchemaParser(object):
                     field.validate(value)
 
                 except ValueError as e:
-                    raise ParsingException('Invalid field: {}; {}'.format(key, e.args[0]))
+                    raise ParsingException(message='Invalid field: {}; {}'.format(key, e.args[0]))
                 except KeyError:
                     if partial:
                         continue

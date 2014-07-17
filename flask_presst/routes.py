@@ -3,9 +3,7 @@ from functools import wraps
 import itertools
 
 from flask import request
-from flask_restful import abort
 from flask.views import View, MethodView
-import six
 from werkzeug.utils import cached_property
 
 from flask_presst.fields import Raw
@@ -14,6 +12,9 @@ from flask_presst.parse import SchemaParser
 
 
 class ResourceRoute(object):
+    """
+    Specify custom views on a resource.
+    """
     bound_resource = None
 
     def __init__(self, methods, collection=False, relationship_name=None):
@@ -40,6 +41,12 @@ class ResourceRoute(object):
             }
 
     def view_factory(self, name, bound_resource):  # pragma: no cover
+        """
+        Returns a view function.
+
+        :param name: name of the endpoint
+        :param bound_resource: name of the resource to bind to
+        """
         raise NotImplementedError()
 
 
@@ -182,6 +189,7 @@ class ResourceAction(ResourceRoute):
 
             return self._fn.__call__(resource_instance, item_or_items, *args, **EmbeddedJob.complete(kwargs))
 
+            # TODO automatic commit here
         return view
 
     def __get__(self, obj, *args, **kwargs):
@@ -194,8 +202,8 @@ def action(method='POST', collection=False):
     """
     A decorator for attaching custom routes to a :class:`PresstResource`.
 
-    Depending on whether ``collection`` is ``True``, the route is either ``/resource/method``
-    or ``/resource/{id}/method`` and the decorator passes either the list of items from
+    Depending on whether ``collection`` is ``True``, the route is either ``/resource/action``
+    or ``/resource/{id}/action`` and the decorator passes either the list of items from
     :meth:`PresstResource.get_item_list` or the single item.
 
     :param str method: one of 'POST', 'GET', 'PATCH', 'DELETE'

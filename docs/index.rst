@@ -6,8 +6,8 @@
 Flask-Presst
 ============
 
-**Flask-Presst** is a Flask extension for building RESTful APIs that map to the SQLAlchemy ORM. The extension
-supports nesting and embedding of resources and powerful resource methods.
+**Flask-Presst** is a Flask extension for building ReSTful APIs that map to the SQLAlchemy ORM. Flask-Presst has
+embedding and bulk update capabilities and support for resource action sub-routes.
 
 Flask-Presst is built on top of
 `Flask-RESTful <https://github.com/twilio/flask-restful>`_ and can be used together with other Flask-RESTful resources.
@@ -24,7 +24,7 @@ User's guide
    quickstart
    fields
    relationship
-   resource_methods
+   resource_actions
    resources
    signals
    schema
@@ -35,12 +35,14 @@ Features
 
 - Support for SQLAlchemy models, including:
 
+  - Automatically collects resource fields from models
   - PostgreSQL **JSON & HSTORE** field types
-  - **Model inheritance**
+  - Polymorphic model inheritance
 
 - **Embeddable resources** & relationships via :class:`ToOne` and :class:`ToMany` fields
-- **Nested resources** via :class:`Relationship` properties
-- **Resource methods**
+- **Bulk operations** for insert, update, delete
+- **Nested resource collections** via :class:`Relationship` properties
+- **Resource actions** -- easy to write sub-route functions for resources
 - GitHub-style **pagination**
 - **Signals** for pre- and post-processing
 - Self-documenting **API Schema** for all resources, nested resources and resource methods in
@@ -50,8 +52,6 @@ Planned Features
 ^^^^^^^^^^^^^^^^
 
 - Built-in hooks for caching support.
-- Support for batch requests such as ``/resource/1;2;3;4`` with atomicity through nested transactions.
-- Support for *document-like* batch insertion of resources with embedded items.
-- True child resources for non-polymorphic models with foreign-key primary keys.
-- Support multiple resource methods of the same name using method prefixes, e.g. ``GET_addresses``,
-  ``POST_addresses``; alternatively make child resources simple enough to support this scenario.
+- Support for batch `GET` requests such as ``/resource/1;2;3;4``.
+- ``Relationship`` routes with more than one parent
+- Built-in query filtering

@@ -35,7 +35,7 @@ class BookResource(ModelResource):
         return BookResource.marshal_item_list(
             books.filter(Book.year_published > year))
 
-    published_after.add_argument('year', location='args', type=int, required=True)
+    published_after.add_argument('year', fields.Integer(), required=True)
 
     @action('GET')
     def is_recent(self, item):
@@ -55,7 +55,6 @@ class AuthorResource(ModelResource):
 api = PresstApi(app)
 api.add_resource(BookResource)
 api.add_resource(AuthorResource)
-api.enable_schema()
 
 if __name__ == '__main__':
     app.run()

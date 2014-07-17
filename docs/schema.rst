@@ -28,7 +28,7 @@ An example schema of the API from the :ref:`Quickstart`:
         "definitions": {
             "book": {
                 "definitions": {
-                    "resource_uri": {
+                    "_uri": {
                         "format": "uri",
                         "readOnly": true,
                         "type": "string"
@@ -44,8 +44,8 @@ An example schema of the API from the :ref:`Quickstart`:
                     }
                 ],
                 "properties": {
-                    "resource_uri": {
-                        "$ref": "#/definitions/book/definitions/resource_uri"
+                    "_uri": {
+                        "$ref": "#/definitions/book/definitions/_uri"
                     },
                     "title": {
                         "$ref": "#/definitions/book/definitions/title"

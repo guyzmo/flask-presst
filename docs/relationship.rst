@@ -13,7 +13,7 @@ Usage example:
 .. code-block:: python
 
     class AuthorResource(ModelResource):
-        books = Relationship(BookResource)  # or Relationship(Book) or Relationship('book')
+        books = Relationship(BookResource)  # or Relationship('book')
 
         class Meta:
             model = Author

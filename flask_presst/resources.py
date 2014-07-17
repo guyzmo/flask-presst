@@ -85,6 +85,8 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
     required_fields        A list of fields that must be given in `POST` requests.
     read_only_fields       A list of fields that are returned by the resource but are ignored in `POST`
                            and `PATCH` requests. Useful for e.g. timestamps.
+    title                  JSON-schema title declaration
+    description            JSON-schema description declaration
     =====================  ==============================================================================
 
     .. rubric:: Footnotes
@@ -208,7 +210,7 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
     def begin(cls):
         """
         Called at the beginning of a create or update operation.
-        May be a no-op
+        May be a no-op.
         """
         pass
 

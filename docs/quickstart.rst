@@ -41,7 +41,7 @@ Let's make some requests to our new api using the excellent `HTTPie <http://http
 
 .. code-block:: bash
 
-    $ http -v POST localhost:5000/book title="On the Origin of Species" year_published=1859
+    $ http -v POST localhost:5000/book title="On the Origin of Species" year_published:=1859
 
 .. code-block:: http
 
@@ -55,7 +55,7 @@ Let's make some requests to our new api using the excellent `HTTPie <http://http
 
     {
         "title": "On the Origin of Species",
-        "year_published": "1859"
+        "year_published": 1859
     }
 
 .. code-block:: http
@@ -67,7 +67,7 @@ Let's make some requests to our new api using the excellent `HTTPie <http://http
     Server: Werkzeug/0.9.4 Python/2.7.5
 
     {
-        "resource_uri": "/book/1",
+        "_uri": "/book/1",
         "title": "On the Origin of Species",
         "year_published": 1859
     }
@@ -99,6 +99,8 @@ required_fields        Fields that are automatically imported from the model are
                        required if their columns are not `nullable` and do not have a `default`.
 read_only_fields       A list of fields that are returned by the resource but are ignored in `POST`
                        and `PATCH` requests. Useful for e.g. timestamps.
+title                  JSON-schema title declaration
+description            JSON-schema description declaration
 =====================  ==============================================================================
 
 
@@ -134,7 +136,7 @@ at `/author/<id>/books`.
     {
         "first_name": "Charles",
         "last_name": "Darwin",
-        "resource_uri": "/author/1"
+        "_uri": "/author/1"
     }
 
 .. code-block:: bash
@@ -153,11 +155,11 @@ at `/author/<id>/books`.
         "author": {
             "first_name": "Charles",
             "last_name": "Darwin",
-            "resource_uri": "/author/1"
+            "_uri": "/author/1"
         },
-        "resource_uri": "/book/1",
+        "_uri": "/book/1",
         "title": "On the Origin of Species",
-        "year_published": 0
+        "year_published": null
     }
 
 
@@ -180,11 +182,11 @@ at `/author/<id>/books`.
             "author": {
                 "first_name": "Charles",
                 "last_name": "Darwin",
-                "resource_uri": "/author/1"
+                "_uri": "/author/1"
             },
-            "resource_uri": "/book/1",
+            "_uri": "/book/1",
             "title": "On the Origin of Species",
-            "year_published": 0
+            "year_published": null
         }
     ]
 
@@ -195,6 +197,65 @@ at `/author/<id>/books`.
     this manner as well. That means you can declare a custom property on a model class and add a matching field
     attribute to your resource.
 
+Bulk operations
+---------------
+
+Flask-Presst supports two kinds of bulk operations: embedded resources and multiple-resource creation. Any resource that
+is embedded as `ToOne` or `ToMany` field can be created through an embedded operation:
+
+.. code-block:: bash
+
+    $ echo '{"title": "Foo", "author": {"first_name":"Foo", "last_name":"Bar"}}' | http POST localhost:5000/book
+
+.. code-block:: http
+
+    HTTP/1.0 200 OK
+    Content-Length: 133
+    Content-Type: application/json
+    Date: Thu, 17 Jul 2014 13:20:17 GMT
+    Server: Werkzeug/0.9.4 Python/3.4.0
+
+    {
+        "_uri": "/book/1",
+        "author": {
+            "_uri": "/author/1",
+            "first_name": "Foo",
+            "last_name": "Bar"
+        },
+        "title": "Foo",
+        "year_published": null
+    }
+
+Multiple items can be submitted in a create or delete operation by sending an array of items. The items will only
+be created if validation of all of them succeeds. The same also works with update operations, as long as the items
+being updated contain the ``_uri`` field.
+
+.. code-block:: bash
+
+    $ echo '[{"title": "Foo Vol I"}, {"title": "Foo Vol II"}]' | http POST localhost:5000/book
+
+.. code-block:: http
+
+    HTTP/1.0 200 OK
+    Content-Length: 167
+    Content-Type: application/json
+    Date: Thu, 17 Jul 2014 13:34:48 GMT
+    Server: Werkzeug/0.9.4 Python/3.4.0
+
+    [
+        {
+            "_uri": "/book/1",
+            "author": null,
+            "title": "Foo Vol I",
+            "year_published": null
+        },
+        {
+            "_uri": "/book/2",
+            "author": null,
+            "title": "Foo Vol II",
+            "year_published": null
+        }
+    ]
 
 Pagination
 ----------
@@ -214,31 +275,68 @@ Items returned from any :class:`ModelResource` are paginated. Pagination in Flas
           </book?page=2&per_page=20>; rel="next"
     Server: Werkzeug/0.9.4 Python/2.7.5
 
+
 The default and maximum number of items per page can be configured using the
 ``'PRESST_DEFAULT_PER_PAGE'`` and ``'PRESST_MAX_PER_PAGE'`` configuration variables.
 
-Resource methods
+JSON Schema
+-----------
+
+Flask-Presst is self-documenting, documented using `JSON Hyper-Schema <http://json-schema.org/latest/json-schema-hypermedia.html>`_.
+The schema index lives at ``/schema`` and resource schemas live at ``/{resource}/schema``.
+
+.. code-block:: bash
+
+    $ http localhost:5000/schema
+
+.. code-block:: http
+
+    HTTP/1.0 200 OK
+    Content-Length: 353
+    Content-Type: application/json
+    Date: Thu, 17 Jul 2014 13:12:13 GMT
+    Server: Werkzeug/0.9.4 Python/3.4.0
+
+    {
+        "$schema": "http://json-schema.org/draft-04/hyper-schema#",
+        "definitions": {
+            "_pagination": {
+                "properties": { }
+            }
+        },
+        "properties": {
+            "author": {
+                "$ref": "/author/schema#"
+            },
+            "book": {
+                "$ref": "/book/schema#"
+            }
+        }
+    }
+
+
+Resource actions
 ----------------
 
-Finally, let's add some resource methods to our `BookRresource`. Resource methods create additional routes, similar
-to the way :class:`Relationship` does. The methods are defined using the :func:`resource_method` decorator. They
+Finally, let's add some resource methods to our `BookResource`. Resource methods create additional routes, similar
+to the way :class:`Relationship` does. The methods are defined using the :func:`action` decorator. They
 each come with their own argument parser and their own route relative to the resource they are defined in.
 
-We'll add two methods, ``/book/published_after?year=<int>`` and ``/book/<id>/is_recent``:
+We'll add two methods, ``/book/published_after?year={int}`` and ``/book/{id}/is_recent``:
 
 .. code-block:: python
 
     class BookResource(ModelResource):
         author = fields.ToOne('author', embedded=True)
 
-        @resource_method('GET', collection=True)
+        @action('GET', collection=True)
         def published_after(self, books, year):
             return BookResource.marshal_item_list(
                 books.filter(Book.year_published > year))
 
-        published_after.add_argument('year', location='args', type=int, required=True)
+        published_after.add_argument('year', fields.Integer(), required=True)
 
-        @resource_method('GET')
+        @action('GET')
         def is_recent(self, item):
             return datetime.date.today().year <= item.year_published + 10
 
@@ -250,8 +348,8 @@ Now, we can create some new books and test the two methods:
 
 .. code-block:: bash
 
-    http POST localhost:5000/book title="On the Origin of Species" year_published=1859 > /dev/null
-    http POST localhost:5000/book title="The Double Helix" year_published=1968 > /dev/null
+    http POST localhost:5000/book title="On the Origin of Species" year_published:=1859 > /dev/null
+    http POST localhost:5000/book title="The Double Helix" year_published:=1968 > /dev/null
 
 .. code-block:: bash
 
@@ -278,7 +376,7 @@ Now, we can create some new books and test the two methods:
     [
         {
             "author": null,
-            "resource_uri": "/book/2",
+            "_uri": "/book/2",
             "title": "The Double Helix",
             "year_published": 1968
         }
