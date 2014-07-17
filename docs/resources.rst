@@ -6,7 +6,7 @@ Resource classes
 
 There are three Resource classes that ship with Flask-Presst:
 
-- :class:`PresstResource`: a base class for item collections.
+- :class:`Resource`: a base class for item collections.
 - :class:`ModelResource`: primary class for SQLAlchemy models.
 - :class:`PolymorphicModelResource`: extension for SQLAlchemy models with polymorphic inheritance.
 
@@ -17,7 +17,7 @@ The Base-class
 --------------
 
 
-.. autoclass:: PresstResource
+.. autoclass:: Resource
    :members:
 
 

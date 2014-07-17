@@ -4,7 +4,7 @@ Resource routes
 
 `ResourceRoute` allow you to define additional routes to a resource without having to define an entirely new
 resource. The :func:`action` decorator is one way to very easily attach new route logic to a collection or item.
-:class:`PresstResource` (the other being :class:`Relationship`).
+:class:`Resource` (the other being :class:`Relationship`).
 
 .. module:: flask_presst
 
@@ -82,7 +82,7 @@ The :class:`marshal_with_field` decorator is used like this::
 .. note::
 
     When returning a large number of items from a specific resource directly from an `SQLAlchemy` query, it is best to
-    use :meth:`PresstResource.marshal_item_list`, as this marshaling function will paginate the result while
+    use :meth:`Resource.marshal_item_list`, as this marshaling function will paginate the result while
     :class:`fields.ToMany` does not.
 
 

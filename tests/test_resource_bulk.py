@@ -1,4 +1,3 @@
-from collections import defaultdict
 from unittest import SkipTest
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import backref

@@ -5,10 +5,10 @@ from flask_restful import abort
 from flask_testing import TestCase
 from flask.testing import FlaskClient
 import six
-from flask_presst import PresstResource, PresstApi
+from flask_presst import Resource, PresstApi
 
 
-class SimpleResource(PresstResource):
+class SimpleResource(Resource):
     items = []
 
     @classmethod
@@ -24,18 +24,18 @@ class SimpleResource(PresstResource):
 
     @classmethod
     def get_relationship(cls, item, relationship):
-        child_resource = cls._relationships[relationship].resource
+        child_resource = cls.routes[relationship].resource
         return (child_resource.get_item_for_id(id_) for id_ in item[relationship])
 
     @classmethod
     def add_to_relationship(cls, item, relationship, child):
-        child_resource = cls._relationships[relationship].resource
+        child_resource = cls.routes[relationship].resource
         item[relationship].append(child_resource.item_get_id(child))
         return child
 
     @classmethod
     def remove_from_relationship(cls, item, relationship, child):
-        child_resource = cls._relationships[relationship].resource
+        child_resource = cls.routes[relationship].resource
         item[relationship].remove(child_resource.item_get_id(child))
 
     @classmethod

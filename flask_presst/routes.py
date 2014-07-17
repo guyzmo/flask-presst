@@ -200,11 +200,11 @@ class ResourceAction(ResourceRoute):
 
 def action(method='POST', collection=False):
     """
-    A decorator for attaching custom routes to a :class:`PresstResource`.
+    A decorator for attaching custom routes to a :class:`Resource`.
 
     Depending on whether ``collection`` is ``True``, the route is either ``/resource/action``
     or ``/resource/{id}/action`` and the decorator passes either the list of items from
-    :meth:`PresstResource.get_item_list` or the single item.
+    :meth:`Resource.get_item_list` or the single item.
 
     :param str method: one of 'POST', 'GET', 'PATCH', 'DELETE'
     :param bool collection: whether this is a collection method or item method
@@ -217,7 +217,7 @@ def action(method='POST', collection=False):
 
 class Relationship(ResourceRoute, MethodView):
     """
-    :class:`Relationship` views, when attached to a :class:`PresstResource`, create a route that maps from
+    :class:`Relationship` views, when attached to a :class:`Resource`, create a route that maps from
     an item in one resource to a collection of items in another resource.
 
     :class:`Relationship` makes use of SqlAlchemy's `relationship` attributes. To support pagination on these objects,

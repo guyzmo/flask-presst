@@ -6,7 +6,7 @@ import six
 from werkzeug.utils import cached_property
 
 from flask_presst.schema import HyperSchema
-from flask_presst.resources import PresstResource, ModelResource
+from flask_presst.resources import Resource, ModelResource
 from flask_presst.utils.routes import route_from
 
 
@@ -41,22 +41,22 @@ class PresstApi(Api):
     def get_resource_class(self, reference, module_name=None):
         """
 
-        Accepts a reference of a resource and returns the matching :class:`PresstResource`.
+        Accepts a reference of a resource and returns the matching :class:`Resource`.
 
         References can be one of:
 
-        - a :class:`PresstResource`
+        - a :class:`Resource`
         - an endpoint name for the resource
         - the full class path of the resource (or class name if :attr:`module` is set)
         - the :class:`Model` class of a :class:`ModelResource`
 
         :param reference: The resource reference
         :param module_name: module name for lazy loading of class.
-        :return: :class:`PresstResource`
+        :return: :class:`Resource`
         """
-        if isinstance(reference, PresstResource):  # pragma: no cover
+        if isinstance(reference, Resource):  # pragma: no cover
             return reference.__class__
-        elif inspect.isclass(reference) and issubclass(reference, PresstResource):
+        elif inspect.isclass(reference) and issubclass(reference, Resource):
             return reference
         elif reference in self._model_resource_map:
             return self._model_resource_map[reference]
@@ -138,7 +138,7 @@ class PresstApi(Api):
     def add_resource(self, resource, *urls, **kwargs):
 
         # fallback to Flask-RESTful `add_resource` implementation with regular resources:
-        if not issubclass(resource, PresstResource):
+        if not issubclass(resource, Resource):
             super(PresstApi, self).add_resource(resource, *urls, **kwargs)
 
         # skip resources that may have previously been (auto-)imported.

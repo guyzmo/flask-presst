@@ -5,7 +5,7 @@ Relationships & Resource nesting
 
 .. module:: flask_presst
 
-Relationships create routes from one :class:`PresstResource` to another. When used with :class:`ModelResource`,
+Relationships create routes from one :class:`Resource` to another. When used with :class:`ModelResource`,
 the attribute name of the resource must be that of a :func:`sqlalchemy.orm.relationship`.
 
 Usage example:

@@ -1,7 +1,7 @@
 import datetime
 
 from flask import request, current_app
-from flask_restful import reqparse, Resource, abort, marshal
+from flask_restful import reqparse, Resource as RestfulResource, abort, marshal
 from flask_sqlalchemy import BaseQuery, Pagination, get_state
 from flask.views import MethodViewType
 from sqlalchemy.dialects import postgres
@@ -21,9 +21,9 @@ from flask_presst.parse import SchemaParser
 LINK_HEADER_FORMAT_STR = '<{0}?page={1}&per_page={2}>; rel="{3}"'
 
 
-class PresstResourceMeta(MethodViewType):
+class ResourceMeta(MethodViewType):
     def __new__(mcs, name, bases, members):
-        class_ = super(PresstResourceMeta, mcs).__new__(mcs, name, bases, members)
+        class_ = super(ResourceMeta, mcs).__new__(mcs, name, bases, members)
 
         if hasattr(class_, '_meta'):
             try:
@@ -37,7 +37,6 @@ class PresstResourceMeta(MethodViewType):
             class_._required_fields = meta.get('required_fields', [])
             class_._fields = fields = dict()
             class_._read_only_fields = set(meta.get('read_only_fields', []))
-            class_._relationships = relationships = dict()
             class_._meta = meta
 
             for name, m in six.iteritems(members):
@@ -47,8 +46,6 @@ class PresstResourceMeta(MethodViewType):
                         m.relationship_name = name
 
                 if isinstance(m, ResourceRoute):
-                    if isinstance(m, Relationship):
-                        relationships[m.relationship_name] = m
                     routes[m.relationship_name] = m
                 elif isinstance(m, Raw):
                     field_name = m.attribute or name
@@ -57,20 +54,20 @@ class PresstResourceMeta(MethodViewType):
         return class_
 
 
-class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
+class Resource(six.with_metaclass(ResourceMeta, RestfulResource)):
     """
 
     Resource item property fields are defined as as class attributes. e.g.:
 
     .. code-block:: python
 
-        class PersonResource(PresstResource):
+        class PersonResource(Resource):
             name = fields.String()
             age = fields.Integer()
             # ...
 
-    Each new subclass of :class:`PresstResource` can be configured using a class attribute, :class:`Meta`, which
-    includes properties that are applied at creation time by the :class:`PresstResource`'s metaclass. The following
+    Each new subclass of :class:`Resource` can be configured using a class attribute, :class:`Meta`, which
+    includes properties that are applied at creation time by the :class:`Resource`'s metaclass. The following
     attributes can be declared within :class:`Meta`:
 
     =====================  ==============================================================================
@@ -79,7 +76,7 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
     resource_name          The name of the resource used to build the resource endpoint, also used
                            for referencing the resource using e.g. :class:`fields.ToMany`. *Default:
                            the lower-case of the class name of the resource*
-    id_field               The default implementation of :class:`PresstResource` attempts to read the id
+    id_field               The default implementation of :class:`Resource` attempts to read the id
                            of each resource item using this attribute or item key. The id field will
                            never be marshalled [#f1]_. *Default: 'id'*
     required_fields        A list of fields that must be given in `POST` requests.
@@ -359,7 +356,7 @@ class PresstResource(six.with_metaclass(PresstResourceMeta, Resource)):
         return list(cls.marshal_item(item) for item in items)
 
 
-class ModelResourceMeta(PresstResourceMeta):
+class ModelResourceMeta(ResourceMeta):
     def __new__(mcs, name, bases, members):
         class_ = super(ModelResourceMeta, mcs).__new__(mcs, name, bases, members)
         meta = class_._meta
@@ -427,10 +424,10 @@ class ModelResourceMeta(PresstResourceMeta):
         return class_
 
 
-class ModelResource(six.with_metaclass(ModelResourceMeta, PresstResource)):
+class ModelResource(six.with_metaclass(ModelResourceMeta, Resource)):
     """
 
-    :class:`ModelResource` inherits all of the :class:`Meta` options of :class:`PresstResource`, however
+    :class:`ModelResource` inherits all of the :class:`Meta` options of :class:`Resource`, however
     with slightly different behavior and including some additions.
 
     =====================  ==============================================================================

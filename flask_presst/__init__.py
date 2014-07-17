@@ -3,7 +3,7 @@ from functools import wraps
 from flask_restful import unpack
 
 from flask_presst.api import PresstApi
-from flask_presst.resources import PresstResource, ModelResource, PolymorphicModelResource
+from flask_presst.resources import Resource, ModelResource, PolymorphicModelResource
 from flask_presst.routes import Relationship, action
 from flask_presst.parse import SchemaParser
 from flask_presst.references import ResourceRef
@@ -11,7 +11,7 @@ from flask_presst.references import ResourceRef
 
 __all__ = (
     'PresstApi',
-    'PresstResource',
+    'Resource',
     'ModelResource',
     'PolymorphicModelResource',
 
