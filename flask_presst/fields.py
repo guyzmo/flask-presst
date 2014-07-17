@@ -1,4 +1,3 @@
-# from iso8601 import iso8601
 import aniso8601
 from flask_restful.fields import get_value
 from jsonschema import Draft4Validator, ValidationError, FormatChecker
@@ -274,8 +273,8 @@ class ToOne(Raw, EmbeddedBase):
             resource = ref.resolve()
             return {
                 "oneOf": [
-                    {'$ref': '/{}/schema#/definitions/_uri'.format(resource.resource_name)},
-                    {'$ref': '/{}/schema#'.format(resource.resource_name)}
+                    {'$ref': '{}/schema#/definitions/_uri'.format(resource.route_prefix)},
+                    {'$ref': '{}/schema#'.format(resource.route_prefix)}
                 ]
             }
 
@@ -299,10 +298,6 @@ class ToOne(Raw, EmbeddedBase):
         return self.resource.marshal_item(item)
 
     def convert(self, value, commit=False):
-        # value is one of:
-        # resource uri -> attempt to load document with that uri
-        # object matching schema -> create new document with that uri (needs to be appended to session/request somehow (g object or with object?))
-        # object matching schema with resource uri field -> load document and update it
         if value is None:
             return None
 

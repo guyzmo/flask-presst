@@ -5,7 +5,7 @@ from flask_restful import unpack
 from flask_presst.api import PresstApi
 from flask_presst.resources import PresstResource, ModelResource, PolymorphicModelResource
 from flask_presst.routes import Relationship, action
-from flask_presst.parse import PresstArgument
+from flask_presst.parse import SchemaParser
 from flask_presst.references import ResourceRef
 
 
@@ -16,10 +16,11 @@ __all__ = (
     'PolymorphicModelResource',
 
     'Relationship',
-    'resource_method',
+    'action',
 
-    'PresstArgument',
+    'SchemaParser',
     'ResourceRef',
+
     'marshal_with_field',
 
     'fields',

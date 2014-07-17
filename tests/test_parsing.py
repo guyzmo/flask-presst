@@ -2,41 +2,25 @@ from datetime import datetime
 import json
 from unittest import SkipTest
 from flask import request
-from flask_restful import reqparse
 from pytz import UTC
 from werkzeug.exceptions import HTTPException
-from flask_presst import PresstArgument, fields
+from flask_presst import fields
 from flask_presst.parse import SchemaParser
 from tests import PresstTestCase, SimpleResource
 
 
 class ParsingTest(PresstTestCase):
-    def test_parsing_types(self):
-        parser = reqparse.RequestParser(argument_class=PresstArgument)
-        parser.add_argument('date', type=datetime)
-        parser.add_argument('none', type=str)
-        parser.add_argument('text', type=str)
-        parser.add_argument('int', type=int)
-
-        with self.app.test_request_context(
-                '/?date=2014-01-10T12:18Z'
-                '&text=text'
-                '&int=-1', data={'none': None}):  # FIXME TODO  json to test None.
-            self.assertEqual(parser.parse_args(),
-                             {'date': datetime(2014, 1, 10, 12, 18, tzinfo=UTC),
-                              'int': -1,
-                              'none': None,
-                              'text': 'text'})
 
     @SkipTest
     def test_parsing_fields(self):
-        parser = reqparse.RequestParser(argument_class=PresstArgument)
-        parser.add_argument('date_rfc', type=fields.DateTime())
-        parser.add_argument('date', type=fields.DateTime())
-        parser.add_argument('none', type=fields.String())
-        parser.add_argument('text', type=fields.String())
-        parser.add_argument('json', type=fields.JSON())
-        parser.add_argument('int', type=fields.Integer())
+        parser = SchemaParser()
+        parser.add('date_rfc', field=fields.DateTime())
+        parser.add('date', field=fields.DateTime())
+        parser.add('none', field=fields.String())
+        parser.add('text', field=fields.String())
+        parser.add('json', field=fields.JSON())
+        parser.add('number', field=fields.Number())
+        parser.add('int', field=fields.Integer())
         # NOTE reference fields are tested elsewhere.
 
         with self.app.test_request_context('/',
@@ -46,15 +30,17 @@ class ParsingTest(PresstTestCase):
                                                'int': -1,
                                                'text': 'text',
                                                'none': None,
+                                               'number': 12.34,
                                                'json': [1, {'a': 2}]}),
                                            content_type='application/json'):
-            self.assertEqual(parser.parse_args(),
+            self.assertEqual(parser.parse_request(),
                              {
                                  'date_rfc': datetime(2002, 10, 2, 8, 0, tzinfo=UTC),
                                  'date': datetime(2014, 1, 10, 12, 18, tzinfo=UTC),
                                  'int': -1,
                                  'json': [1, {'a': 2}],
                                  'none': None,
+                                 'number': 12.34,
                                  'text': 'text'})
 
 
@@ -104,11 +90,10 @@ class ParsingTest(PresstTestCase):
 
         self.api.add_resource(PressResource)
 
-        parser = reqparse.RequestParser(argument_class=PresstArgument)
-
-        parser.add_argument('press', type=fields.ToOne('press'))
+        parser = SchemaParser()
+        parser.add('press', fields.ToOne('press'))
 
         with self.app.test_request_context('/',
                                            data=json.dumps({'press': '/press/1'}),
                                            content_type='application/json'):
-            self.assertEqual({'press': {'id': 1, 'name': 'Press 1'}}, parser.parse_args())
+            self.assertEqual({'press': {'id': 1, 'name': 'Press 1'}}, parser.parse_request())

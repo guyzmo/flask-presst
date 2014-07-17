@@ -10,51 +10,6 @@ import six
 from flask_presst.utils.parsedate import parsedate_to_datetime
 
 
-class PresstArgument(Argument):
-    @staticmethod
-    def _get_python_type_from_field(field):
-        if hasattr(field, 'python_type'):
-            return field.python_type
-
-        try:
-            return {
-                restful_fields.DateTime: datetime.datetime,
-                restful_fields.String: six.text_type,
-                restful_fields.Boolean: bool,
-                restful_fields.Integer: int
-            }[field.__class__]
-        except KeyError:  # pragma: no cover
-            return six.text_type
-
-    def convert(self, value, op):
-        if isinstance(self.type, restful_fields.Raw):
-            self.type = self._get_python_type_from_field(self.type)
-
-        if inspect.isclass(self.type):
-            # check if we're expecting a string and the value is `None`
-            if value is None and issubclass(self.type, six.string_types):
-                return None
-
-            # handle date and datetime:
-            if issubclass(self.type, datetime.date):
-                try: # RFC822-formatted strings are now the default:
-                    dt = parsedate_to_datetime(value)
-                except TypeError: # ISO8601 fallback:
-                    dt = iso8601.parse_date(value)
-
-                if self.type is datetime.date:
-                    return dt.date()
-                return dt
-
-        try:
-            return self.type(value, self.name, op)
-        except TypeError:
-            try:
-                return self.type(value, self.name)
-            except TypeError:
-                return self.type(value)
-
-
 class ParsingException(Exception):
 
     def __init__(self, field=None, message=None):
@@ -64,7 +19,9 @@ class ParsingException(Exception):
 
 class SchemaParser(object):
 
-    def __init__(self, fields, required_fields=None, read_only_fields=None):  # TODO read-only fields
+    def __init__(self, fields=None, required_fields=None, read_only_fields=None):  # TODO read-only fields
+        if fields is None:
+            fields = {}
         self.fields = {key or field.attribute: field for key, field in fields.items()}
         self.required_fields = set(required_fields or [])
         self.read_only_fields = set(read_only_fields or [])
