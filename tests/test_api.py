@@ -1,5 +1,5 @@
-from flask.ext.sqlalchemy import SQLAlchemy
-from flask.ext.presst import fields, ModelResource
+from flask_sqlalchemy import SQLAlchemy
+from flask_presst import fields, ModelResource
 from tests import PresstTestCase, SimpleResource
 
 

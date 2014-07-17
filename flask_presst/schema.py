@@ -1,11 +1,4 @@
-import inspect
-from operator import itemgetter
-from flask import json, current_app
 from flask.views import View
-from flask_presst.references import Reference
-from flask_presst import fields
-from flask_presst.resources import ModelResource
-from flask_presst.routes import ResourceAction, Relationship
 
 
 class HyperSchema(View):

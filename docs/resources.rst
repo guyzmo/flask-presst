@@ -2,7 +2,7 @@
 Resource classes
 ================
 
-.. module:: flask.ext.presst
+.. module:: flask_presst
 
 There are three Resource classes that ship with Flask-Presst:
 

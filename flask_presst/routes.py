@@ -1,14 +1,16 @@
 from collections import OrderedDict
 from functools import wraps
-from flask import request
-from flask_restful import reqparse, abort, Resource
-from flask.views import http_method_funcs, View, MethodView
 import itertools
+
+from flask import request
+from flask_restful import abort
+from flask.views import View, MethodView
 import six
 from werkzeug.utils import cached_property
+
 from flask_presst.fields import Raw
 from flask_presst.references import ResourceRef, ItemWrapper, ItemListWrapper, EmbeddedJob
-from flask_presst.parse import PresstArgument, SchemaParser
+from flask_presst.parse import SchemaParser
 
 
 class ResourceRoute(object):

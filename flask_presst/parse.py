@@ -1,11 +1,13 @@
 import inspect
+import datetime
+
 from flask import request
 from flask_restful import fields as restful_fields, abort
 from flask_restful.reqparse import Argument
-from flask_presst.utils.parsedate import parsedate_to_datetime
 from iso8601 import iso8601
-import datetime
 import six
+
+from flask_presst.utils.parsedate import parsedate_to_datetime
 
 
 class PresstArgument(Argument):

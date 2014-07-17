@@ -6,7 +6,7 @@ Resource methods allow you to define additional routes to a resource without hav
 resource. The :func:`resource_method` decorator is one out of two ways to nest additional routes within a
 :class:`PresstResource` (the other being :class:`Relationship`).
 
-.. module:: flask.ext.presst
+.. module:: flask_presst
 
 The :func:`resource_method` decorator
 -------------------------------------
@@ -20,7 +20,7 @@ Request parsing with :func:`resource_method`
 Methods decorated with :func:`resource_method` are wrapped into a :class:`ResourceAction`, which itself contains
 a parser that is run whenever the method is called.
 
-.. autoclass:: flask.ext.presst.nesting.ResourceAction
+.. autoclass:: flask_presst.nesting.ResourceAction
    :members:
 
 Example code
@@ -54,7 +54,7 @@ Example code
 Return value marshalling
 ------------------------
 
-Return values from a :func:`resource_method` can be marshalled using :func:`flask.ext.restful.marshal_with`.
+Return values from a :func:`resource_method` can be marshalled using :func:`flask_restful.marshal_with`.
 For example::
 
     @resource_method('GET')

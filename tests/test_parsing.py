@@ -2,12 +2,11 @@ from datetime import datetime
 import json
 from unittest import SkipTest
 from flask import request
-from flask.ext.restful import reqparse
+from flask_restful import reqparse
 from pytz import UTC
 from werkzeug.exceptions import HTTPException
-from flask.ext.presst import PresstArgument, fields
-from flask.ext.presst.parse import SchemaParser
-from flask.ext.presst.references import ItemWrapper
+from flask_presst import PresstArgument, fields
+from flask_presst.parse import SchemaParser
 from tests import PresstTestCase, SimpleResource
 
 

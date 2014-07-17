@@ -1,6 +1,6 @@
-from flask.ext.sqlalchemy import SQLAlchemy
+from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import backref
-from flask.ext.presst import signals, fields, ModelResource, Relationship
+from flask_presst import signals, fields, ModelResource, Relationship
 from tests import PresstTestCase
 
 

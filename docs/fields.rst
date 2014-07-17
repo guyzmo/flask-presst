@@ -2,12 +2,12 @@
 Field types
 ===========
 
-.. module:: flask.ext.presst
+.. module:: flask_presst
 
 Flask-Pressts inherits most of its fields from Flask-RESTful. Some additional fields exist to represent common column
 types (namely :class:`fields.Date`) and for relationships (:class:`fields.ToOne` and :class:`fields.ToMany`).
 
-.. module:: flask.ext.presst.fields
+.. module:: flask_presst.fields
 
 Relationship field types
 ------------------------

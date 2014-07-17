@@ -9,7 +9,7 @@ pre-process and post-process most parts of the read, create, update cycle.
 :class:`ModelResource` and :class:`PolymorphicModelResource` instances hook into these signals; other child classes of
 :class:`PresstResource` should be written to hook into them as well.
 
-.. module:: flask.ext.presst.signals
+.. module:: flask_presst.signals
 
 
 .. class:: before_create_item

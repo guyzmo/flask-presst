@@ -1,7 +1,7 @@
 from flask import Flask
-from flask.ext.sqlalchemy import SQLAlchemy
+from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import backref
-from flask.ext.presst import PresstApi, ModelResource, Relationship, fields
+from flask_presst import PresstApi, ModelResource, Relationship, fields
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite://'

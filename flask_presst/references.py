@@ -1,41 +1,9 @@
-from collections import namedtuple
 from importlib import import_module
 import inspect
+
 from flask import current_app
-from flask.ext.restful import Resource, abort
+from flask_restful import Resource, abort
 import six
-
-
-class Reference(object):
-    def __init__(self, reference, api=None):
-        self.resource_class = api.get_resource_class(reference) if api else self._resolve_resource_class(reference)
-        self.resource = self.resource_class
-
-    def __call__(self, value, resolve=None, commit=False):
-        if value is None:
-            return None
-
-        return self.resource.resolve_item(value, resolved_properties=resolve, create=True, update=True, commit=commit, parse_only=True)
-
-    def __repr__(self):
-        return "<Reference '{}'>".format(self.resource_class.resource_name)
-
-    @staticmethod
-    def _resolve_resource_class(reference):
-        from flask_presst import PresstResource
-
-        if inspect.isclass(reference) and issubclass(reference, PresstResource):
-            return reference
-
-        try:
-            if isinstance(reference, six.string_types):
-                module_name, class_name = reference.rsplit('.', 1)
-                module = import_module(module_name)
-                return getattr(module, class_name)
-        except ValueError:
-            pass
-
-        raise RuntimeError('Could not resolve API resource reference: {}'.format(reference))
 
 
 class ResourceRef(object):
@@ -67,6 +35,9 @@ class ResourceRef(object):
             pass
 
         raise RuntimeError('Could not resolve resource reference: {}'.format(r))
+
+    def __repr__(self):
+        return "<ResourceRef '{}'>".format(self.resolve().resource_name)
 
 
 class EmbeddedJob(object):

@@ -1,6 +1,6 @@
 import unittest
-from flask.ext.restful import marshal_with
-from flask.ext.presst import fields, Relationship, action
+from flask_restful import marshal_with
+from flask_presst import fields, Relationship, action
 from tests import SimpleResource, PresstTestCase
 
 

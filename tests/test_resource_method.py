@@ -1,6 +1,4 @@
-import json
-import sys
-from flask.ext.presst import fields, action, Reference
+from flask_presst import fields, action
 from tests import PresstTestCase, SimpleResource
 
 

@@ -1,11 +1,11 @@
 import json
 import unittest
 from flask import Flask
-from flask.ext.restful import abort
-from flask.ext.testing import TestCase
+from flask_restful import abort
+from flask_testing import TestCase
 from flask.testing import FlaskClient
 import six
-from flask.ext.presst import PresstResource, PresstApi
+from flask_presst import PresstResource, PresstApi
 
 
 class SimpleResource(PresstResource):

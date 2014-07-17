@@ -1,13 +1,15 @@
 import datetime
-from flask import request, current_app, _request_ctx_stack
-import itertools
-from flask_presst.routes import action, ResourceSchema
+
+from flask import request, current_app
 from flask_restful import reqparse, Resource, abort, marshal
 from flask_sqlalchemy import BaseQuery, Pagination, get_state
 from flask.views import MethodViewType
 from sqlalchemy.dialects import postgres
 from sqlalchemy.orm import class_mapper
 from sqlalchemy.orm.exc import NoResultFound
+import six
+
+from flask_presst.routes import ResourceSchema
 from flask_presst.fields import String, Integer, Boolean, List, DateTime, EmbeddedBase, Raw, KeyValue, Arbitrary, \
     Date
 from flask_presst.references import EmbeddedJob
@@ -16,9 +18,7 @@ from flask_presst.signals import before_create_item, after_create_item, before_c
     before_delete_item, after_delete_item, after_update_item, on_filter_read, on_filter_update, \
     on_filter_delete
 from flask_presst.routes import ResourceRoute, Relationship
-from flask_presst.parse import PresstArgument, SchemaParser
-import six
-from collections import OrderedDict
+from flask_presst.parse import SchemaParser
 
 
 LINK_HEADER_FORMAT_STR = '<{0}?page={1}&per_page={2}>; rel="{3}"'
@@ -452,7 +452,7 @@ class ModelResource(six.with_metaclass(ModelResourceMeta, PresstResource)):
     =====================  ==============================================================================
 
 
-    This resource class processes all of the signals in :mod:`flask.ext.presst.signals`.
+    This resource class processes all of the signals in :mod:`flask_presst.signals`.
     """
     _model = None
     _model_id_column = None

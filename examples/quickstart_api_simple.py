@@ -1,6 +1,6 @@
 from flask import Flask
-from flask.ext.sqlalchemy import SQLAlchemy
-from flask.ext.presst import PresstApi, ModelResource
+from flask_sqlalchemy import SQLAlchemy
+from flask_presst import PresstApi, ModelResource
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite://'

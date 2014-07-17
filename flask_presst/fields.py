@@ -2,9 +2,9 @@
 import aniso8601
 from flask_restful.fields import get_value
 from jsonschema import Draft4Validator, ValidationError, FormatChecker
-import six
 from werkzeug.utils import cached_property
-from flask.ext.presst.references import ResourceRef
+
+from flask_presst.references import ResourceRef
 
 
 class Raw(object):

@@ -1,9 +1,10 @@
-from functools import partial
 from importlib import import_module
 import inspect
+
 from flask_restful import Api, abort
 import six
 from werkzeug.utils import cached_property
+
 from flask_presst.schema import HyperSchema
 from flask_presst.resources import PresstResource, ModelResource
 from flask_presst.utils.routes import route_from

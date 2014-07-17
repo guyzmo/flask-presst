@@ -1,8 +1,8 @@
 from collections import defaultdict
 from unittest import SkipTest
-from flask.ext.sqlalchemy import SQLAlchemy
+from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import backref
-from flask.ext.presst import ModelResource, Relationship, fields
+from flask_presst import ModelResource, Relationship, fields
 from tests import PresstTestCase, SimpleResource
 
 

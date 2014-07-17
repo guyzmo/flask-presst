@@ -72,7 +72,7 @@ Let's make some requests to our new api using the excellent `HTTPie <http://http
         "year_published": 1859
     }
 
-.. module:: flask.ext.presst
+.. module:: flask_presst
 
 
 :class:`Meta` class attributes

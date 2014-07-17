@@ -1,10 +1,12 @@
 from functools import wraps
+
 from flask_restful import unpack
+
 from flask_presst.api import PresstApi
 from flask_presst.resources import PresstResource, ModelResource, PolymorphicModelResource
 from flask_presst.routes import Relationship, action
 from flask_presst.parse import PresstArgument
-from flask_presst.references import Reference
+from flask_presst.references import ResourceRef
 
 
 __all__ = (
@@ -17,7 +19,7 @@ __all__ = (
     'resource_method',
 
     'PresstArgument',
-    'Reference',
+    'ResourceRef',
     'marshal_with_field',
 
     'fields',
@@ -29,7 +31,7 @@ class marshal_with_field(object):
     """
     A decorator that formats the return values of your methods using a single field.
 
-    >>> from flask.ext.presst import marshal_with_field, fields
+    >>> from flask_presst import marshal_with_field, fields
     >>> @marshal_with_field(fields.List(fields.Integer))
     ... def get():
     ...     return ['1', 2, 3.0]
