@@ -5,6 +5,9 @@ from flask_presst.principal.needs import HybridNeed
 
 
 class HybridPermission(Permission):
+    """
+    Hybrid Permission object that evaluates both regular and hybrid needs
+    """
     def __init__(self, *needs):
         super(HybridPermission, self).__init__(*needs)
         self.hybrid_needs = set()
@@ -52,6 +55,8 @@ class HybridPermission(Permission):
     def apply_filters(self, query):
         """
         Evaluates all *needs* including :class:`HybridNeed` types and filters the query as appropriate.
+
+        Multiple hybrid needs are combined using `or`. That is, only one has to match.
 
         :returns: `None` if no hybrid needs are present; *query* object otherwise.
         """

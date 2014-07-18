@@ -1,7 +1,7 @@
 
-================================
-Relationships & Resource nesting
-================================
+=========================
+Relationships & Embedding
+=========================
 
 .. module:: flask_presst
 

@@ -25,6 +25,7 @@ __all__ = (
 
     'fields',
     'signals',
+    'principal'
 )
 
 

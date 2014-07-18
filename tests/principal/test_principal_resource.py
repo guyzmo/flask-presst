@@ -346,7 +346,6 @@ class PrincipalResourceTestCase(PresstTestCase):
         self.mock_user = {'id': 4}
         self.assertEqual([], self.client.get('/book').json)
 
-
     @unittest.SkipTest
     def test_relationship(self):
         "should require update permission on parent resource for updating, read permissions on both"

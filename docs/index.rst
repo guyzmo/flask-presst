@@ -14,6 +14,8 @@ Flask-Presst is built on top of
 Flask-Presst also depends on `Flask <http://flask.pocoo.org/>`_,
 `Flask-SQLAlchemy <http://pythonhosted.org/Flask-SQLAlchemy/>`_ and `Blinker <http://pythonhosted.org/blinker/>`_.
 
+Flask-Presst also ships with a simple yet flexible Object- & Role-based permissions system built on `Flask-Principal <https://pythonhosted.org/Flask-Principal/>`_.
+
 User's guide
 ------------
 
@@ -26,26 +28,27 @@ User's guide
    relationship
    resource_actions
    resources
-   signals
+   permissions
    schema
-
+   signals
 
 Features
 --------
 
 - Support for SQLAlchemy models, including:
 
-  - Automatically collects resource fields from models
-  - PostgreSQL **JSON & HSTORE** field types
-  - Polymorphic model inheritance
+  - Automatic resource schema generation from models
+  - PostgreSQL JSON & HSTORE field type support
+  - PostgreSQL polymorphic model inheritance
 
-- **Embeddable resources** & relationships via :class:`ToOne` and :class:`ToMany` fields
-- **Bulk operations** for insert, update, delete
-- **Nested resource collections** via :class:`Relationship` properties
-- **Resource actions** -- easy to write sub-route functions for resources
-- GitHub-style **pagination**
-- **Signals** for pre- and post-processing
-- Self-documenting **API Schema** for all resources, nested resources and resource methods in
+- Embeddable resources & item references via :class:`ToOne` and :class:`ToMany` fields
+- Bulk operations for insert, update, delete
+- Establish relationship routes via :class:`Relationship` properties
+- Resource actions --- easy-to-write sub-route functions for resources
+- GitHub-style pagination
+- Signals for pre- and post-processing
+- Object- & Role-based permissions system *(use optional)*
+- Self-documenting API Schema for all resources, embedded resources and resource actions in
   `JSON Hyper-Schema <http://json-schema.org/latest/json-schema-hypermedia.html>`_ format
 
 Planned Features

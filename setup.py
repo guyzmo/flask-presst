@@ -40,7 +40,7 @@ setup(
     ],
     zip_safe=False,
     extras_require={
-        'docs': 'sphinx',
+        'docs': ['sphinx', 'Flask-Principal'],
         'principal': [
             'Flask-Principal',
         ]

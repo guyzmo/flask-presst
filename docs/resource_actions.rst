@@ -1,5 +1,5 @@
 
-Resource routes
+Resource Actions
 ================
 
 `ResourceRoute` allow you to define additional routes to a resource without having to define an entirely new

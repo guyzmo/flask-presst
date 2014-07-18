@@ -4,13 +4,20 @@ from sqlalchemy.orm.attributes import ScalarObjectAttributeImpl
 
 
 class HybridNeed(object):
+    """
+    :class:`HybridNeed` base class. Hybrid needs can both be evaluated directly or produce an expression for use with
+    SQLAlchemy.
+    """
     def __call__(self, item):
         raise NotImplementedError()
 
     def __hash__(self):
         return hash(self.__repr__())
 
-    def make_filter(self, query):
+    def make_expression(self, query):
+        """
+        :returns: SQLAlchemy expression for this Need
+        """
         # TODO support inversion of HybridNeed objects for negative permissions.
         raise NotImplementedError()
 
