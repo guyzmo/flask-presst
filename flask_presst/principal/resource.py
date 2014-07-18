@@ -177,8 +177,10 @@ class PrincipalResource(six.with_metaclass(PrincipalResourceMeta, ModelResource)
         read_permission = cls._permissions['read']
         query = read_permission.apply_filters(query)
 
+        # TODO abort with 403, but only if permissions for this resource are role-based.
+
         if query is None:
-            abort(403)
+            return []
         if isinstance(query, list):
             abort(500, message='Nesting not supported for this resource.')
 
