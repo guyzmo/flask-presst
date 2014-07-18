@@ -78,6 +78,7 @@ class ApiClient(FlaskClient):
 class PresstTestCase(TestCase):
     def create_app(self):
         app = Flask(__name__)
+        app.secret_key = 'secret'
         app.test_client_class = ApiClient
         app.config['TESTING'] = True
         return app

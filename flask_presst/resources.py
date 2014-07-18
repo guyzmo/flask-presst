@@ -479,7 +479,7 @@ class ModelResource(six.with_metaclass(ModelResourceMeta, Resource)):
 
     @classmethod
     def begin(cls):
-        cls._get_session().begin(subtransactions=True)
+        cls._get_session()
 
     @classmethod
     def commit(cls):

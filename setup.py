@@ -15,6 +15,7 @@ setup(
     description='REST API framework for Flask and SQLAlchemy',
     tests_require=[
         'Flask-Testing>=0.4.1',
+        'Flask-Principal',
         'nose>=1.1.2',
     ],
     install_requires=[
@@ -40,5 +41,8 @@ setup(
     zip_safe=False,
     extras_require={
         'docs': 'sphinx',
+        'principal': [
+            'Flask-Principal',
+        ]
     }
 )
