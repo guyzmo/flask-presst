@@ -137,8 +137,6 @@ class Custom(Raw):
 class Arbitrary(Raw):
     """
     Accept any JSON value.
-
-    ``fields.JSON`` is an alias to ``fields.Arbitrary``
     """
     def __init__(self, **kwargs):
         super(Arbitrary, self).__init__({}, **kwargs)
@@ -203,7 +201,7 @@ class Boolean(Raw):
 
 class Date(Raw):
     """
-    Only accepts ISO8601-formatted date strings.
+    Only accept ISO8601-formatted date strings.
     """
 
     def __init__(self, **kwargs):
@@ -219,7 +217,7 @@ class Date(Raw):
 
 class DateTime(Raw):
     """
-    Only accepts ISO8601-formatted date-time strings.
+    Only accept ISO8601-formatted date-time strings.
     """
 
     def __init__(self, **kwargs):
@@ -236,7 +234,7 @@ class DateTime(Raw):
 
 class Uri(Raw):
     """
-    Only accepts URI-formatted strings.
+    Only accept URI-formatted strings.
     """
     def __init__(self, **kwargs):
         super(Uri, self).__init__({"type": "string", "format": "uri"}, **kwargs)
@@ -244,7 +242,7 @@ class Uri(Raw):
 
 class Email(Raw):
     """
-    Only accepts Email-formatted strings.
+    Only accept Email-formatted strings.
     """
     def __init__(self, **kwargs):
         super(Email, self).__init__({"type": "string", "format": "email"}, **kwargs)

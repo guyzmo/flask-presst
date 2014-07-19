@@ -28,9 +28,6 @@ Embedded field types
 Basic field types
 -----------------
 
-.. autoclass:: String
-   :members:
-
 .. autoclass:: Integer
    :members:
 
@@ -41,6 +38,9 @@ Basic field types
    :members:
 
 .. autoclass:: Boolean
+   :members:
+
+.. autoclass:: String
    :members:
 
 .. autoclass:: Date
@@ -62,6 +62,9 @@ Basic field types
    :members:
 
 .. autoclass:: Arbitrary
+   :members:
+
+.. autoclass:: JSON
    :members:
 
 Composite field types
