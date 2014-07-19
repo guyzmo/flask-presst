@@ -112,6 +112,12 @@ class Raw(object):
 
 
 class Custom(Raw):
+    """
+
+    :param dict schema: JSON-schema
+    :param callable converter: convert function
+    :param callable formatter: format function
+    """
     def __init__(self, schema, converter=None, formatter=None, **kwargs):
         super(Custom, self).__init__(schema, **kwargs)
         self.converter = converter
@@ -130,6 +136,9 @@ class Custom(Raw):
 
 class Arbitrary(Raw):
     """
+    Accept any JSON value.
+
+    ``fields.JSON`` is an alias to ``fields.Arbitrary``
     """
     def __init__(self, **kwargs):
         super(Arbitrary, self).__init__({}, **kwargs)

@@ -4,8 +4,8 @@ Field types
 
 .. module:: flask_presst.fields
 
-Flask-Presst ships with its own set of fields --- replacing those from Flask-RESTful, and shipping with
-additional fields for embedded relationships (:class:`ToOne`, :class:`ToMany` and :class:`ToManyKV`).
+Flask-Presst ships with its own set of fields --- replacing those from Flask-RESTful with a set more suitable
+for JSON-based APIs, and shipping with additional fields for embedded relationships (:class:`ToOne`, :class:`ToMany` and :class:`ToManyKV`).
 
 
 
@@ -27,19 +27,6 @@ Embedded field types
 
 Basic field types
 -----------------
-
-.. autoclass:: Custom
-   :members:
-
-.. autoclass:: Arbitrary
-   :members:
-
-.. note::
-
-    ``fields.JSON`` is available as an alias to ``fields.Arbitrary``
-
-.. autoclass:: Object
-   :members:
 
 .. autoclass:: String
    :members:
@@ -66,6 +53,15 @@ Basic field types
    :members:
 
 .. autoclass:: Email
+   :members:
+
+.. autoclass:: Object
+   :members:
+
+.. autoclass:: Custom
+   :members:
+
+.. autoclass:: Arbitrary
    :members:
 
 Composite field types
