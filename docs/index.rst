@@ -57,4 +57,4 @@ Planned Features
 - Built-in hooks for caching support.
 - Support for batch `GET` requests such as ``/resource/1;2;3;4``.
 - ``Relationship`` routes with more than one parent
-- Built-in query filtering
+- Built-in filtering via query string parameters

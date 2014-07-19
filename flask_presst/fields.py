@@ -7,6 +7,13 @@ from flask_presst.references import ResourceRef
 
 
 class Raw(object):
+    """
+
+    :param schema: JSON-schema for field, or :class:`callable` resolving to a JSON-schema when called
+    :param default: optional default value, must be JSON-convertable
+    :param attribute: key on parent object, optional.
+    :param nullable: nullable
+    """
     def __init__(self, schema, default=None, attribute=None, nullable=True):
         self._schema = schema
         self.default = default
@@ -18,6 +25,9 @@ class Raw(object):
 
     @cached_property
     def schema(self):
+        """
+        JSON schema representation
+        """
         if callable(self._schema):
             schema = self._schema()
         else:
@@ -49,6 +59,11 @@ class Raw(object):
         return Draft4Validator(self.schema, format_checker=FormatChecker())
 
     def validate(self, value):
+        """
+        Validate ``value`` using ``schema``
+
+        :raises ValueError: if validation fails
+        """
         try:
             self._validator.validate(value)
         except ValidationError as ve:
@@ -56,6 +71,7 @@ class Raw(object):
 
     def parse(self, value):
         """
+        Validate and convert ``value``
 
         .. note::
 
@@ -64,20 +80,28 @@ class Raw(object):
 
         :raises TypeError: when validation fails
         :raises HttpException: when a lookup of an associated resource fails
+        :returns: converted value
         """
         self.validate(value)
         return self.convert(value)
 
     def format(self, value):
         """
-        Format a Python value representation for output in JSON; noop by default.
+        Format a Python value representation for output in JSON. Noop by default.
+        """
+        return value
+
+    def convert(self, value):
+        """
+        Convert a JSON value representation to a Python object. Noop by default.
         """
         return value
 
     def output(self, key, obj):
         """Pulls the value for the given key from the object, applies the
         field's formatting and returns the result.
-        :exception MarshallingException: In case of formatting problem
+
+        :raises MarshallingException: In case of formatting problem
         """
         value = get_value(key if self.attribute is None else self.attribute, obj)
 
@@ -85,12 +109,6 @@ class Raw(object):
             return self.default
 
         return self.format(value)
-
-    def convert(self, value):
-        """
-        Convert a JSON value representation to a Python object; noop by default.
-        """
-        return value
 
 
 class Custom(Raw):
@@ -111,6 +129,8 @@ class Custom(Raw):
 
 
 class Arbitrary(Raw):
+    """
+    """
     def __init__(self, **kwargs):
         super(Arbitrary, self).__init__({}, **kwargs)
 
@@ -145,6 +165,9 @@ class Integer(Raw):
 
 
 class PositiveInteger(Integer):
+    """
+    Only accepts integers >=0.
+    """
     def __init__(self, default=0, maximum=None, **kwargs):
         super(PositiveInteger, self).__init__(default, minimum=0, maximum=maximum, **kwargs)
 
@@ -153,6 +176,12 @@ class Number(Raw):
     # TODO minValue and maxValue optional arguments
     def __init__(self, default=0, **kwargs):
         super(Number, self).__init__({"type": "number"}, **kwargs)
+
+    def format(self, value):
+        return float(value)
+
+    def convert(self, value):
+        return float(value)
 
 
 class Boolean(Raw):
@@ -164,6 +193,10 @@ class Boolean(Raw):
 
 
 class Date(Raw):
+    """
+    Only accepts ISO8601-formatted date strings.
+    """
+
     def __init__(self, **kwargs):
         # TODO is a 'format' required for "date"
         super(Date, self).__init__({"type": "string", "format": "date"}, **kwargs)
@@ -176,6 +209,9 @@ class Date(Raw):
 
 
 class DateTime(Raw):
+    """
+    Only accepts ISO8601-formatted date-time strings.
+    """
 
     def __init__(self, **kwargs):
         super(DateTime, self).__init__({"type": "string", "format": "date-time"}, **kwargs)
@@ -190,16 +226,27 @@ class DateTime(Raw):
 
 
 class Uri(Raw):
+    """
+    Only accepts URI-formatted strings.
+    """
     def __init__(self, **kwargs):
         super(Uri, self).__init__({"type": "string", "format": "uri"}, **kwargs)
 
 
 class Email(Raw):
+    """
+    Only accepts Email-formatted strings.
+    """
     def __init__(self, **kwargs):
         super(Email, self).__init__({"type": "string", "format": "email"}, **kwargs)
 
 
 class List(Raw):
+    """
+    Accept arrays of a given field type.
+
+    :param Raw cls_or_instance: field class or instance
+    """
     def __init__(self, cls_or_instance, **kwargs):
         if isinstance(cls_or_instance, type):
             # if not issubclass(cls_or_instance, Raw):
@@ -230,6 +277,11 @@ class List(Raw):
 
 
 class KeyValue(Raw):
+    """
+    Accept objects with properties of a given field type.
+
+    :param Raw cls_or_instance: field class or instance
+    """
     def __init__(self, cls_or_instance, **kwargs):
         if isinstance(cls_or_instance, type):
             # if not issubclass(cls_or_instance, Raw):
@@ -259,6 +311,18 @@ class EmbeddedBase(object):
     pass
 
 class ToOne(Raw, EmbeddedBase):
+    """
+    Accept a reference to an item of a ``resource``.
+
+    References can be formatted as one of these:
+
+    - Item URI --- read item
+    - Object with ``_uri`` property --- read item and update with remaining properties
+    - Object without ``_uri`` property --- create new item with given properties
+
+    :param resource: :class:`str` reference or :class:`Resource`
+    :param bool embedded: embed whole object on output if ``True``, URI otherwise
+    """
     def __init__(self, resource, relationship_name=None, embedded=False, **kwargs):
         self._resource = ref = ResourceRef(resource)
         self.relationship_name = relationship_name
@@ -301,6 +365,9 @@ class ToOne(Raw, EmbeddedBase):
 
 
 class ToMany(List, EmbeddedBase):
+    """
+    Accept a list of items of a resource.
+    """
     def __init__(self, resource, relationship_name=None, embedded=False, **kwargs):
         super(ToMany, self).__init__(ToOne(resource, embedded=embedded), **kwargs)
         self.relationship_name = relationship_name
@@ -312,6 +379,9 @@ class ToMany(List, EmbeddedBase):
         # TODO proper validation (now fails in convert step)
 
 class ToManyKV(KeyValue, EmbeddedBase):
+    """
+    Accept a dictionary mapping to items of a resource.
+    """
     def __init__(self, resource, relationship_name=None, embedded=False, **kwargs):
         super(ToManyKV, self).__init__(ToOne(resource, embedded=embedded), **kwargs)
         self.relationship_name = relationship_name

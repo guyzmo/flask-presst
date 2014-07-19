@@ -1,64 +1,39 @@
 
-Schema
-======
+JSON Hyper-Schema
+=================
 
 .. versionadded:: 0.2.5
 
-The schema view is an additional view that lives in the root of the API and when enabled returns a schema of all
-resources, resource methods and relationships in the API in the
-`JSON Hyper-Schema <http://json-schema.org/latest/json-schema-hypermedia.html>`_ format.
+Flask-Presst is self-documenting, documented using `JSON Hyper-Schema <http://json-schema.org/latest/json-schema-hypermedia.html>`_.
+The schema index lives at ``{api_prefix}/schema`` and resource schemas live at ``{api_prefix}/{resource}/schema``.
 
-Since the schema is experimental, it has to be enabled manually by calling ``api.enable_schema()``.
+An example schema is shown below:
 
-.. code-block:: python
+.. code-block:: bash
 
-    api = PresstApi()
-    # api.add_resource(...)
-    # api.add_resource(...)
-    # api.add_resource(...)
-    api.enable_schema()
+    $ http localhost:5000/schema
 
+.. code-block:: http
 
-An example schema of the API from the :ref:`Quickstart`:
-
-.. code-block:: json
+    HTTP/1.0 200 OK
+    Content-Length: 353
+    Content-Type: application/json
+    Date: Thu, 17 Jul 2014 13:12:13 GMT
+    Server: Werkzeug/0.9.4 Python/3.4.0
 
     {
-        "$schema": "http://json-schema.org/hyper-schema#",
+        "$schema": "http://json-schema.org/draft-04/hyper-schema#",
         "definitions": {
-            "book": {
-                "definitions": {
-                    "_uri": {
-                        "format": "uri",
-                        "readOnly": true,
-                        "type": "string"
-                    },
-                    "title": {
-                        "type": "string"
-                    }
-                },
-                "links": [
-                    {
-                        "href": "/book/{id}",
-                        "rel": "self"
-                    }
-                ],
-                "properties": {
-                    "_uri": {
-                        "$ref": "#/definitions/book/definitions/_uri"
-                    },
-                    "title": {
-                        "$ref": "#/definitions/book/definitions/title"
-                    }
-                },
-                "required": [
-                    "title"
-                ]
+            "_pagination": {
+                "properties": { }
             }
         },
         "properties": {
+            "author": {
+                "$ref": "/author/schema#"
+            },
             "book": {
-                "$ref": "#/definitions/book"
+                "$ref": "/book/schema#"
             }
         }
     }

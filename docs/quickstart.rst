@@ -279,41 +279,6 @@ Items returned from any :class:`ModelResource` are paginated. Pagination in Flas
 The default and maximum number of items per page can be configured using the
 ``'PRESST_DEFAULT_PER_PAGE'`` and ``'PRESST_MAX_PER_PAGE'`` configuration variables.
 
-JSON Schema
------------
-
-Flask-Presst is self-documenting, documented using `JSON Hyper-Schema <http://json-schema.org/latest/json-schema-hypermedia.html>`_.
-The schema index lives at ``/schema`` and resource schemas live at ``/{resource}/schema``.
-
-.. code-block:: bash
-
-    $ http localhost:5000/schema
-
-.. code-block:: http
-
-    HTTP/1.0 200 OK
-    Content-Length: 353
-    Content-Type: application/json
-    Date: Thu, 17 Jul 2014 13:12:13 GMT
-    Server: Werkzeug/0.9.4 Python/3.4.0
-
-    {
-        "$schema": "http://json-schema.org/draft-04/hyper-schema#",
-        "definitions": {
-            "_pagination": {
-                "properties": { }
-            }
-        },
-        "properties": {
-            "author": {
-                "$ref": "/author/schema#"
-            },
-            "book": {
-                "$ref": "/book/schema#"
-            }
-        }
-    }
-
 
 Resource actions
 ----------------

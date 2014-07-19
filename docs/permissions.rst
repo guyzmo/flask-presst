@@ -42,17 +42,18 @@ Patterns and *Needs* they produce:
 ================== ===================================== ===================================================
 Pattern            Matches                               Description
 ================== ===================================== ===================================================
-<method>           a key in the ``permissions`` map      If equal to the method it is declared for
+{method}           a key in the ``permissions`` dict     If equal to the method it is declared for
                                                          --- e.g. ``{'create': 'create'}`` --- evaluate to:
 
-                                                         ``HybridItemNeed(method, resource_name)``
+                                                         ``HybridItemNeed({method}, resource_name)``
 
                                                          Otherwise re-use needs from other method.
-<role>             not a key in the ``permissions`` map  ``RoleNeed(role)``
-<role>:<field>     *\*:\**                               Copy permissions from ``ToOne`` linked resource.
-user:<field>       *user:\**                             ``UserNeed(<item.field.id>)`` for ``ToOne`` fields.
+{role}             not a key in the ``permissions`` dict ``RoleNeed({role})``
+{method}:{field}     *\*:\**                             Copy ``{method}`` permissions from ``ToOne``
+                                                         linked resource at ``{field}``.
+user:{field}       *user:\**                             ``UserNeed(item.{field}.id)`` for ``ToOne`` fields.
 no                 *no*                                  Do not permit.
-yes                *yes*                                 Always permit (no *need* produced).
+yes                *yes*                                 Always permit.
 ================== ===================================== ===================================================
 
 Example API with permissions

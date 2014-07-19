@@ -82,14 +82,14 @@ The :class:`marshal_with_field` decorator is used like this::
 .. note::
 
     When returning a large number of items from a specific resource directly from an `SQLAlchemy` query, it is best to
-    use :meth:`Resource.marshal_item_list`, as this marshaling function will paginate the result while
+    use :meth:`Resource.marshal_item_list`, as this marshaling function paginates the result, while
     :class:`fields.ToMany` does not.
 
 
 Python 3 function annotations
 -----------------------------
 
-When developing exclusively for Python 3.x it is possible to use function annotations to specify parser attributes:
+When developing exclusively for Python 3.x it is possible to use function annotations to specify parser arguments:
 
 .. code-block:: python
 
