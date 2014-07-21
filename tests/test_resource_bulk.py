@@ -294,18 +294,6 @@ class TestResourceBulkEmbedded(PresstTestCase):
             }
         ])
 
-    # TODO implement bulk updates (low priority)
-    @SkipTest
-    def test_update_bulk(self):
-        self.client.post('/city', data=[
-            {'name': 'BER'},
-            {'name': 'CPH'}
-        ])
-
-        response = self.client.post('/city/1;2', data=[
-            {'name': 'Berlin'},
-            {'name': 'Copenhagen'}
-        ])
 
 class TestResourceModelMix(PresstTestCase):
     """

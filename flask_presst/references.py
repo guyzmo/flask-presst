@@ -1,7 +1,7 @@
 from importlib import import_module
 import inspect
 
-from flask import current_app
+from flask import current_app, request
 from flask_restful import Resource, abort
 import six
 
@@ -64,6 +64,33 @@ class EmbeddedJob(object):
         else:
             return obj
 
+def resolve_item(resource, data, read=True, create=False, update=False, commit=True, resolved_properties=None, parse_only=False):
+    if (create or update) and request.method not in ('POST', 'PUT', 'PATCH'):
+        create = update = False
+
+    if read and isinstance(data, six.text_type):
+        return resource.get_item_from_uri(data)
+    elif isinstance(data, dict):
+        item = None
+        # if '_id' in data:
+        #     item = cls.get_item_for_id(data.pop('_id'))
+        if read and '_uri' in data:
+            item = resource.get_item_from_uri(data.pop('_uri'))
+        if item:
+            if update and data:
+                item_changes = resource.item_parser.parse(data, resolve=resolved_properties, partial=True)
+                return EmbeddedJob(resource, item_changes, item=item, commit=commit)
+            return item
+        elif not create:
+            abort(400, message='Resource URI missing in JSON dictionary')
+        else:
+            item_data = resource.item_parser.parse(data, resolve=resolved_properties)
+            return EmbeddedJob(resource, item_data, commit=commit)
+    elif read:
+        abort(400, message='JSON string or dictionary required')
+    else:
+        abort(400, message='JSON dictionary required')
+
 
 class ItemWrapper(object):
     def __init__(self, resource, item):
@@ -79,7 +106,7 @@ class ItemWrapper(object):
         if not isinstance(properties, (dict, six.text_type)):
             abort(400, message='JSON dictionary or string required')
 
-        item = resource.resolve_item(properties, commit=commit, **kwargs)
+        item = resolve_item(resource, properties, commit=commit, **kwargs)
         return ItemWrapper(resource, item)
 
     @classmethod
@@ -87,12 +114,14 @@ class ItemWrapper(object):
         return EmbeddedJob.complete(cls.resolve(resource,
                                                 properties,
                                                 resolved_properties=resolved_properties,
+                                                read=False,
                                                 create=True,
                                                 commit=commit))
 
     def update(self, changes, resolved_properties=None, partial=False, commit=True):
-        item_changes = self.resource.parse_item(changes, resolve=resolved_properties, partial=partial)
-        self.item = self.resource.update_item(self.item, EmbeddedJob.complete(item_changes), commit=commit)
+        item_changes = self.resource.item_parser.parse(changes, resolve=resolved_properties, partial=partial)
+        self.item = self.resource.update_item(self.item, EmbeddedJob.complete(item_changes), commit=commit, partial=partial)
+        return self
 
     def get_relationship(self, relationship, target_resource):
         return ItemListWrapper(target_resource, self.resource.get_relationship(self.item, relationship))
@@ -155,15 +184,23 @@ class ItemListWrapper(object):
 
         if isinstance(properties, list):
             # TODO handle commit in here (commit once after list operation)
-            items = [resource.resolve_item(p, commit=False, **kwargs) for p in properties]
+            items = [resolve_item(resource, p, commit=False, **kwargs) for p in properties]
             items = EmbeddedJob.complete(items)
 
             if commit:
                 resource.commit()
             return ItemListWrapper(resource, items)
 
-        item = EmbeddedJob.complete(resource.resolve_item(properties, commit=commit, **kwargs))
+        item = EmbeddedJob.complete(resolve_item(resource, properties, commit=commit, **kwargs))
         return ItemWrapper(resource, item)
+
+    @classmethod
+    def get_list(cls, resource):
+        return ItemListWrapper(resource, resource.get_item_list())
+
+    @classmethod
+    def create(cls, resource, properties, commit=True, **kwargs):
+        return cls.resolve(resource, properties, commit=commit, read=False, create=True, **kwargs)
 
     def raw(self):
         return self.items

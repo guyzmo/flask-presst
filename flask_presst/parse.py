@@ -37,7 +37,7 @@ class SchemaParser(object):
 
         return schema
 
-    def parse_request(self):
+    def parse_request(self, partial=False):
         # TODO depending on request method switch between request.json and request.args (GET)
         # TODO alternatively: support both, with json taking priority
         request_data = request.json
@@ -52,7 +52,7 @@ class SchemaParser(object):
         if not isinstance(request_data, dict):
             abort(400, message='JSON dictionary required in the request body')
 
-        return self.parse(request_data, partial=False)
+        return self.parse(request_data, partial=partial)
 
 
     def parse(self, obj, partial=False, resolve=None, strict=False):

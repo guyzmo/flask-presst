@@ -368,7 +368,6 @@ class PrincipalResourceTestCase(PresstTestCase):
         self.api.add_resource(BookResource)
 
         self.mock_user = {'id': 1, 'roles': ['admin']}
-        print('now 1')
         self.client.post('/user', data=[
             {'title': 'Admin'},
             {'title': 'Author 1'},
@@ -382,8 +381,6 @@ class PrincipalResourceTestCase(PresstTestCase):
         self.assert403(response)
 
         self.mock_user = {'id': 2, 'roles': ['writer']}
-        print('now 2')
-
         response = self.client.post('/book', data={
             'author': '/user/2',
             'title': 'Bar'
@@ -392,8 +389,6 @@ class PrincipalResourceTestCase(PresstTestCase):
         self.assert200(response)
 
         self.mock_user = {'id': 3, 'roles': ['writer']}
-
-        print('now 3')
         response = self.client.post('/user/3/books', data=[
             {'title': 'Spying: Novel'},
             {'title': 'Spied: Sequel'},

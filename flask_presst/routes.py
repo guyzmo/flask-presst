@@ -321,7 +321,7 @@ class Relationship(ResourceRoute, MethodView):
                                                 request.json,
                                                 resolved_properties=resolve,
                                                 create=True,
-                                                update=True,
+                                                update=False,  # NOTE not supported for sanity reasons
                                                 commit=False)
 
         return parent.add_to_relationship(self.relationship_name, item_or_items, commit=True).marshal()

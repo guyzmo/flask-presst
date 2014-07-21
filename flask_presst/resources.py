@@ -7,14 +7,15 @@ from flask.views import MethodViewType
 from sqlalchemy.dialects import postgres
 from sqlalchemy.orm import class_mapper
 from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.util import classproperty
 import six
 
 from flask_presst.routes import ResourceSchema
 from flask_presst.fields import String, Integer, Boolean, List, DateTime, EmbeddedBase, Raw, KeyValue, Arbitrary, \
     Date
-from flask_presst.references import EmbeddedJob
+from flask_presst.references import EmbeddedJob, ItemListWrapper, ItemWrapper
 from flask_presst.signals import *
-from flask_presst.routes import ResourceRoute, Relationship
+from flask_presst.routes import ResourceRoute
 from flask_presst.parse import SchemaParser
 
 
@@ -108,83 +109,28 @@ class Resource(six.with_metaclass(ResourceMeta, RestfulResource)):
 
     def get(self, id=None, **kwargs):
         if id is None:
-            item_list = self.get_item_list()
-            return self.marshal_item_list(item_list)
+            return ItemListWrapper.get_list(self).marshal()
         else:
-            item = self.get_item_for_id(id)
-            return self.marshal_item(item)
+            return ItemWrapper.read(self, id).marshal()
 
     def post(self, id=None, *args, **kwargs):
-        request_data = self._request_get_data()
-
-        self.begin()
-
-        # TODO on post also handle array of items.
-        if isinstance(request_data, list) and id is None:
-            # bulk submissions not yet supported
-            items = EmbeddedJob.complete([self.resolve_item(d, create=True, commit=False) for d in request_data])
-
-            self.commit()
-
-            return [self.marshal_item(item) for item in items]
-
-        data = EmbeddedJob.complete(self.parse_item(request_data))
-
         if id is None:
-            # ItemWrapper.create(self, data)
-            item = self.create_item(data)
+            return ItemListWrapper.create(self, request.json).marshal(), 200
         else:
-            # ItemWrapper.read(self, id).update(data)
-            item = self.update_item(self.get_item_for_id(id), data)
+            return ItemWrapper.read(self, id).update(request.json).marshal(), 200
 
-        self.commit()
-        # TODO should return 201 Created if id is None
-        return self.marshal_item(item), 200
-
-    def patch(self, id):
-        request_data = self._request_get_data()
-
+    def patch(self, id=None):
         if id is None:
-            abort(400, message='PATCH is not permitted on collections')
+            abort(405, message='PATCH is not permitted on collections')
         else:
-            # TODO consider abort(400) if request.JSON is not a dictionary.
-            changes = self.parse_item(request_data, partial=True)
-            item = self.update_item(self.get_item_for_id(id), EmbeddedJob.complete(changes), partial=True)
+            return ItemWrapper.read(self, id).update(request.json, partial=True).marshal(), 200
 
-            return self.marshal_item(item)
-
-    def delete(self, id, *args, **kwargs):
+    def delete(self, id=None, *args, **kwargs):
         if id is None:
-            abort(400, message='DELETE is not permitted on collections.')
+            abort(405, message='DELETE is not permitted on collections.')
         else:
-            self.delete_item(self.get_item_for_id(id))
+            ItemWrapper.read(self, id).delete()
             return None, 204
-
-    @classmethod
-    def resolve_item(cls, data, create=False, update=False, commit=True, resolved_properties=None, parse_only=False):
-        if (create or update) and request.method not in ('POST', 'PUT', 'PATCH'):
-            create = update = False
-
-        if isinstance(data, six.text_type):
-            return cls.get_item_from_uri(data)
-        elif isinstance(data, dict):
-            item = None
-            # if '_id' in data:
-            #     item = cls.get_item_for_id(data.pop('_id'))
-            if '_uri' in data:
-                item = cls.get_item_from_uri(data.pop('_uri'))
-            if item:
-                if update and data:
-                    item_changes = cls.parse_item(data, resolve=resolved_properties, partial=True)
-                    return EmbeddedJob(cls, item_changes, item=item, commit=commit)
-                return item
-            elif not create:
-                abort(400, message='Resource URI missing in JSON dictionary')
-            else:
-                item_data = cls.parse_item(data, resolve=resolved_properties)
-                return EmbeddedJob(cls, item_data, commit=commit)
-        else:
-            abort(400, message='Invalid item reference')
 
     @classmethod
     def get_item_from_uri(cls, value, changes=None):
@@ -197,11 +143,9 @@ class Resource(six.with_metaclass(ResourceMeta, RestfulResource)):
 
         return cls.get_item_for_id(id)
 
-    @classmethod
-    def parse_item(cls, data, partial=False, resolve=None):
-        parser = SchemaParser(cls._fields, cls._required_fields, cls._read_only_fields)
-        # TODO handle read-only fields
-        return parser.parse(data, partial=partial, resolve=resolve)
+    @classproperty
+    def item_parser(cls):
+        return SchemaParser(cls._fields, cls._required_fields, cls._read_only_fields)
 
     @classmethod
     def begin(cls):

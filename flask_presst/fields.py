@@ -3,7 +3,7 @@ from flask_restful.fields import get_value
 from jsonschema import Draft4Validator, ValidationError, FormatChecker
 from werkzeug.utils import cached_property
 
-from flask_presst.references import ResourceRef
+from flask_presst.references import ResourceRef, resolve_item
 
 
 class Raw(object):
@@ -368,7 +368,7 @@ class ToOne(Raw, EmbeddedBase):
         if value is None:
             return None
 
-        return self.resource.resolve_item(value, create=True, update=True, commit=commit)
+        return resolve_item(self.resource, value, create=True, update=True, commit=commit)
 
 
 class ToMany(List, EmbeddedBase):
