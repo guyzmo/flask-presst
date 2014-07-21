@@ -68,6 +68,13 @@ class HybridItemNeed(HybridNeed):
         return "<HybridItemNeed method='{}' type='{}'>".format(self.method, self.type)
 
 
+def get_value(item, attribute, default=None):
+    if isinstance(item, dict):
+        return item.get(attribute, default)
+    else:
+        return getattr(item, attribute, None)
+
+
 class HybridRelationshipNeed(HybridItemNeed):
     """
     HybridNeed objects
@@ -85,7 +92,8 @@ class HybridRelationshipNeed(HybridItemNeed):
 
         """
         for field in self.fields:
-            item = getattr(item, field.relationship_name, None)
+            item = get_value(item, field.relationship_name)
+
             if item is None:
                 if self.method == 'id':
                     return UserNeed(None)
