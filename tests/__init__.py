@@ -53,9 +53,9 @@ class SimpleResource(Resource):
         return item
 
     @classmethod
-    def delete_item(cls, id_):
+    def delete_item(cls, item):
         try:
-            del cls.items[id_]
+            del cls.items[cls.item_get_id(item)]
         except KeyError:
             abort(404)
         return None, 204

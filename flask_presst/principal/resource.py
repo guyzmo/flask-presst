@@ -200,6 +200,12 @@ class PrincipalResource(six.with_metaclass(PrincipalResourceMeta, ModelResource)
 
         return super(PrincipalResource, cls).update_item(item, changes, *args, **kwargs)
 
+    @classmethod
+    def delete_item(cls, item):
+        if not cls.can_delete_item(item):
+            abort(403)
+
+        return super(PrincipalResource, cls).delete_item(item)
 
     # @classmethod
     # def get_item_list_for_relationship(cls, relationship, parent_item):
@@ -229,13 +235,6 @@ class PrincipalResource(six.with_metaclass(PrincipalResourceMeta, ModelResource)
 #         if not resource_class.can_update_item(item, changes):
 #             abort(403)
 
-
-@signals.before_delete_item.connect
-def before_delete_item(resource_class, item):
-    if issubclass(resource_class, PrincipalResource):
-        if not resource_class.can_delete_item(item):
-            abort(403)
-#
 # @signals.before_create_relationship.connect
 # def before_create_relationship(resource_class, parent_item, relationship, item):
 #     if issubclass(resource_class, ModelResource):

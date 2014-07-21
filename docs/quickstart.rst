@@ -197,11 +197,11 @@ at `/author/<id>/books`.
     this manner as well. That means you can declare a custom property on a model class and add a matching field
     attribute to your resource.
 
-Bulk operations
----------------
+Bulk Inserts
+------------
 
-Flask-Presst supports two kinds of bulk operations: embedded resources and multiple-resource creation. Any resource that
-is embedded as `ToOne` or `ToMany` field can be created through an embedded operation:
+Flask-Presst supports two kinds of bulk insert operation: embedded resources and multiple-resource creation.
+Any resource that is embedded via e.g. a `ToOne` or `ToMany` field can be created through an embedded operation:
 
 .. code-block:: bash
 
@@ -226,9 +226,8 @@ is embedded as `ToOne` or `ToMany` field can be created through an embedded oper
         "year_published": null
     }
 
-Multiple items can be submitted in a create or delete operation by sending an array of items. The items will only
-be created if validation of all of them succeeds. The same also works with update operations, as long as the items
-being updated contain the ``_uri`` field.
+Multiple items can be created by sending an array of items. This works with both regular resources and relationship
+collections.
 
 .. code-block:: bash
 

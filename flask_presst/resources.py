@@ -157,7 +157,7 @@ class Resource(six.with_metaclass(ResourceMeta, RestfulResource)):
         if id is None:
             abort(400, message='DELETE is not permitted on collections.')
         else:
-            self.delete_item(id)
+            self.delete_item(self.get_item_for_id(id))
             return None, 204
 
     @classmethod
@@ -319,11 +319,11 @@ class Resource(six.with_metaclass(ResourceMeta, RestfulResource)):
         raise NotImplementedError()
 
     @classmethod
-    def delete_item(cls, id_):  # pragma: no cover
+    def delete_item(cls, item):  # pragma: no cover
         """
         Must be implemented to delete an item from the resource collection.
 
-        :param id_: id of the item to delete
+        :param item: item to delete
         """
         raise NotImplementedError()
 
@@ -596,9 +596,7 @@ class ModelResource(six.with_metaclass(ModelResourceMeta, Resource)):
         return item
 
     @classmethod
-    def delete_item(cls, id_):
-        item = cls.get_item_for_id(id_)
-
+    def delete_item(cls, item):
         before_delete_item.send(cls, item=item)
 
         session = cls._get_session()
