@@ -6,7 +6,7 @@
 Flask-Presst
 ============
 
-**Flask-Presst** is a Flask extension for building ReSTful APIs that map to the SQLAlchemy ORM. Flask-Presst has
+**Flask-Presst** is a Flask extension for building RESTful APIs that map to the SQLAlchemy ORM. Flask-Presst has
 embedding and bulk update capabilities and support for resource action sub-routes.
 
 Flask-Presst is built on top of
