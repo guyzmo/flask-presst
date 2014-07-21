@@ -1,6 +1,7 @@
 from flask_sqlalchemy import SQLAlchemy
+import six
 from sqlalchemy.orm import backref
-from flask_presst import ModelResource, fields, PolymorphicModelResource, Relationship
+from flask_presst import ModelResource, fields, PolymorphicModelResource, Relationship, SchemaParser
 from tests import PresstTestCase
 
 
@@ -413,6 +414,22 @@ class TestModelResourceFields(PresstTestCase):
 
         self.api.add_resource(MachineResource)
         self.api.add_resource(TypeResource)
+
+    def test_to_many_kv(self):
+        type_kv = fields.ToManyKV('type', embedded=True)
+
+        self.client.post('/type', data=[{'name': 'Foo'}, {'name': 'Bar'}])
+
+        self.assertEqual({
+                             'first': {'_uri': '/type/1', 'machines': [], 'name': 'Foo'},
+                             'second': {'_uri': '/type/2', 'machines': [], 'name': 'Bar'}
+                         }, type_kv.format(type_kv.parse({'first': six.text_type('/type/1'),
+                                                          'second': six.text_type('/type/2')})))
+
+        self.assertEqual({}, type_kv.convert({}))
+
+        parser = SchemaParser({'types': fields.ToManyKV('type', default={})})
+        self.assertEqual({'types': {}}, parser.parse({}))
 
     def test_post_to_many(self):
         self.request('POST', '/machine', {'name': 'Press I'},

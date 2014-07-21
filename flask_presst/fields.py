@@ -381,7 +381,7 @@ class ToOne(Raw, EmbeddedBase):
 
     @skip_none
     def convert(self, value, commit=False):
-        return resolve_item(self.resource, value, create=True, update=True, commit=commit)
+        return resolve_item(self.resource, value, create=True, update=False, commit=commit)
 
 
 class ToMany(List, EmbeddedBase):

@@ -88,7 +88,7 @@ class SchemaParser(object):
 
                     # TODO required fields is somewhat redundant (eq. to default or nullable), what to do?
 
-                    if field.default:
+                    if field.default is not None:
                         value = field.default
                     elif field.nullable:
                         value = None
