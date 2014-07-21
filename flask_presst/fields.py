@@ -1,9 +1,19 @@
+from functools import wraps
 import aniso8601
 from flask_restful.fields import get_value
 from jsonschema import Draft4Validator, ValidationError, FormatChecker
 from werkzeug.utils import cached_property
 
 from flask_presst.references import ResourceRef, resolve_item
+
+
+def skip_none(fn):
+    @wraps(fn)
+    def wrapper(self, value):
+        if value is None:
+            return None
+        return fn(self, value)
+    return wrapper
 
 
 class Raw(object):
@@ -208,9 +218,11 @@ class Date(Raw):
         # TODO is a 'format' required for "date"
         super(Date, self).__init__({"type": "string", "format": "date"}, **kwargs)
 
+    @skip_none
     def format(self, value):
         return value.strftime('%Y-%m-%d')
 
+    @skip_none
     def convert(self, value):
         return aniso8601.parse_date(value)
 
@@ -223,10 +235,12 @@ class DateTime(Raw):
     def __init__(self, **kwargs):
         super(DateTime, self).__init__({"type": "string", "format": "date-time"}, **kwargs)
 
+    @skip_none
     def format(self, value):
         # TODO needs improving. Always export with 'Z'
         return '{}Z'.format(value.isoformat())
 
+    @skip_none
     def convert(self, value):
         # FIXME enforce UTC
         return aniso8601.parse_datetime(value)
@@ -359,15 +373,14 @@ class ToOne(Raw, EmbeddedBase):
 
         # TODO proper validation (now fails in convert step)
 
+    @skip_none
     def format(self, item):
         if not self.embedded:
             return self.resource.item_get_uri(item)
         return self.resource.marshal_item(item)
 
+    @skip_none
     def convert(self, value, commit=False):
-        if value is None:
-            return None
-
         return resolve_item(self.resource, value, create=True, update=True, commit=commit)
 
 

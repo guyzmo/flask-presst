@@ -11,10 +11,9 @@ from tests import PresstTestCase, SimpleResource
 
 class ParsingTest(PresstTestCase):
 
-    @SkipTest
     def test_parsing_fields(self):
         parser = SchemaParser()
-        parser.add('date_rfc', field=fields.DateTime())
+        parser.add('date_null', field=fields.DateTime())
         parser.add('date', field=fields.DateTime())
         parser.add('none', field=fields.String())
         parser.add('text', field=fields.String())
@@ -25,7 +24,7 @@ class ParsingTest(PresstTestCase):
 
         with self.app.test_request_context('/',
                                            data=json.dumps({
-                                               'date_rfc': 'Wed, 02 Oct 2002 08:00:00 GMT',
+                                               'date_null': None,
                                                'date': '2014-01-10T12:18Z',
                                                'int': -1,
                                                'text': 'text',
@@ -35,7 +34,7 @@ class ParsingTest(PresstTestCase):
                                            content_type='application/json'):
             self.assertEqual(parser.parse_request(),
                              {
-                                 'date_rfc': datetime(2002, 10, 2, 8, 0, tzinfo=UTC),
+                                 'date_null': None,
                                  'date': datetime(2014, 1, 10, 12, 18, tzinfo=UTC),
                                  'int': -1,
                                  'json': [1, {'a': 2}],
@@ -43,8 +42,26 @@ class ParsingTest(PresstTestCase):
                                  'number': 12.34,
                                  'text': 'text'})
 
+    def test_field_custom(self):
+        insanity_field = fields.Custom({
+                                           'type': 'object',
+                                           'properties': {
+                                               'a': {'type': 'integer'},
+                                               'b': {'type': 'integer'}
+                                           }
+                                       },
+                                       converter=lambda v: v['a'] + v['b'],
+                                       formatter=lambda v: {'a': int(v) / 2 - 1, 'b': int(v) / 2 + 1}
+        )
 
-    @SkipTest
+
+        self.assertEqual(5, insanity_field.parse({'a': 2, 'b': 3}))
+
+        with self.assertRaises(ValueError):
+            insanity_field.parse({'a': 2, 'b': 3.5})
+
+        self.assertEqual({'a': 4, 'b': 6}, insanity_field.format(10))
+
     def test_parse_json_schema(self):
         parser = SchemaParser({'arg': fields.Raw(schema={
             'type': 'object',
@@ -78,7 +95,6 @@ class ParsingTest(PresstTestCase):
             with self.assertRaises(HTTPException):
                 parser.parse_request()
 
-    @SkipTest
     def test_parse_resource_field(self):
         class PressResource(SimpleResource):
             items = [{'id': 1, 'name': 'Press 1'}]
