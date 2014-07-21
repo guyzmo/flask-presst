@@ -40,15 +40,14 @@ class PrincipalResource(six.with_metaclass(PrincipalResourceMeta, ModelResource)
     :class:`HybridPermission`. This permission class can evaluate :class:`HybridNeed` objects that can look up needs
     from `item` or `query` objects.
 
-    It is necessary to handle authentication separately, e.g. through the ``method_decorators`` property +
-    "authentication required" decorators for any resource actions.
+    It is necessary to handle authentication separately, e.g. using Flask-Login with appropriate decorators.
     """
     _raw_needs = PERMISSION_DEFAULTS
 
     @classproperty
     def _needs(cls):
-        # if cls in current_app.presst.needs:
-        #     return current_app.presst.needs[cls]
+        if hasattr(cls, '_needs_cache'):
+            return cls._needs_cache
 
         needs_map = cls._raw_needs.copy()
         methods = needs_map.keys()
@@ -101,7 +100,7 @@ class PrincipalResource(six.with_metaclass(PrincipalResourceMeta, ModelResource)
             converted_needs = convert(method, needs, needs_map)
             needs_map[method] = converted_needs
 
-        # current_app.presst.needs[cls] = needs_map
+        cls._needs_cache = needs_map
         return needs_map
 
     @classproperty
@@ -137,9 +136,7 @@ class PrincipalResource(six.with_metaclass(PrincipalResourceMeta, ModelResource)
         :param item:
         """
         permission = cls._permissions['create']
-        if not permission.can(item):
-            return False
-        return True
+        return permission.can(item)
 
     @classmethod
     def can_update_item(cls, item, changes=None):
@@ -147,13 +144,10 @@ class PrincipalResource(six.with_metaclass(PrincipalResourceMeta, ModelResource)
         Looks up permissions on whether an item may be updated.
 
         :param item:
-        :param changes: Dictionary of changes
+        :param changes: dictionary of changes
         """
         permission = cls._permissions['update']
-
-        if not permission.can(item):
-            return False
-        return True
+        return permission.can(item)
 
     @classmethod
     def can_delete_item(cls, item):
@@ -163,13 +157,13 @@ class PrincipalResource(six.with_metaclass(PrincipalResourceMeta, ModelResource)
         :param item:
         """
         permission = cls._permissions['delete']
-        if not permission.can(item):
-            return False
-        return True
+        return permission.can(item)
 
     @classmethod
     def get_item_list(cls):
         """
+        Applies permissions to query and returns query.
+
         :raises HTTPException: If read access is entirely forbidden.
         """
         query = super(PrincipalResource, cls).get_item_list()
@@ -178,7 +172,6 @@ class PrincipalResource(six.with_metaclass(PrincipalResourceMeta, ModelResource)
         query = read_permission.apply_filters(query)
 
         # TODO abort with 403, but only if permissions for this resource are role-based.
-
         if query is None:
             return []
         if isinstance(query, list):

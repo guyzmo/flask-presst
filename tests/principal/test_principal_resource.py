@@ -405,9 +405,13 @@ class PrincipalResourceTestCase(PresstTestCase):
         response = self.client.get('/user/3/books')
         self.assertEqual(1, len(response.json))  # read -> owns-copy
 
+        self.assert200(self.client.get('/book/3'))
+        self.assert404(self.client.get('/book/2'))
+
         self.mock_user = {'id': 5}
         response = self.client.get('/user/3/books')
         self.assertEqual(0, len(response.json))
+        self.assert404(self.client.get('/book/2'))
 
 
     @unittest.SkipTest

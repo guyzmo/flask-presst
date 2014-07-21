@@ -56,6 +56,7 @@ no                 *no*                                  Do not permit.
 yes                *yes*                                 Always permit.
 ================== ===================================== ===================================================
 
+
 Example API with permissions
 ============================
 
@@ -105,15 +106,20 @@ In this example, editors can create articles and articles can only be updated or
 or by admins. Comments can be created by anyone who is authenticated, updated only by the commentator, but deleted both by admins
 and the author of the article the comment is on.
 
-The :class:`PrincipalResource` class
-=====================================
+.. note::
 
+    When protecting :meth:`action` routes, read access permissions are checked automatically. More restrictive
+    permissions currently still have to be checked from within the function. Helper methods
+    :meth:`PrincipalResource.can_update_item` etc. facilitate this.
+
+The :class:`PrincipalResource` class
+====================================
 
 .. autoclass:: principal.PrincipalResource
    :members:
 
-..
-    .. autoclass:: principal.needs.HybridNeed
-       :members:
-    .. autoclass:: principal.permission.HybridPermission
-       :members:
+.. autoclass:: principal.permission.HybridPermission
+   :members:
+
+.. autoclass:: principal.needs.HybridNeed
+   :members:
