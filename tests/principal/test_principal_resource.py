@@ -95,17 +95,10 @@ class PrincipalResourceTestCase(PresstTestCase):
                 return fn(*args, **kwargs)
             return wrapper
 
-        self.authenticate = authenticate
-
-        class AuthResource(PrincipalResource):
-            method_decorators = [self.authenticate]
-
-        self.AuthResource = AuthResource
-
+        self.api.decorators = [authenticate]
 
     def test_role(self):
-
-        class BookResource(self.AuthResource):
+        class BookResource(PrincipalResource):
 
             class Meta:
                 model = self.BOOK
@@ -144,7 +137,7 @@ class PrincipalResourceTestCase(PresstTestCase):
 
     def test_inherit_role_to_one_field(self):
 
-        class BookStoreResource(self.AuthResource):
+        class BookStoreResource(PrincipalResource):
             class Meta:
                 model = self.BOOK_STORE
                 permissions = {
@@ -152,7 +145,7 @@ class PrincipalResourceTestCase(PresstTestCase):
                     'update': ['admin']
                 }
 
-        class BookSigningResource(self.AuthResource):
+        class BookSigningResource(PrincipalResource):
             book = fields.ToOne('book')
             store = fields.ToOne('book_store')
 
@@ -162,7 +155,7 @@ class PrincipalResourceTestCase(PresstTestCase):
                     'create': 'update:store'
                 }
 
-        class BookResource(self.AuthResource):
+        class BookResource(PrincipalResource):
             class Meta:
                 model = self.BOOK
                 permissions = {
@@ -190,7 +183,7 @@ class PrincipalResourceTestCase(PresstTestCase):
 
     def test_user_need(self):
 
-        class BookStoreResource(self.AuthResource):
+        class BookStoreResource(PrincipalResource):
             books = Relationship('book')
             owner = fields.ToOne('user')
 
@@ -201,7 +194,7 @@ class PrincipalResourceTestCase(PresstTestCase):
                     'update': ['admin', 'user:owner']
                 }
 
-        class UserResource(self.AuthResource):
+        class UserResource(PrincipalResource):
             class Meta:
                 model = self.USER
                 permissions = {
@@ -258,7 +251,7 @@ class PrincipalResourceTestCase(PresstTestCase):
 
     def test_item_need_update(self):
 
-        class BookStoreResource(self.AuthResource):
+        class BookStoreResource(PrincipalResource):
             class Meta:
                 model = self.BOOK_STORE
                 permissions = {
@@ -288,7 +281,7 @@ class PrincipalResourceTestCase(PresstTestCase):
         # TODO DELETE
 
     def test_yes_no(self):
-        class BookResource(self.AuthResource):
+        class BookResource(PrincipalResource):
             class Meta:
                 model = self.BOOK
                 permissions = {
@@ -307,7 +300,7 @@ class PrincipalResourceTestCase(PresstTestCase):
 
     def test_item_need_read(self):
 
-        class BookResource(self.AuthResource):
+        class BookResource(PrincipalResource):
             class Meta:
                 model = self.BOOK
                 permissions = {
@@ -346,10 +339,81 @@ class PrincipalResourceTestCase(PresstTestCase):
         self.mock_user = {'id': 4}
         self.assertEqual([], self.client.get('/book').json)
 
-    @unittest.SkipTest
     def test_relationship(self):
         "should require update permission on parent resource for updating, read permissions on both"
-        pass
+
+        class UserResource(PrincipalResource):
+            books = Relationship('book')
+
+            class Meta:
+                model = self.USER
+                permissions = {
+                    'create': 'admin'
+                }
+
+        class BookResource(PrincipalResource):
+            author = fields.ToOne('user')
+
+            class Meta:
+                model = self.BOOK
+                permissions = {
+                    'read': ['owns-copy', 'update'],
+                    'create': 'writer',
+                    'update': 'user:author',
+                    'owns-copy': 'owns-copy'
+                }
+
+
+        self.api.add_resource(UserResource)
+        self.api.add_resource(BookResource)
+
+        self.mock_user = {'id': 1, 'roles': ['admin']}
+        print('now 1')
+        self.client.post('/user', data=[
+            {'title': 'Admin'},
+            {'title': 'Author 1'},
+            {'title': 'Author 2'}
+        ])
+
+        response = self.client.post('/user/1/books', data={
+            'title': 'Foo'
+        })
+
+        self.assert403(response)
+
+        self.mock_user = {'id': 2, 'roles': ['writer']}
+        print('now 2')
+
+        response = self.client.post('/book', data={
+            'author': '/user/2',
+            'title': 'Bar'
+        })
+
+        self.assert200(response)
+
+        self.mock_user = {'id': 3, 'roles': ['writer']}
+
+        print('now 3')
+        response = self.client.post('/user/3/books', data=[
+            {'title': 'Spying: Novel'},
+            {'title': 'Spied: Sequel'},
+            {'title': 'Spy: Prequel'}
+        ])
+
+        self.assert200(response)
+
+        response = self.client.get('/user/3/books')
+        self.assert200(response)
+        self.assertEqual(3, len(response.json))  # read -> update -> user:author
+
+        self.mock_user = {'id': 4, 'needs': [ItemNeed('owns-copy', 3, 'book')]}
+        response = self.client.get('/user/3/books')
+        self.assertEqual(1, len(response.json))  # read -> owns-copy
+
+        self.mock_user = {'id': 5}
+        response = self.client.get('/user/3/books')
+        self.assertEqual(0, len(response.json))
+
 
     @unittest.SkipTest
     def test_item_action(self):
@@ -357,7 +421,7 @@ class PrincipalResourceTestCase(PresstTestCase):
         pass
 
     def test_permission_circular(self):
-        class BookResource(self.AuthResource):
+        class BookResource(PrincipalResource):
             class Meta:
                 model = self.BOOK
                 permissions = {

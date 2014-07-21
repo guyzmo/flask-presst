@@ -61,14 +61,11 @@ Example API with permissions
 
 .. code-block:: python
 
-    class AuthMixin(object):
-        method_decorators = [login_required]
-
-    class UserResource(PrincipalResource, AuthMixin):
+    class UserResource(PrincipalResource):
         class Meta:
             model = User
 
-    class ArticleResource(PrincipalResource, AuthMixin):
+    class ArticleResource(PrincipalResource):
         author = fields.ToOne('user')
         comments = Relationship('comments')
 
@@ -80,7 +77,7 @@ Example API with permissions
                 'update': ['user:author', 'admin']
             }
 
-    class CommentResource(PrincipalResource, AuthMixin):
+    class CommentResource(PrincipalResource):
         article = fields.ToOne('article')
         author = fields.ToOne('user')
 
@@ -97,6 +94,12 @@ Example API with permissions
     def before_create_article_comment(sender, item):
         if issubclass(sender, (ArticleResource, CommentResource)):
             item.author_id = current_user.id
+
+    api.decorators = [login_required]
+
+    for resource in (UserResource, ArticleResource, CommmentResource):
+        api.add_resource(resource)
+
 
 In this example, editors can create articles and articles can only be updated or deleted by their authors
 or by admins. Comments can be created by anyone who is authenticated, updated only by the commentator, but deleted both by admins

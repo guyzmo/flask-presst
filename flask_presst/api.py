@@ -1,5 +1,6 @@
 from importlib import import_module
 import inspect
+from itertools import chain
 
 from flask_restful import Api, abort
 import six
@@ -172,6 +173,11 @@ class PresstApi(Api):
 
             child_endpoint = '{0}_{1}_{2}'.format(resource_name, name, child.__class__.__name__.lower())
             child_view_func = self.output(child.view_factory(child_endpoint, resource))
+
+            print(name, child, resource.method_decorators, self.decorators)
+            for decorator in chain(resource.method_decorators, self.decorators):
+                print(child_view_func, decorator)
+                child_view_func = decorator(child_view_func)
 
             # FIXME routing for blueprints; also needs tests
             rule = self._complete_url(url, '')
