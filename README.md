@@ -8,7 +8,7 @@
 **Flask-Presst** is a Flask extension for REST APIs using the SQLAlchemy ORM. The extension
 supports nesting and embedding of resources and powerful resource methods.
 
-Flask-Presst also comes with an optional easy to use permissions system.
+Flask-Presst also comes with an optional easy to use object-level permissions system.
 
 ## User's Guide
 
@@ -18,10 +18,10 @@ The user guide and documentation is published [here](http://flask-presst.readthe
 
 - Support for SQLAlchemy models
 - Embeddable resources & item references
-- Bulk operations for insert, update, delete
+- Bulk insert & document insert
 - Relationship routes between resources
 - Resource actions — easy-to-write sub-route functions for resources
 - GitHub-style pagination
 - Signals for pre- and post-processing
-- Object- & Role-based permissions system *(use optional)*
+- Object- & Role-based permissions system
 - Self-documenting JSON Hyper-Schema for all resource routes

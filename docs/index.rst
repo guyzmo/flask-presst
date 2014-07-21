@@ -42,7 +42,7 @@ Features
   - PostgreSQL polymorphic model inheritance
 
 - Embeddable resources & item references via :class:`ToOne` and :class:`ToMany` fields
-- Bulk operations for insert, update, delete
+- Bulk insert & document insert
 - Establish relationship routes via :class:`Relationship` properties
 - Resource actions --- easy-to-write sub-route functions for resources
 - GitHub-style pagination
