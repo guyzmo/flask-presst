@@ -431,6 +431,16 @@ class TestModelResourceFields(PresstTestCase):
         parser = SchemaParser({'types': fields.ToManyKV('type', default={})})
         self.assertEqual({'types': {}}, parser.parse({}))
 
+    def test_nested(self):
+        type_nested = fields.Nested({'type': fields.ToOne('type'), 'int': fields.Integer()})
+
+        self.client.post('/type', data={'name': 'Foo'})
+
+        self.assertEqual({'int': 123, 'type': '/type/1'}, type_nested.format(
+            type_nested.parse({'type': six.text_type('/type/1'), 'int': 123})))
+
+        self.assertEqual(None, type_nested.convert(None))
+
     def test_post_to_many(self):
         self.request('POST', '/machine', {'name': 'Press I'},
                      {'name': 'Press I', '_uri': '/machine/1', 'type': None}, 200)

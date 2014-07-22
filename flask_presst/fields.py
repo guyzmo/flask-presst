@@ -262,6 +262,36 @@ class Email(Raw):
         super(Email, self).__init__({"type": "string", "format": "email"}, **kwargs)
 
 
+class Nested(Raw):
+    """
+
+    :param dict fields: dictionary of fields
+    """
+
+    def __init__(self, fields, **kwargs):
+        self.fields = fields
+
+        super(Nested, self).__init__(lambda: {
+            'type': 'object',
+            'properties': {k: f.schema for k, f in fields.items()}
+        }, **kwargs)
+
+    def validate(self, obj):
+        if obj is None and not self.nullable:
+            raise ValueError('Field is not nullable')
+        
+        for k, f in self.fields.items():
+            f.validate(get_value(k, obj))
+
+    @skip_none
+    def format(self, obj):
+        return {k: f.format(get_value(k, obj)) for k, f in self.fields.items()}
+
+    @skip_none
+    def convert(self, obj):
+        return {k: f.convert(get_value(k, obj)) for k, f in self.fields.items()}
+
+
 class List(Raw):
     """
     Accept arrays of a given field type.
