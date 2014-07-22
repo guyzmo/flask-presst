@@ -277,11 +277,12 @@ class Nested(Raw):
         }, **kwargs)
 
     def validate(self, obj):
-        if obj is None and not self.nullable:
-            raise ValueError('Field is not nullable')
-        
-        for k, f in self.fields.items():
-            f.validate(get_value(k, obj))
+        if obj is None:
+            if not self.nullable:
+                raise ValueError('Field is not nullable')
+        else:
+            for k, f in self.fields.items():
+                f.validate(get_value(k, obj))
 
     @skip_none
     def format(self, obj):
@@ -315,6 +316,17 @@ class List(Raw):
                 "type": "array",
                 "items": container.schema
             }, **kwargs)
+
+    def validate(self, lst):
+        if lst is None:
+            if not self.nullable:
+                raise ValueError('Field is not nullable')
+        else:
+            for i, value in enumerate(lst):
+                try:
+                    self.container.validate(value)
+                except ValueError as e:
+                    raise ValueError('At position {}:'.format(e.args[0]))
 
     def format(self, value):
         if value is None:
@@ -350,6 +362,17 @@ class KeyValue(Raw):
                 "type": "object",
                 "additionalProperties": container.schema
             }, **kwargs)
+
+    def validate(self, obj):
+        if obj is None:
+            if not self.nullable:
+                raise ValueError('Field is not nullable')
+        else:
+            for k, value in obj.items():
+                try:
+                    self.container.validate(value)
+                except ValueError as e:
+                    raise ValueError('At "{}":'.format(k, e.args[0]))
 
     def format(self, value):
         return {k: self.container.format(v) for k, v in value.items()}
