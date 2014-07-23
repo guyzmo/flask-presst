@@ -3,6 +3,7 @@ import inspect
 from itertools import chain
 
 from flask_restful import Api, abort
+from jsonschema import RefResolver
 import six
 from werkzeug.utils import cached_property
 
@@ -22,9 +23,17 @@ class PresstApi(Api):
         self.pagination_default_per_page = None
         super(PresstApi, self).__init__(*args, **kwargs)
         self._presst_resources = {}
-        self._presst_resource_insts = {}
-        self._model_resource_map = {}
 
+        def resolve_resource_schema(uri):
+            endpoint, args = route_from(uri, method='GET')
+            if endpoint.endswith(':schema'):
+                resource_name, _ = endpoint.split(':')
+                resource = self._presst_resources[resource_name]
+                return self.get_resource_schema(resource)
+
+        self.resolver_instance = RefResolver('/', referrer={}, handlers={
+            '': resolve_resource_schema
+        })
 
     def _init_app(self, app):
         super(PresstApi, self)._init_app(app)
@@ -38,6 +47,7 @@ class PresstApi(Api):
                       view_func=self.output(HyperSchema.as_view('schema', self)),
                       endpoint='schema',
                       methods=['GET'])
+
 
     def get_resource_class(self, reference, module_name=None):
         """
@@ -59,8 +69,6 @@ class PresstApi(Api):
             return reference.__class__
         elif inspect.isclass(reference) and issubclass(reference, Resource):
             return reference
-        elif reference in self._model_resource_map:
-            return self._model_resource_map[reference]
         elif isinstance(reference, six.string_types):
             if reference.lower() in self._presst_resources:
                 return self._presst_resources[reference.lower()]
@@ -99,11 +107,38 @@ class PresstApi(Api):
 
         return resource_class.get_item_for_id(id_)
 
-    def get_resource_for_model(self, model):
-        try:
-            return self._model_resource_map[model]
-        except KeyError:
-            return None
+    def get_resource_schema(self, resource):
+        schema = {}
+        schema['type'] = 'object'
+        schema['definitions'] = definitions = {}
+        schema['properties'] = properties = {}
+        schema['required'] = resource._required_fields
+
+        # fields:
+        for name, field in sorted(resource._fields.items()):
+            definition = field.schema
+
+            if '$ref' in definition:
+                properties[name] = definition
+                continue
+
+            if name in resource._read_only_fields:
+                definition['readOnly'] = True
+
+            definitions[name] = definition
+            properties[name] = {'$ref': '#/definitions/{}'.format(name)}
+
+        definitions['_uri'] = {
+            'type': 'string',
+            'format': 'uri',
+            'readOnly': True
+        }
+
+        properties['_uri'] = {
+            '$ref': '#/definitions/_uri'
+        }
+
+        return schema
 
     @cached_property
     def schema(self):
@@ -161,17 +196,13 @@ class PresstApi(Api):
 
         self._presst_resources[resource_name] = resource
 
-        if issubclass(resource, ModelResource):
-            self._model_resource_map[resource.get_model()] = resource
-
         for name, child in six.iteritems(resource.routes):
-
             if child.collection:
                 url = '/{0}/{1}'.format(resource_name, name)
             else:
                 url = '/{0}/<{1}:parent_id>/{2}'.format(resource_name, pk_converter, name)
 
-            child_endpoint = '{0}_{1}_{2}'.format(resource_name, name, child.__class__.__name__.lower())
+            child_endpoint = '{0}:{1}'.format(resource_name, name)
             child_view_func = self.output(child.view_factory(child_endpoint, resource))
 
             for decorator in chain(resource.method_decorators, self.decorators):

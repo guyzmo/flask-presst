@@ -1,7 +1,7 @@
 from flask_sqlalchemy import SQLAlchemy
 import six
 from sqlalchemy.orm import backref
-from flask_presst import ModelResource, fields, PolymorphicModelResource, Relationship, SchemaParser
+from flask_presst import ModelResource, fields, Relationship, SchemaParser
 from tests import PresstTestCase
 
 
@@ -447,87 +447,3 @@ class TestModelResourceFields(PresstTestCase):
 
         self.request('POST', '/type', {'name': 'Press', 'machines': ['/machine/1']},
                      {'name': 'Press', '_uri': '/type/1', 'machines': ['/machine/1']}, 200)
-
-
-class TestPolymorphicModelResource(PresstTestCase):
-    def setUp(self):
-        super(TestPolymorphicModelResource, self).setUp()
-
-        app = self.app
-        app.config['SQLALCHEMY_ENGINE'] = 'sqlite://'
-        app.config['TESTING'] = True
-        self.db = db = SQLAlchemy(app)
-
-        class Fruit(db.Model):
-            id = db.Column(db.Integer, primary_key=True)
-            name = db.Column(db.String(60), nullable=False)
-            table = db.Column(db.String(60))
-            color = db.Column(db.String)
-
-            __mapper_args__ = {
-                'polymorphic_identity': 'fruit',
-                'polymorphic_on': table
-            }
-
-        class CitrusFruit(Fruit):
-            id = db.Column(db.Integer, db.ForeignKey(Fruit.id), primary_key=True)
-            sweetness = db.Column(db.Integer)
-
-            __mapper_args__ = {
-                'polymorphic_identity': 'citrus',
-                }
-
-        class FruitResource(PolymorphicModelResource):
-            class Meta:
-                model = Fruit
-                resource_name = 'fruit'
-                exclude_fields = ['table']
-
-        class CitrusFruitResource(ModelResource):
-            class Meta:
-                model = CitrusFruit
-                resource_name = 'citrus'
-                exclude_fields = ['table']
-
-        db.create_all()
-
-        self.CitrusFruit = CitrusFruit
-        self.api.add_resource(FruitResource)
-        self.api.add_resource(CitrusFruitResource)
-
-    def test_polymorphic(self):
-        self.request('POST', '/fruit', {'name': 'Banana', 'color': 'yellow'},
-                     {'name': 'Banana', 'color': 'yellow', '_uri': '/fruit/1'}, 200)
-
-        self.request('POST', '/citrus', {'name': 'Lemon', 'color': 'yellow'},
-                     {'name': 'Lemon', 'sweetness': None, 'color': 'yellow', '_uri': '/citrus/2'}, 200)
-
-        self.request('GET', '/fruit', None, [
-            {'color': 'yellow', 'name': 'Banana', '_uri': '/fruit/1'},
-            {'citrus': {'color': 'yellow',
-                        'name': 'Lemon',
-                        '_uri': '/citrus/2',
-                        'sweetness': None},
-             'color': 'yellow',
-             'name': 'Lemon',
-             '_uri': '/fruit/2'}
-        ], 200)
-
-        self.request('POST', '/citrus', {'name': 'Grapefruit', 'color': 'orange', 'sweetness': 2},
-                     {'name': 'Grapefruit', 'sweetness': 2, 'color': 'orange', '_uri': '/citrus/3'}, 200)
-
-    def test_exclude_polymorphic(self):
-        class CitrusFruitAltResource(ModelResource):
-            class Meta:
-                model = self.CitrusFruit
-                exclude_polymorphic = True
-                resource_name = 'citrus_alt'
-                exclude_fields = ['table']
-
-        self.api.add_resource(CitrusFruitAltResource)
-
-        self.request('POST', '/citrus', {'name': 'Lemon', 'sweetness': 1},
-                     {'name': 'Lemon', 'sweetness': 1, 'color': None, '_uri': '/citrus/1'}, 200)
-
-        self.request('GET', '/citrus_alt/1', None,
-                     {'sweetness': 1, '_uri': '/citrus_alt/1'}, 200)

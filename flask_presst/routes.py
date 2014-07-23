@@ -62,7 +62,8 @@ class ResourceSchema(ResourceRoute, View):
                             bound_resource=bound_resource,
                             relationship_name=self.relationship_name)
 
-    def dispatch_request(self):
+    @property
+    def resource_schema(self):
         resource = self.bound_resource
         schema = OrderedDict()
 
@@ -119,8 +120,11 @@ class ResourceSchema(ResourceRoute, View):
             '$ref': '#/definitions/_uri'
         }
 
-        # TODO enforce Content-Type: application/schema+json (overwritten by Flask-RESTful)
         return schema
+
+    def dispatch_request(self):
+        # TODO enforce Content-Type: application/schema+json (overwritten by Flask-RESTful)
+        return self.resource_schema
 
 
 class ResourceAction(ResourceRoute):

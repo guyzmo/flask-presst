@@ -31,6 +31,7 @@ User's guide
    permissions
    schema
    signals
+   advanced_patterns
 
 Features
 --------
@@ -39,7 +40,6 @@ Features
 
   - Automatic resource schema generation from models
   - PostgreSQL JSON & HSTORE field type support
-  - PostgreSQL polymorphic model inheritance
 
 - Embeddable resources & item references via :class:`ToOne` and :class:`ToMany` fields
 - Bulk insert & document insert

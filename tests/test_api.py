@@ -46,15 +46,10 @@ class TestAPI(PresstTestCase):
         self.assertEqual(self.api.get_resource_class(self.FruitResource), self.FruitResource)
         self.assertEqual(self.api.get_resource_class('Fruit'), self.FruitResource)
         self.assertEqual(self.api.get_resource_class('vegetable'), self.VegetableResource)
-        self.assertEqual(self.api.get_resource_class(self.Fruit), self.FruitResource)
         self.assertEqual(self.api.get_resource_class('{}.VegetableResource'.format(self.__module__)),
                          self.VegetableResource)
         self.assertEqual(self.api.get_resource_class('VegetableResource', module_name=self.__module__),
                          self.VegetableResource)
-
-    def test_get_resource_for_model(self):
-        self.assertEqual(self.api.get_resource_for_model(self.Fruit), self.FruitResource)
-        self.assertEqual(self.api.get_resource_for_model(self.Pet), None)
 
     def test_get_schema(self):
         response = self.client.get('/schema')

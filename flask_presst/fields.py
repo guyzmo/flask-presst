@@ -1,5 +1,6 @@
 from functools import wraps
 import aniso8601
+from flask import current_app, url_for
 from flask_restful.fields import get_value
 from jsonschema import Draft4Validator, ValidationError, FormatChecker
 from werkzeug.utils import cached_property
@@ -44,7 +45,10 @@ class Raw(object):
             schema = dict(self._schema)
 
         if self.nullable:
-            if "oneOf" in schema:
+            if "anyOf" in schema:
+                if not any('null' in choice.get('type', []) for choice in schema['anyOf']):
+                    schema['anyOf'].append({'type': 'null'})
+            elif "oneOf" in schema:
                 if not any('null' in choice.get('type', []) for choice in schema['oneOf']):
                     schema['oneOf'].append({'type': 'null'})
             else:
@@ -66,7 +70,9 @@ class Raw(object):
     @cached_property
     def _validator(self):
         Draft4Validator.check_schema(self.schema)
-        return Draft4Validator(self.schema, format_checker=FormatChecker())
+        return Draft4Validator(self.schema,
+                               format_checker=FormatChecker(),
+                               resolver=current_app.presst.resolver_instance)
 
     def validate(self, value):
         """
@@ -190,9 +196,26 @@ class PositiveInteger(Integer):
 
 
 class Number(Raw):
-    # TODO minValue and maxValue optional arguments
-    def __init__(self, default=0, **kwargs):
-        super(Number, self).__init__({"type": "number"}, **kwargs)
+    def __init__(self, default=0,
+                 minimum=None,
+                 maximum=None,
+                 exclusive_minimum=False,
+                 exclusive_maximum=False,
+                 **kwargs):
+
+        schema = {"type": "number"}
+
+        if minimum is not None:
+            schema['minimum'] = minimum
+            if exclusive_minimum:
+                schema['exclusiveMinimum'] = True
+
+        if maximum is not None:
+            schema['maximum'] = maximum
+            if exclusive_maximum:
+                schema['exclusiveMaximum'] = True
+
+        super(Number, self).__init__(schema, **kwargs)
 
     def format(self, value):
         return float(value)
@@ -300,6 +323,7 @@ class List(Raw):
     :param Raw cls_or_instance: field class or instance
     """
     def __init__(self, cls_or_instance, **kwargs):
+        # TODO add minItems, maxItems
         if isinstance(cls_or_instance, type):
             # if not issubclass(cls_or_instance, Raw):
             #     raise RuntimeError('KeyValue ...')
@@ -317,17 +341,6 @@ class List(Raw):
                 "items": container.schema
             }, **kwargs)
 
-    def validate(self, lst):
-        if lst is None:
-            if not self.nullable:
-                raise ValueError('Field is not nullable')
-        else:
-            for i, value in enumerate(lst):
-                try:
-                    self.container.validate(value)
-                except ValueError as e:
-                    raise ValueError('At position {}:'.format(e.args[0]))
-
     def format(self, value):
         if value is None:
             return []
@@ -344,8 +357,11 @@ class KeyValue(Raw):
     Accept objects with properties of a given field type.
 
     :param Raw cls_or_instance: field class or instance
+    :param str key_pattern: an optional regular expression that all keys must match
     """
-    def __init__(self, cls_or_instance, **kwargs):
+    def __init__(self, cls_or_instance, key_pattern=None, **kwargs):
+
+        # TODO add patternProperties
         if isinstance(cls_or_instance, type):
             # if not issubclass(cls_or_instance, Raw):
             #     raise RuntimeError('KeyValue ...')
@@ -357,22 +373,20 @@ class KeyValue(Raw):
 
         container = self.container
 
-        if isinstance(container, Raw):
-            super(KeyValue, self).__init__(lambda: {
+        if key_pattern:
+            schema = lambda: {
+                "type": "object",
+                "patternProperties": {
+                    key_pattern: container.schema
+                }
+            }
+        else:
+            schema = lambda: {
                 "type": "object",
                 "additionalProperties": container.schema
-            }, **kwargs)
+            }
 
-    def validate(self, obj):
-        if obj is None:
-            if not self.nullable:
-                raise ValueError('Field is not nullable')
-        else:
-            for k, value in obj.items():
-                try:
-                    self.container.validate(value)
-                except ValueError as e:
-                    raise ValueError('At "{}":'.format(k, e.args[0]))
+        super(KeyValue, self).__init__(schema, **kwargs)
 
     def format(self, value):
         return {k: self.container.format(v) for k, v in value.items()}
@@ -405,10 +419,11 @@ class ToOne(Raw, EmbeddedBase):
 
         def make_schema():
             resource = ref.resolve()
+            resource_url = url_for(resource.endpoint)
             return {
                 "oneOf": [
-                    {'$ref': '{}/schema#/definitions/_uri'.format(resource.route_prefix)},
-                    {'$ref': '{}/schema#'.format(resource.route_prefix)}
+                    {'$ref': '{}/schema#/definitions/_uri'.format(resource_url)},
+                    {'$ref': '{}/schema#'.format(resource_url)}
                 ]
             }
 
@@ -445,11 +460,6 @@ class ToMany(List, EmbeddedBase):
         super(ToMany, self).__init__(ToOne(resource, embedded=embedded), **kwargs)
         self.relationship_name = relationship_name
 
-    def validate(self, value):
-        if value is None and not self.nullable:
-            raise ValueError('Reference is not nullable')
-
-        # TODO proper validation (now fails in convert step)
 
 class ToManyKV(KeyValue, EmbeddedBase):
     """
@@ -458,9 +468,3 @@ class ToManyKV(KeyValue, EmbeddedBase):
     def __init__(self, resource, relationship_name=None, embedded=False, **kwargs):
         super(ToManyKV, self).__init__(ToOne(resource, embedded=embedded), **kwargs)
         self.relationship_name = relationship_name
-
-    def validate(self, value):
-        if value is None and not self.nullable:
-            raise ValueError('Reference is not nullable')
-
-        # TODO proper validation (now fails in convert step)

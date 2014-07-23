@@ -273,7 +273,7 @@ class Resource(six.with_metaclass(ResourceMeta, RestfulResource)):
 
     @classmethod
     def item_get_uri(cls, item):
-        """Returns the `resource_uri` of an item.
+        """Returns the `_uri` of an item.
 
         .. seealso:: :meth:`item_get_id()`
         """
@@ -594,40 +594,3 @@ class ModelResource(six.with_metaclass(ModelResourceMeta, Resource)):
 
         # fallback:
         return super(ModelResource, cls).marshal_item_list(item_list)
-
-
-class PolymorphicModelResource(ModelResource):
-    """
-    :class:`PolymorphicModelResource` is identical to :class:`ModelResource`, except that when it marshals an item
-    that has a different class than the ``model`` attribute defined in :class:`Meta`, it marshals the contents of that
-    model separately from the inherited resource and adds it to the marshalled dictionary as a property with the
-    name of the inherited resource.
-
-    e.g.
-
-    .. code-block:: javascript
-
-        {
-            "_uri": "/polymorphic_resource/1",
-            // polymorphic_resource properties
-            "base_resource": {
-                "_uri": "/base_resource/1",
-                // base_resource properties
-            }
-        }
-
-
-    :class:`PolymorphicModelResource` is designed to be used with SQLAlchemy models that
-    make use of `SQLAlchemy's polymorphic inheritance <http://docs.sqlalchemy.org/en/latest/orm/inheritance.html>`_.
-    """
-
-    @classmethod
-    def marshal_item(cls, item):
-        resource = cls.api.get_resource_for_model(item.__class__)
-        marshaled = super(PolymorphicModelResource, cls).marshal_item(item)
-
-        if resource and resource != cls:
-            marshaled[resource.resource_name.replace('/', '__')] = resource.marshal_item(item)
-
-        # fallback:
-        return marshaled
