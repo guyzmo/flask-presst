@@ -18,7 +18,7 @@ To inline a model, simply create a field class like this one:
             self.model = model
 
         def convert(self, obj):
-            obj = super().convert(obj)
+            obj = EmbeddedJob.complete(super().convert(obj))
             if obj is not None:
                 obj = self.model(**obj)
             return obj
