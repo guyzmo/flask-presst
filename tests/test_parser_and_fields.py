@@ -83,6 +83,28 @@ class ParsingTest(PresstTestCase):
         self.assertEqual(None, fields.Number().parse(None))
         self.assertEqual(1.23, fields.Number().parse(1.23))
 
+    def test_field_string(self):
+
+        self.assertEqual({
+            'type': ['string', 'null'],
+            'minLength': 2,
+            'maxLength': 3,
+            'pattern': '[A-Z][0-9]{1,2}',
+        }, fields.String(min_length=2, max_length=3, pattern="[A-Z][0-9]{1,2}").schema)
+
+        with self.assertRaises(ValueError):
+            fields.String(min_length=8).parse("123456")
+
+        with self.assertRaises(ValueError):
+            fields.String(max_length=10).parse("abcdefghijklmnopqrstuvwxyz")
+
+        with self.assertRaises(ValueError):
+            fields.String(pattern="^[fF]oo$").parse("Aroo")
+
+        self.assertEqual("foo", fields.String(pattern="^[fF]oo$").parse("foo"))
+        self.assertEqual("123456", fields.String().parse("123456"))
+        self.assertEqual(None, fields.String().parse(None))
+
     def test_key_value_pattern(self):
         kv = fields.KeyValue(fields.Integer, key_pattern='[A-Z][0-9]+')
 

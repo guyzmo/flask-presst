@@ -167,8 +167,15 @@ class Object(Raw):
 
 
 class String(Raw):
-    def __init__(self, **kwargs):
-        super(String, self).__init__({"type": "string"}, **kwargs)
+
+    def __init__(self, min_length=None, max_length=None, pattern=None, **kwargs):
+        schema = {"type": "string"}
+
+        for value, kw in ((min_length, 'minLength'), (max_length, 'maxLength'), (pattern, 'pattern')):
+            if value is not None:
+                schema[kw] = value
+
+        super(String, self).__init__(schema, **kwargs)
 
 
 class Integer(Raw):
