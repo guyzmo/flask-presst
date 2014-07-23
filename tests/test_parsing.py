@@ -62,6 +62,64 @@ class ParsingTest(PresstTestCase):
 
         self.assertEqual({'a': 4, 'b': 6}, insanity_field.format(10))
 
+    def test_field_number(self):
+        with self.assertRaises(ValueError):
+            fields.Number().parse("nope")
+
+        with self.assertRaises(ValueError):
+            fields.Number(nullable=False).parse(None)
+
+        with self.assertRaises(ValueError):
+            fields.Number(minimum=3).parse(2)
+
+        with self.assertRaises(ValueError):
+            fields.Number(minimum=3, exclusive_minimum=True).parse(3)
+
+        with self.assertRaises(ValueError):
+            fields.Number(maximum=3, exclusive_maximum=True).parse(3)
+
+        self.assertEqual(3, fields.Number(maximum=3).parse(3))
+        self.assertEqual(3, fields.Number(minimum=3).parse(3))
+        self.assertEqual(None, fields.Number().parse(None))
+        self.assertEqual(1.23, fields.Number().parse(1.23))
+
+    def test_key_value_pattern(self):
+        kv = fields.KeyValue(fields.Integer, key_pattern='[A-Z][0-9]+')
+
+        self.assertEqual({'A3': 1, 'B12': 2}, kv.parse({'A3': 1, 'B12': 2}))
+
+        self.assertEqual({
+                            "additionalProperties": False,
+                             'patternProperties': {
+                                 '[A-Z][0-9]+': {'type': ['integer', 'null']}
+                             },
+                             'type': ['object', 'null']
+                         }, kv.schema)
+
+        with self.assertRaises(ValueError):
+            kv.parse({'A2': 'string'})
+
+        with self.assertRaises(ValueError):
+            kv.parse({'xyz': 1})
+
+    def test_key_value(self):
+        kv = fields.KeyValue(fields.Integer, nullable=False)
+
+        self.assertEqual({1: 123}, kv.parse({1: 123}))
+
+        self.assertEqual({
+                             'type': 'object',
+                             'additionalProperties': {
+                                 'type': ['integer', 'null']
+                             }
+                         }, kv.schema)
+
+        with self.assertRaises(ValueError):
+            kv.parse({'xyz': 'string'})
+
+        with self.assertRaises(ValueError):
+            kv.parse(None)
+
     def test_parse_json_schema(self):
         parser = SchemaParser({'arg': fields.Raw(schema={
             'type': 'object',

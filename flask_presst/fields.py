@@ -217,10 +217,8 @@ class Number(Raw):
 
         super(Number, self).__init__(schema, **kwargs)
 
+    @skip_none
     def format(self, value):
-        return float(value)
-
-    def convert(self, value):
         return float(value)
 
 
@@ -228,6 +226,7 @@ class Boolean(Raw):
     def __init__(self, default=0, **kwargs):
         super(Boolean, self).__init__({"type": "boolean"}, **kwargs)
 
+    @skip_none
     def format(self, value):
         return bool(value)
 
@@ -376,6 +375,7 @@ class KeyValue(Raw):
         if key_pattern:
             schema = lambda: {
                 "type": "object",
+                "additionalProperties": False,
                 "patternProperties": {
                     key_pattern: container.schema
                 }

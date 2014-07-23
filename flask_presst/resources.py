@@ -12,7 +12,7 @@ import six
 
 from flask_presst.routes import ResourceSchema
 from flask_presst.fields import String, Integer, Boolean, List, DateTime, EmbeddedBase, Raw, KeyValue, Arbitrary, \
-    Date
+    Date, Number
 from flask_presst.references import EmbeddedJob, ItemListWrapper, ItemWrapper
 from flask_presst.signals import *
 from flask_presst.routes import ResourceRoute
@@ -406,6 +406,7 @@ class ModelResource(six.with_metaclass(ModelResourceMeta, Resource)):
             str: String,
             six.text_type: String,
             int: Integer,
+            float: Number,
             bool: Boolean,
             list: List,
             dict: KeyValue,
