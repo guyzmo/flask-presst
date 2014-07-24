@@ -295,6 +295,7 @@ class Nested(Raw):
     """
 
     :param dict fields: dictionary of fields
+    :param read_only: optional list or tuple with keys of fields that are read-only
     """
 
     def __init__(self, fields, read_only=None, **kwargs):
@@ -470,7 +471,7 @@ class ToMany(List, EmbeddedBase):
     Accept a list of items of a resource.
     """
     def __init__(self, resource, relationship_name=None, embedded=False, **kwargs):
-        super(ToMany, self).__init__(ToOne(resource, embedded=embedded), **kwargs)
+        super(ToMany, self).__init__(ToOne(resource, embedded=embedded, nullable=False), **kwargs)
         self.relationship_name = relationship_name
 
 
@@ -479,5 +480,5 @@ class ToManyKV(KeyValue, EmbeddedBase):
     Accept a dictionary mapping to items of a resource.
     """
     def __init__(self, resource, relationship_name=None, embedded=False, **kwargs):
-        super(ToManyKV, self).__init__(ToOne(resource, embedded=embedded), **kwargs)
+        super(ToManyKV, self).__init__(ToOne(resource, embedded=embedded, nullable=False), **kwargs)
         self.relationship_name = relationship_name
