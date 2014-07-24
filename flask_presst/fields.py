@@ -297,21 +297,27 @@ class Nested(Raw):
     :param dict fields: dictionary of fields
     """
 
-    def __init__(self, fields, **kwargs):
+    def __init__(self, fields, read_only=None, **kwargs):
         self.fields = fields
+        self.read_only = read_only or []
 
-        super(Nested, self).__init__(lambda: {
-            'type': 'object',
-            'properties': {k: f.schema for k, f in fields.items()}
-        }, **kwargs)
+        def make_schema():
+            properties = {}
+            schema = {
+                "type": "object",
+                "properties": properties,
+            #    "additionalProperties": False
+            }
 
-    def validate(self, obj):
-        if obj is None:
-            if not self.nullable:
-                raise ValueError('Field is not nullable')
-        else:
-            for k, f in self.fields.items():
-                f.validate(get_value(k, obj))
+            for key, field in self.fields.items():
+                properties[key] = field.schema
+
+                if key in self.read_only:
+                    properties[key]['readOnly'] = True
+
+            return schema
+
+        super(Nested, self).__init__(make_schema, **kwargs)
 
     @skip_none
     def format(self, obj):
@@ -319,7 +325,7 @@ class Nested(Raw):
 
     @skip_none
     def convert(self, obj):
-        return {k: f.convert(get_value(k, obj)) for k, f in self.fields.items()}
+        return {k: f.convert(get_value(k, obj)) for k, f in self.fields.items() if k not in self.read_only}
 
 
 class List(Raw):
