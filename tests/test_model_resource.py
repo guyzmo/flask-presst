@@ -6,6 +6,7 @@ from tests import PresstTestCase
 
 
 class TestModelResource(PresstTestCase):
+
     def setUp(self):
         super(TestModelResource, self).setUp()
 
@@ -243,7 +244,8 @@ class TestModelResource(PresstTestCase):
                     ]
                 },
                 "name": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 60
                 },
                 "sweetness": {
                     "type": ["integer", "null"],
@@ -297,7 +299,8 @@ class TestModelResource(PresstTestCase):
                     'format': 'uri'
                 },
                 'name': {
-                    'type': 'string'
+                    'type': 'string',
+                    "maxLength": 60
                 }
             },
             'properties': {

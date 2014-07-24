@@ -4,6 +4,7 @@ from flask import request, current_app
 from flask_restful import reqparse, Resource as RestfulResource, abort, marshal
 from flask_sqlalchemy import BaseQuery, Pagination, get_state
 from flask.views import MethodViewType
+import sqlalchemy.types as sa_types
 from sqlalchemy.dialects import postgres
 from sqlalchemy.orm import class_mapper
 from sqlalchemy.orm.exc import NoResultFound
@@ -337,17 +338,21 @@ class ModelResourceMeta(ResourceMeta):
                         (exclude_fields and name not in exclude_fields) or \
                         not (include_fields or exclude_fields):
 
-                    if meta.get('exclude_polymorphic', False) and column.table != mapper.tables[-1]:
-                        continue
-
                     if column.primary_key or column.foreign_keys:
                         continue
 
+                    field_args = ()
+                    field_kwargs = {}
+
                     if isinstance(column.type, postgres.ARRAY):
-                        field_class = lambda **kw: List(String, **kw)
+                        field_class = List
+                        field_args = (String,)
+                    elif isinstance(column.type, sa_types.String) and column.type.length:
+                        field_class = String
+                        field_kwargs = {'max_length': column.type.length}
                     elif isinstance(column.type, postgres.HSTORE):
                         field_class = KeyValue
-                    # Numeric/Decimal
+                        field_args = (String,)
                     elif hasattr(postgres, 'JSON') and isinstance(column.type, postgres.JSON):
                         field_class = Arbitrary
                     else:
@@ -355,13 +360,12 @@ class ModelResourceMeta(ResourceMeta):
 
                     # Add to list of fields.
                     if not name in fields:
-                        default = None
-                        nullable = column.nullable
+                        field_kwargs['nullable'] = column.nullable
 
                         if column.default is not None and column.default.is_scalar:
-                            default = column.default.arg
+                            field_kwargs['default'] = column.default.arg
 
-                        fields[name] = field_class(default=default, nullable=nullable)
+                        fields[name] = field_class(*field_args, **field_kwargs)
 
                         if not (column.nullable or column.default):
                             required_fields.append(name)
