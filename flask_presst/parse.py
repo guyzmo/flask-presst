@@ -47,7 +47,7 @@ class SchemaParser(object):
                 request_data[name] = request.args.get(name, type=field.python_type)
 
         # on empty requirements, allow None:
-        if not self.fields and not request_data:
+        if not self.fields:
             return {}
 
         if not isinstance(request_data, dict):
