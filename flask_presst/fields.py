@@ -184,7 +184,7 @@ class Integer(Raw):
     python_type = int
 
     # TODO minValue and maxValue optional arguments
-    def __init__(self, default=0, minimum=None, maximum=None, **kwargs):
+    def __init__(self, minimum=None, maximum=None, **kwargs):
         schema = {"type": "integer"}
 
         if minimum is not None:
@@ -192,7 +192,7 @@ class Integer(Raw):
         if maximum is not None:
             schema['maximum'] = maximum
 
-        super(Integer, self).__init__(schema, default=default, **kwargs)
+        super(Integer, self).__init__(schema, **kwargs)
 
     def format(self, value):
         return int(value)
@@ -203,7 +203,7 @@ class PositiveInteger(Integer):
     Only accepts integers >=0.
     """
     def __init__(self, default=0, maximum=None, **kwargs):
-        super(PositiveInteger, self).__init__(default, minimum=0, maximum=maximum, **kwargs)
+        super(PositiveInteger, self).__init__(minimum=0, maximum=maximum, **kwargs)
 
 
 class Number(Raw):
