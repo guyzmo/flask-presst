@@ -4,19 +4,19 @@ from flask import request, current_app
 from flask_restful import reqparse, Resource as RestfulResource, abort, marshal
 from flask_sqlalchemy import BaseQuery, Pagination, get_state
 from flask.views import MethodViewType
+import itertools
 import sqlalchemy.types as sa_types
 from sqlalchemy.dialects import postgres
 from sqlalchemy.orm import class_mapper
 from sqlalchemy.orm.exc import NoResultFound
-from sqlalchemy.util import classproperty
+from sqlalchemy.util import classproperty, OrderedDict
 import six
 
-from flask_presst.routes import ResourceSchema
+from flask_presst.routes import ResourceRoute, route
 from flask_presst.fields import String, Integer, Boolean, List, DateTime, EmbeddedBase, Raw, KeyValue, Arbitrary, \
     Date, Number
 from flask_presst.references import EmbeddedJob, ItemListWrapper, ItemWrapper
 from flask_presst.signals import *
-from flask_presst.routes import ResourceRoute
 from flask_presst.parse import SchemaParser
 
 
@@ -43,12 +43,15 @@ class ResourceMeta(MethodViewType):
 
             for name, m in six.iteritems(members):
                 if isinstance(m, (EmbeddedBase, ResourceRoute)):
-                    m.bound_resource = class_
-                    if m.relationship_name is None:
-                        m.relationship_name = name
+                    m.binding = class_
+                    m.binding = class_
+
+                    if m.attribute is None:
+                        m.attribute = name
+                        m.attribute = name
 
                 if isinstance(m, ResourceRoute):
-                    routes[m.relationship_name] = m
+                    routes[m.attribute] = m
                 elif isinstance(m, Raw):
                     field_name = m.attribute or name
                     fields[field_name] = m
@@ -106,7 +109,68 @@ class Resource(six.with_metaclass(ResourceMeta, RestfulResource)):
     _read_only_fields = None
     _required_fields = None
 
-    schema = ResourceSchema()
+    #schema = ResourceSchema()
+
+    @route('GET')
+    def schema(self):
+        # TODO enforce Content-Type: application/schema+json (overwritten by Flask-RESTful)
+
+        schema = OrderedDict()
+
+        for schema_property in ('title', 'description'):
+            if schema_property in self._meta:
+                schema[schema_property] = self._meta[schema_property]
+
+        links = [
+            {
+                'rel': 'self',
+                'href': self.api._complete_url('{}/{{id}}'.format(self.route_prefix), ''),
+                'method': 'GET',
+            },
+            {
+                'rel': 'instances',
+                'href': self.api._complete_url('{}'.format(self.route_prefix), ''),
+                'method': 'GET',
+                'schema': {
+                    '$ref': self.api._complete_url('/schema#/definitions/_pagination', '')
+                }
+            }
+        ]
+
+        links = itertools.chain(links, *[route.get_links(self) for name, route in sorted(self.routes.items())
+                                         if name != 'schema'])
+
+        schema['type'] = 'object'
+        schema['definitions'] = definitions = {}
+        schema['properties'] = properties = {}
+        schema['required'] = self._required_fields
+        schema['links'] = list(links)
+
+        # fields:
+        for name, field in sorted(self._fields.items()):
+            definition = field.schema
+
+            if '$ref' in definition:
+                properties[name] = definition
+                continue
+
+            if name in self._read_only_fields:
+                definition['readOnly'] = True
+
+            definitions[name] = definition
+            properties[name] = {'$ref': '#/definitions/{}'.format(name)}
+
+        definitions['_uri'] = {
+            'type': 'string',
+            'format': 'uri',
+            'readOnly': True
+        }
+
+        properties['_uri'] = {
+            '$ref': '#/definitions/_uri'
+        }
+
+        return schema
 
     def get(self, id=None, **kwargs):
         if id is None:

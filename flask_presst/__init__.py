@@ -4,7 +4,7 @@ from flask_restful import unpack
 
 from flask_presst.api import PresstApi
 from flask_presst.resources import Resource, ModelResource
-from flask_presst.routes import Relationship, action
+from flask_presst.routes import Relationship, action, route, ResourceRoute, ResourceMultiRoute
 from flask_presst.parse import SchemaParser
 from flask_presst.references import ResourceRef
 
@@ -14,8 +14,12 @@ __all__ = (
     'Resource',
     'ModelResource',
 
+    'ResourceRoute',
+    'ResourceMultiRoute',
     'Relationship',
+
     'action',
+    'route',
 
     'SchemaParser',
     'ResourceRef',

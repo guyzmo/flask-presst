@@ -1,7 +1,137 @@
 import unittest
 from flask_restful import marshal_with
+from flask_presst.routes import route
 from flask_presst import fields, Relationship, action
 from tests import SimpleResource, PresstTestCase
+from datetime import datetime
+from pytz import UTC
+
+
+class TestRouteMethods(PresstTestCase):
+    def setUp(self):
+        super(TestRouteMethods, self).setUp()
+
+        class Object(SimpleResource):
+            items = []
+
+            @route('GET')
+            def simple(self):
+                return 'foo'
+
+            @route.GET
+            def simple_alt(self):
+                return 'bar'
+
+            @route.POST(route='/foo')
+            def single(self):
+                return True
+
+            @route.GET
+            def multiple(self):
+                return 'get'
+
+            @multiple.POST
+            def multiple(self):
+                return 'post'
+
+            @multiple.DELETE
+            def multiple(self):
+                return 'delete'
+
+            @route('GET')
+            def parse_simple_get(self, a, b):
+                return a * b
+
+            parse_simple_get.add_argument('a', fields.Integer(default=0))
+            parse_simple_get.add_argument('b', fields.Integer(default=0))
+
+            @route('POST')
+            def parse_simple_post(self, a, b):
+                return a + b
+
+            parse_simple_post.add_argument('a', fields.Integer(default=0))
+            parse_simple_post.add_argument('b', fields.Integer(default=0))
+
+            def parse_combined(self):
+                pass
+
+            @route.GET(response_property=fields.Nested({
+                'name': fields.String(),
+                'createdAt': fields.DateTime()
+            }))
+            def marshalled(self):
+                return {"name": "Foo", "createdAt": datetime(2014, 1, 10, 12, 18, tzinfo=UTC)}
+
+            def marshalled_alt(self):
+                return {"name": "Foo", "createdAt": datetime(2014, 1, 10, 12, 18, tzinfo=UTC)}
+
+            marshalled_alt.__annotations__ = {
+                'return': fields.Nested({
+                    'name': fields.String(),
+                    'createdAt': fields.DateTime()
+                })
+            }
+
+            marshalled_alt = route.GET(marshalled_alt)
+
+            @route.POST(route='/variable/<int:id>')
+            def variable(self, id):
+                return {'id': id}
+
+        self.object = Object
+        self.api.add_resource(Object)
+
+    def test_simple(self):
+        response = self.client.get('/object/simple')
+        self.assert200(response)
+        self.assertEqual('foo', response.json)
+
+    def test_simple_alt(self):
+        self.assertEqual(['GET'], self.object.simple_alt.methods)
+        response = self.client.get('/object/simple_alt')
+        self.assert200(response)
+        self.assertEqual('bar', response.json)
+
+    def test_single(self):
+        response = self.client.post('/object/foo')
+        self.assert200(response)
+        self.assertEqual(True, response.json)
+
+    def test_multiple(self):
+        self.assertEqual({'GET', 'POST', 'DELETE'}, set(self.object.multiple.methods))
+
+        response = self.client.get('/object/multiple')
+
+        self.assert200(response)
+        self.assertEqual('get', response.json)
+
+        self.assertEqual('post', self.client.post('/object/multiple').json)
+        self.assertEqual('delete', self.client.delete('/object/multiple').json)
+
+    def test_parse_simple_get(self):
+        response = self.client.get('/object/parse_simple_get?a=2&b=3')
+        self.assert200(response)
+        self.assertEqual(6, response.json)
+
+    def test_parse_simple_post(self):
+        response = self.client.post('/object/parse_simple_post', data={'a': 7, 'b': 3})
+        self.assert200(response)
+        self.assertEqual(10, response.json)
+
+    def test_marshalled(self):
+        response = self.client.get('/object/marshalled')
+        self.assert200(response)
+        self.assertEqual({'createdAt': '2014-01-10T12:18:00+00:00Z', 'name': 'Foo'}, response.json)
+
+    def test_marshalled_alt(self):
+        response = self.client.get('/object/marshalled_alt')
+        self.assert200(response)
+        self.assertEqual({'createdAt': '2014-01-10T12:18:00+00:00Z', 'name': 'Foo'}, response.json)
+
+    def test_variable(self):
+        response = self.client.post('/object/variable/123')
+        self.assert200(response)
+        self.assertEqual({'id': 123}, response.json)
 
 
 class TestRelationship(PresstTestCase):
@@ -37,7 +167,7 @@ class TestRelationship(PresstTestCase):
         self.api.add_resource(Seed)
 
     def test_get(self):
-        self.assertEqual(self.Apple.seeds.relationship_name, 'seeds')
+        self.assertEqual(self.Apple.seeds.attribute, 'seeds')
 
         self.request('GET', '/apple', None, [{"name": "A1", "_uri": "/apple/1"}], 200)
         self.request('GET', '/apple/1/seeds', None, [

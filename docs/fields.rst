@@ -24,6 +24,9 @@ Embedded field types
 
 .. autoclass:: ToManyKV
 
+.. autoclass:: One
+
+.. autoclass:: Many
 
 Basic field types
 -----------------

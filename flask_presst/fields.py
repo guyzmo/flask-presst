@@ -25,6 +25,8 @@ class Raw(object):
     :param attribute: key on parent object, optional.
     :param nullable: nullable
     """
+    python_type = None
+
     def __init__(self, schema, default=None, attribute=None, nullable=True):
         self._schema = schema
         self.default = default
@@ -179,6 +181,8 @@ class String(Raw):
 
 
 class Integer(Raw):
+    python_type = int
+
     # TODO minValue and maxValue optional arguments
     def __init__(self, default=0, minimum=None, maximum=None, **kwargs):
         schema = {"type": "integer"}
@@ -203,6 +207,8 @@ class PositiveInteger(Integer):
 
 
 class Number(Raw):
+    python_type = float
+
     def __init__(self, default=0,
                  minimum=None,
                  maximum=None,
@@ -230,6 +236,8 @@ class Number(Raw):
 
 
 class Boolean(Raw):
+    python_type = lambda b: b in ('true', 'True', True, 1)
+
     def __init__(self, default=0, **kwargs):
         super(Boolean, self).__init__({"type": "boolean"}, **kwargs)
 
@@ -425,11 +433,10 @@ class ToOne(Raw, EmbeddedBase):
     :param resource: :class:`str` reference or :class:`Resource`
     :param bool embedded: embed whole object on output if ``True``, URI otherwise
     """
-    def __init__(self, resource, relationship_name=None, embedded=False, **kwargs):
+    def __init__(self, resource, embedded=False, **kwargs):
         self._resource = ref = ResourceRef(resource)
-        self.relationship_name = relationship_name
-        self.bound_resource = None
         self.embedded = embedded
+        self.binding = None
 
         def make_schema():
             resource = ref.resolve()
@@ -446,7 +453,7 @@ class ToOne(Raw, EmbeddedBase):
     @cached_property
     def resource(self):
         if self._resource.reference_str == 'self':
-            return self.bound_resource
+            return self.binding
         return self._resource.resolve()
 
     def validate(self, value):
@@ -470,15 +477,54 @@ class ToMany(List, EmbeddedBase):
     """
     Accept a list of items of a resource.
     """
-    def __init__(self, resource, relationship_name=None, embedded=False, **kwargs):
+    def __init__(self, resource, embedded=False, **kwargs):
         super(ToMany, self).__init__(ToOne(resource, embedded=embedded, nullable=False), **kwargs)
-        self.relationship_name = relationship_name
 
 
 class ToManyKV(KeyValue, EmbeddedBase):
     """
     Accept a dictionary mapping to items of a resource.
     """
-    def __init__(self, resource, relationship_name=None, embedded=False, **kwargs):
+    def __init__(self, resource, embedded=False, **kwargs):
         super(ToManyKV, self).__init__(ToOne(resource, embedded=embedded, nullable=False), **kwargs)
-        self.relationship_name = relationship_name
+
+
+class One(Raw, EmbeddedBase):
+    """
+    Like :class:`ToOne`, except that embedding is required for both input and output. Uri references
+    are not valid and the field is not nullable by default.
+    """
+    def __init__(self, resource, attribute=None, nullable=False, **kwargs):
+        self._resource = ref = ResourceRef(resource)
+        self.binding = None
+
+        def make_schema():
+            resource = ref.resolve()
+            resource_url = url_for(resource.endpoint)
+            return {'$ref': '{}/schema#'.format(resource_url)}
+
+        super(One, self).__init__(make_schema, nullable=nullable, **kwargs)
+
+    @cached_property
+    def resource(self):
+        if self._resource.reference_str == 'self':
+            return self.binding
+        return self._resource.resolve()
+
+    @skip_none
+    def format(self, item):
+        return self.resource.marshal_item(item)
+
+    @skip_none
+    def convert(self, value, commit=False):
+        return resolve_item(self.resource, value, create=True, update=False, commit=commit)
+
+
+class Many(List, EmbeddedBase):
+    """
+    Like :class:`ToMany`, except that embedding is required for both input and output. Uri references
+    are not valid and the field is not nullable by default.
+    """
+    def __init__(self, resource, nullable=False, **kwargs):
+        super(Many, self).__init__(One(resource, nullable=False), nullable=nullable, **kwargs)
+        self.attribute = attribute

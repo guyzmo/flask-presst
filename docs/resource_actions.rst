@@ -2,26 +2,23 @@
 Resource Actions
 ================
 
-`ResourceRoute` allow you to define additional routes to a resource without having to define an entirely new
+`ResourceRoute` and `ResourceMultiRoute` allow you to define additional routes to a resource without having to define an entirely new
 resource. The :func:`action` decorator is one way to very easily attach new route logic to a collection or item.
 :class:`Resource` (the other being :class:`Relationship`).
 
 .. module:: flask_presst
 
 The :func:`action` decorator
--------------------------------------
+----------------------------
 
 .. autofunction:: action
 
+Additionally, :func:`route` is a cousin of :func:`action` that does not attempt to access any items or collection of
+items of the resource and is hence more suitable when access to neither is needed.
 
 Request parsing with :func:`action`
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+-----------------------------------
 
-Methods decorated with :func:`action` are wrapped into a :class:`ResourceAction`, which parses requests to that route
-using a specified list of fields.
-
-.. autoclass:: flask_presst.routes.ResourceAction
-   :members:
 
 Example code
 ^^^^^^^^^^^^
@@ -55,36 +52,21 @@ Example code
 Return value marshalling
 ------------------------
 
-Return values from a :func:`action` can be marshalled using :func:`flask_restful.marshal_with`.
+Return values from a :func:`action` or :func:`route` can be marshalled with the ``response_property`` attribute.
+
 For example::
 
-    @action('GET')
-    @marshal_with({'article': fields.ToOne('article'), 'num_comments': fields.Integer()})
+    @action('GET', response_property=fields.Nested({
+        'article': fields.ToOne('article'),
+        'num_comments': fields.Integer()
+    }))
     def num_comments(self, article):
         return {
             'article': article,
             'num_comments': len(article.comments)
         }
 
-Because often-times a resource will only return a single field, such as an integer or a resource item, Flask-Presst
-ships with an additional decorator, :class:`marshal_with_field`.
-
-
-.. autoclass:: marshal_with_field
-
-The :class:`marshal_with_field` decorator is used like this::
-
-    @action('GET')
-    @marshal_with_field(fields.ToMany('ticket'))
-    def completed(tickets):
-        return tickets.filter(Ticket.status == 'complete')
-
-.. note::
-
-    When returning a large number of items from a specific resource directly from an `SQLAlchemy` query, it is best to
-    use :meth:`Resource.marshal_item_list`, as this marshaling function paginates the result, while
-    :class:`fields.ToMany` does not.
-
+It is also possible to simply use ``marshal_with``, but this will not generate a ``targetSchema`` entry in the documentation.
 
 Python 3 function annotations
 -----------------------------
@@ -97,13 +79,6 @@ When developing exclusively for Python 3.x it is possible to use function annota
         def filter(self,
                    articles,
                    title: fields.String(nullable=False),
-                   rating: field.Integer(default=0)) -> fields.ToMany('article'):
-            return self.marshal_item_list(
-                        articles.filter(and_(Article.title.like('%{}%'.format(title)),
-                                             Article.rating >= rating)))
-
-
-.. note::
-
-    Note that the `return type` function annotation is optional and not currently used for marshalling, but only to generate the
-    ``targetSchema`` property in the schema definition. In Python 2.7, it can be set through ``ResourceAction.target_schema``.
+                   rating: field.Integer(default=0)) -> fields.Many('article'):
+            return articles.filter(and_(Article.title.like('%{}%'.format(title)),
+                                        Article.rating >= rating))

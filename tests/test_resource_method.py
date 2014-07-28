@@ -1,6 +1,6 @@
 from flask_presst import fields, action
 from tests import PresstTestCase, SimpleResource
-
+from flask_presst.routes import route, CollectionView
 
 class TestResourceMethod(PresstTestCase):
     def setUp(self):
@@ -29,13 +29,12 @@ class TestResourceMethod(PresstTestCase):
 
             sweeter_than.add_argument('other', fields.ToOne('Citrus', nullable=False))
 
-            @action('POST')
+            @action('POST', response_property=fields.One('Citrus', nullable=False))
             def sweeten(self, citrus, by):
                 citrus['sweetness'] += by
-                return self.marshal_item(citrus)
+                return citrus
 
             sweeten.add_argument('by', fields.PositiveInteger(nullable=False))
-            sweeten.target_schema = fields.ToOne('Citrus', nullable=False)
 
             # TODO unit tests for Python 3 functionality:
             #
@@ -56,10 +55,6 @@ class TestResourceMethod(PresstTestCase):
     def test_collection_method(self):
         with self.app.test_client() as client:
             self.assertEqual(self.parse_response(client.get('/citrus/count')), (3, 200))
-
-    def test_arguments(self):
-        # required & verification & defaults.
-        pass
 
     def test_callable(self):
         with self.app.test_request_context('/citrus/1'):
@@ -82,7 +77,7 @@ class TestResourceMethod(PresstTestCase):
     def test_reference_argument(self):
         with self.app.test_client() as client:
             for citrus_id, other_id, val in ((1, 2, True), (1, 3, False), (2, 1, False), (3, 2, True)):
-                response = client.get('/citrus/{}/sweeter_than'.format(citrus_id), data={'other': '/citrus/{}'.format(other_id)})
+                response = client.get('/citrus/{}/sweeter_than?other=/citrus/{}'.format(citrus_id, other_id))
                 self.assertEqual(response.json, val)
 
     def test_get_schema(self):
@@ -133,9 +128,9 @@ class TestResourceMethod(PresstTestCase):
                                                'type': 'object',
                                                'properties': {}
                                            },
-                                           'targetSchema': {},
                                            'rel': 'count',
-                                           'method': 'GET'
+                                           'method': 'GET',
+                                           'targetSchema': {}
                                        }, {
                                            'href': '/citrus/{id}/name_length',
                                            'schema': {
@@ -158,11 +153,7 @@ class TestResourceMethod(PresstTestCase):
                                                'required': ['by']
                                            },
                                            'targetSchema': {
-                                               'oneOf': [{
-                                                             '$ref': '/citrus/schema#/definitions/_uri'
-                                                         }, {
-                                                             '$ref': '/citrus/schema#'
-                                                         }]
+                                               '$ref': '/citrus/schema#'
                                            },
                                            'rel': 'sweeten',
                                            'method': 'POST'

@@ -38,12 +38,13 @@ class SchemaParser(object):
         return schema
 
     def parse_request(self, partial=False):
-        # TODO depending on request method switch between request.json and request.args (GET)
-        # TODO alternatively: support both, with json taking priority
         request_data = request.json
 
         if not request_data and request.method in ('GET', 'HEAD'):
-            request_data = request.args
+            request_data = {}
+
+            for name, field in self.fields.items():
+                request_data[name] = request.args.get(name, type=field.python_type)
 
         # on empty requirements, allow None:
         if not self.fields and not request_data:

@@ -197,16 +197,15 @@ class PresstApi(Api):
         self._presst_resources[resource_name] = resource
 
         for name, child in six.iteritems(resource.routes):
-            if child.collection:
-                url = '/{0}/{1}'.format(resource_name, name)
-            else:
-                url = '/{0}/<{1}:parent_id>/{2}'.format(resource_name, pk_converter, name)
+            url = '{}{}'.format(resource.route_prefix, child.get_url_rule(resource))
 
             child_endpoint = '{0}:{1}'.format(resource_name, name)
             child_view_func = self.output(child.view_factory(child_endpoint, resource))
 
             for decorator in chain(resource.method_decorators, self.decorators):
                 child_view_func = decorator(child_view_func)
+
+            print(child_endpoint, url, name, child, child.methods)
 
             # FIXME routing for blueprints; also needs tests
             rule = self._complete_url(url, '')

@@ -82,7 +82,7 @@ class HybridRelationshipNeed(HybridItemNeed):
 
     def __init__(self, method, *fields):
         super(HybridRelationshipNeed, self).__init__(method,
-                                                     fields[-1].bound_resource,
+                                                     fields[-1].binding,
                                                      fields[-1].resource.resource_name)
         self.fields = fields
         self.final_field = self.fields[-1]
@@ -92,7 +92,7 @@ class HybridRelationshipNeed(HybridItemNeed):
 
         """
         for field in self.fields:
-            item = get_value(item, field.relationship_name)
+            item = get_value(item, field.attribute)
 
             if item is None:
                 if self.method == 'id':
@@ -123,12 +123,12 @@ class HybridRelationshipNeed(HybridItemNeed):
         reversed_fields = reversed(self.fields)
 
         target_field = next(reversed_fields)
-        target_relationship = getattr(target_field.bound_resource._model, target_field.relationship_name)
+        target_relationship = getattr(target_field.binding._model, target_field.attribute)
 
         expression = target_relationship.has(target_field.resource._model_id_column.in_(ids))
 
         for field in reversed_fields:
-            relationship = getattr(field.bound_resource._model, field.relationship_name)
+            relationship = getattr(field.binding._model, field.attribute)
 
             if isinstance(relationship.impl, ScalarObjectAttributeImpl):
                 expression = relationship.has(expression)
