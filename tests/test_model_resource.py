@@ -436,7 +436,6 @@ class TestModelResourceFields(PresstTestCase):
 
     def test_nested(self):
         type_nested = fields.Nested({'type': fields.ToOne('type'), 'int': fields.Integer()})
-        print(type_nested.schema)
 
         self.client.post('/type', data={'name': 'Foo'})
 

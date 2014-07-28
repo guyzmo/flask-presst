@@ -94,7 +94,6 @@ class SchemaView(object):
 
 class ItemView(SchemaView):
     def dispatch_request(self, instance, *args, **kwargs):
-        print(instance, args, kwargs)
         item = instance.get_item_for_id(kwargs.pop('id'))
         return super(ItemView, self).dispatch_request(instance, item, *args, **kwargs)
 

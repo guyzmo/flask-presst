@@ -44,10 +44,8 @@ class ResourceMeta(MethodViewType):
             for name, m in six.iteritems(members):
                 if isinstance(m, (EmbeddedBase, ResourceRoute)):
                     m.binding = class_
-                    m.binding = class_
 
                     if m.attribute is None:
-                        m.attribute = name
                         m.attribute = name
 
                 if isinstance(m, ResourceRoute):

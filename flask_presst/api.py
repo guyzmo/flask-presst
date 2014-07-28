@@ -205,8 +205,6 @@ class PresstApi(Api):
             for decorator in chain(resource.method_decorators, self.decorators):
                 child_view_func = decorator(child_view_func)
 
-            print(child_endpoint, url, name, child, child.methods)
-
             # FIXME routing for blueprints; also needs tests
             rule = self._complete_url(url, '')
 
