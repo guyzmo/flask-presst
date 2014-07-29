@@ -169,11 +169,17 @@ class Object(Raw):
 
 
 class String(Raw):
+    """
+    :param int min_length: minimum length of string
+    :param int max_length: maximum length of string
+    :param str pattern: regex pattern that string must match
+    :param list enum: list of strings with enumeration
+    """
 
-    def __init__(self, min_length=None, max_length=None, pattern=None, **kwargs):
+    def __init__(self, min_length=None, max_length=None, pattern=None, enum=None, **kwargs):
         schema = {"type": "string"}
 
-        for value, kw in ((min_length, 'minLength'), (max_length, 'maxLength'), (pattern, 'pattern')):
+        for value, kw in ((min_length, 'minLength'), (max_length, 'maxLength'), (pattern, 'pattern'), (enum, 'enum')):
             if value is not None:
                 schema[kw] = value
 
