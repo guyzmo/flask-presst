@@ -280,8 +280,7 @@ class DateTime(Raw):
 
     @skip_none
     def format(self, value):
-        # TODO needs improving. Always export with 'Z'
-        return '{}Z'.format(value.isoformat())
+        return value.isoformat()
 
     @skip_none
     def convert(self, value):
@@ -533,4 +532,3 @@ class Many(List, EmbeddedBase):
     """
     def __init__(self, resource, nullable=False, **kwargs):
         super(Many, self).__init__(One(resource, nullable=False), nullable=nullable, **kwargs)
-        self.attribute = attribute

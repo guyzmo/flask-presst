@@ -121,12 +121,12 @@ class TestRouteMethods(PresstTestCase):
     def test_marshalled(self):
         response = self.client.get('/object/marshalled')
         self.assert200(response)
-        self.assertEqual({'createdAt': '2014-01-10T12:18:00+00:00Z', 'name': 'Foo'}, response.json)
+        self.assertEqual({'createdAt': '2014-01-10T12:18:00+00:00', 'name': 'Foo'}, response.json)
 
     def test_marshalled_alt(self):
         response = self.client.get('/object/marshalled_alt')
         self.assert200(response)
-        self.assertEqual({'createdAt': '2014-01-10T12:18:00+00:00Z', 'name': 'Foo'}, response.json)
+        self.assertEqual({'createdAt': '2014-01-10T12:18:00+00:00', 'name': 'Foo'}, response.json)
 
     def test_variable(self):
         response = self.client.post('/object/variable/123')

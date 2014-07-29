@@ -30,7 +30,7 @@ class TestResourceFields(PresstTestCase):
     def test_get_date(self):
         self.request('GET', '/press/1', None,
             {'_uri': '/press/1',
-             'last_serviced': '2014-02-12T15:08:00+00:00Z',
+             'last_serviced': '2014-02-12T15:08:00+00:00',
              'name': 'Press 1'}, 200)
 
     def test_post_read_only(self):
@@ -38,14 +38,14 @@ class TestResourceFields(PresstTestCase):
 
         self.assert200(response)
         self.assertEqual({'_uri': '/press/1',
-                          'last_serviced': '2014-02-12T15:08:00+00:00Z',
+                          'last_serviced': '2014-02-12T15:08:00+00:00',
                           'name': 'Press I'}, response.json)
 
         self.request('POST', '/press/1',
             {
                 'name': 'Press 1',
-                'last_serviced': '2014-02-12T15:10:00+00:00Z'
+                'last_serviced': '2014-02-12T15:10:00+00:00'
             },
             {'_uri': '/press/1',
-             'last_serviced': '2014-02-12T15:08:00+00:00Z', # read-only fields are ignored; could throw error.
+             'last_serviced': '2014-02-12T15:08:00+00:00', # read-only fields are ignored; could throw error.
              'name': 'Press 1'}, 200)

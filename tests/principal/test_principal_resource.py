@@ -342,15 +342,6 @@ class PrincipalResourceTestCase(PresstTestCase):
     def test_relationship(self):
         "should require update permission on parent resource for updating, read permissions on both"
 
-        class UserResource(PrincipalResource):
-            books = Relationship('book')
-
-            class Meta:
-                model = self.USER
-                permissions = {
-                    'create': 'admin'
-                }
-
         class BookResource(PrincipalResource):
             author = fields.ToOne('user')
 
@@ -363,6 +354,14 @@ class PrincipalResourceTestCase(PresstTestCase):
                     'owns-copy': 'owns-copy'
                 }
 
+        class UserResource(PrincipalResource):
+            books = Relationship(BookResource)
+
+            class Meta:
+                model = self.USER
+                permissions = {
+                    'create': 'admin'
+                }
 
         self.api.add_resource(UserResource)
         self.api.add_resource(BookResource)
