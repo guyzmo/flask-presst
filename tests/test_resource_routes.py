@@ -88,7 +88,7 @@ class TestRouteMethods(PresstTestCase):
 
     def test_simple_alt(self):
         self.assertEqual(['GET'], self.object.simple_alt.methods)
-        response = self.client.get('/object/simple_alt')
+        response = self.client.get('/object/simple-alt')
         self.assert200(response)
         self.assertEqual('bar', response.json)
 
@@ -109,12 +109,12 @@ class TestRouteMethods(PresstTestCase):
         self.assertEqual('delete', self.client.delete('/object/multiple').json)
 
     def test_parse_simple_get(self):
-        response = self.client.get('/object/parse_simple_get?a=2&b=3')
+        response = self.client.get('/object/parse-simple-get?a=2&b=3')
         self.assert200(response)
         self.assertEqual(6, response.json)
 
     def test_parse_simple_post(self):
-        response = self.client.post('/object/parse_simple_post', data={'a': 7, 'b': 3})
+        response = self.client.post('/object/parse-simple-post', data={'a': 7, 'b': 3})
         self.assert200(response)
         self.assertEqual(10, response.json)
 
@@ -124,7 +124,7 @@ class TestRouteMethods(PresstTestCase):
         self.assertEqual({'createdAt': '2014-01-10T12:18:00+00:00', 'name': 'Foo'}, response.json)
 
     def test_marshalled_alt(self):
-        response = self.client.get('/object/marshalled_alt')
+        response = self.client.get('/object/marshalled-alt')
         self.assert200(response)
         self.assertEqual({'createdAt': '2014-01-10T12:18:00+00:00', 'name': 'Foo'}, response.json)
 
@@ -181,12 +181,12 @@ class TestRelationship(PresstTestCase):
     def test_post(self):
         self.request('GET', '/seed/3', None, {'name': 'S3', '_uri': '/seed/3'}, 200)
         self.request('POST', '/apple/1/seeds', '/seed/3', {"name": "S3", "_uri": "/seed/3"}, 200)
-        self.request('GET', '/apple/1/seed_count', None, 3, 200)
+        self.request('GET', '/apple/1/seed-count', None, 3, 200)
 
     def test_delete(self):
         self.test_post()
         self.request('DELETE', '/apple/1/seeds', '/seed/2', None, 204)
-        self.request('GET', '/apple/1/seed_count', None, 2, 200)
+        self.request('GET', '/apple/1/seed-count', None, 2, 200)
 
     def test_post_missing_item(self):
         self.request('POST', '/apple/1/seeds', None, None, 400)
@@ -197,7 +197,7 @@ class TestRelationship(PresstTestCase):
         self.request('POST', '/apple/1/seeds', ['/apple/1'], None, 400)
 
     def test_marshal(self):
-        self.request('GET', '/apple/1/first_seed', None,
+        self.request('GET', '/apple/1/first-seed', None,
                      {'first': {'name': 'S1', '_uri': '/seed/1'}, 'id': 1}, 200)
 
 

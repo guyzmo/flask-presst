@@ -17,6 +17,8 @@ def url_rule_to_uri_pattern(rule):
     # TODO convert from underscore to camelCase
     return re.sub(r'<(\w+:)?([^>]+)>', r'{\2}', rule)
 
+def attribute_to_route_uri(s):
+    return s.replace('_', '-')
 
 class ResourceRoute(object):
     def __init__(self, binding=None, attribute=None):
@@ -171,7 +173,7 @@ class ResourceMultiRoute(ResourceRoute):
         if self.route:
             return self.route
         else:
-            return '/{}'.format(self.attribute)
+            return '/{}'.format(attribute_to_route_uri(self.attribute))
 
     def get_links(self, binding=None):
         """
@@ -209,7 +211,7 @@ class ResourceItemMultiRoute(ResourceMultiRoute):
         if self.route:
             route = self.route
         else:
-            route = '/{}'.format(self.attribute)
+            route = '/{}'.format(attribute_to_route_uri(self.attribute))
 
         return '/<{}:id>{}'.format(pk_converter, route)
 

@@ -286,7 +286,7 @@ Finally, let's add some resource methods to our `BookResource`. Resource methods
 to the way :class:`Relationship` does. The methods are defined using the :func:`action` decorator. They
 each come with their own argument parser and their own route relative to the resource they are defined in.
 
-We'll add two methods, ``/book/published_after?year={int}`` and ``/book/{id}/is_recent``:
+We'll add two methods, ``/book/published-after?year={year}`` and ``/book/{id}/is-recent``:
 
 .. code-block:: python
 
@@ -317,11 +317,11 @@ Now, we can create some new books and test the two methods:
 
 .. code-block:: bash
 
-    $ http -v GET localhost:5000/book/published_after year==1900
+    $ http -v GET localhost:5000/book/published-after year==1900
 
 .. code-block:: http
 
-    GET /book/published_after?year=1900 HTTP/1.1
+    GET /book/published-after?year=1900 HTTP/1.1
     Accept: */*
     Accept-Encoding: gzip, deflate, compress
     Host: localhost:5000
@@ -334,7 +334,7 @@ Now, we can create some new books and test the two methods:
     Content-Length: 98
     Content-Type: application/json
     Date: Mon, 31 Mar 2014 08:18:51 GMT
-    Link: </book/published_after?page=1&per_page=20>; rel="self"
+    Link: </book/published-after?page=1&per_page=20>; rel="self"
     Server: Werkzeug/0.9.4 Python/2.7.5
 
     [
@@ -349,7 +349,7 @@ Now, we can create some new books and test the two methods:
 
 .. code-block:: bash
 
-    $ http GET localhost:5000/book/2/is_recent
+    $ http GET localhost:5000/book/2/is-recent
 
 .. code-block:: http
 

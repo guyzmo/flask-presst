@@ -49,8 +49,8 @@ class TestResourceMethod(PresstTestCase):
 
     def test_item_method(self):
         with self.app.test_client() as client:
-            self.assertEqual(self.parse_response(client.get('/citrus/1/name_length')), (6, 200))
-            self.assertEqual(self.parse_response(client.get('/citrus/2/name_length')), (5, 200))
+            self.assertEqual(self.parse_response(client.get('/citrus/1/name-length')), (6, 200))
+            self.assertEqual(self.parse_response(client.get('/citrus/2/name-length')), (5, 200))
 
     def test_collection_method(self):
         with self.app.test_client() as client:
@@ -77,7 +77,7 @@ class TestResourceMethod(PresstTestCase):
     def test_reference_argument(self):
         with self.app.test_client() as client:
             for citrus_id, other_id, val in ((1, 2, True), (1, 3, False), (2, 1, False), (3, 2, True)):
-                response = client.get('/citrus/{}/sweeter_than?other=/citrus/{}'.format(citrus_id, other_id))
+                response = client.get('/citrus/{}/sweeter-than?other=/citrus/{}'.format(citrus_id, other_id))
                 self.assertEqual(response.json, val)
 
     def test_get_schema(self):
@@ -132,7 +132,7 @@ class TestResourceMethod(PresstTestCase):
                                            'method': 'GET',
                                            'targetSchema': {}
                                        }, {
-                                           'href': '/citrus/{id}/name_length',
+                                           'href': '/citrus/{id}/name-length',
                                            'schema': {
                                                'type': 'object',
                                                'properties': {}
@@ -158,7 +158,7 @@ class TestResourceMethod(PresstTestCase):
                                            'rel': 'sweeten',
                                            'method': 'POST'
                                        }, {
-                                           'href': '/citrus/{id}/sweeter_than',
+                                           'href': '/citrus/{id}/sweeter-than',
                                            'schema': {
                                                'type': 'object',
                                                'properties': {
