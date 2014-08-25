@@ -1,5 +1,7 @@
 from importlib import import_module
 import inspect
+import json
+import collections
 
 from flask import current_app, request
 from flask_restful import Resource, abort
@@ -201,6 +203,25 @@ class ItemListWrapper(object):
     @classmethod
     def create(cls, resource, properties, commit=True, **kwargs):
         return cls.resolve(resource, properties, commit=commit, read=False, create=True, **kwargs)
+
+    def apply_filter(self, request=None, where=None, sort=None):
+        if request:
+            try:
+                if "where" in request.args:
+                    where = json.loads(request.args["where"])
+            except:
+                abort(400, message='Bad filter: Must be valid JSON object')
+
+            try:
+                if "sort" in request.args:
+                    sort = json.loads(request.args['sort'], object_pairs_hook=collections.OrderedDict)
+            except:
+                abort(400, message='Bad sorting: Must be valid JSON object')
+
+        if not(where or sort):
+            return self
+
+        return ItemListWrapper(self.resource, self.resource._filter.apply(self.items, where, sort))
 
     def raw(self):
         return self.items

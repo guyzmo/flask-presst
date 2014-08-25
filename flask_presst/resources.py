@@ -1,4 +1,6 @@
 import datetime
+import json
+import collections
 
 from flask import request, current_app
 from flask_restful import reqparse, Resource as RestfulResource, abort, marshal
@@ -13,10 +15,12 @@ from sqlalchemy.util import classproperty, OrderedDict
 import six
 
 from flask_presst.routes import ResourceRoute, route
+from flask_presst.filters import Filter
 from flask_presst.fields import String, Integer, Boolean, List, DateTime, EmbeddedBase, Raw, KeyValue, Arbitrary, \
     Date, Number
 from flask_presst.references import EmbeddedJob, ItemListWrapper, ItemWrapper
 from flask_presst.signals import *
+from flask_presst.routes import ResourceRoute
 from flask_presst.parse import SchemaParser
 
 
@@ -172,7 +176,9 @@ class Resource(six.with_metaclass(ResourceMeta, RestfulResource)):
 
     def get(self, id=None, **kwargs):
         if id is None:
-            return ItemListWrapper.get_list(self).marshal()
+            return ItemListWrapper\
+                .get_list(self)\
+                .apply_filter(request=request).marshal()
         else:
             return ItemWrapper.read(self, id).marshal()
 
@@ -271,6 +277,36 @@ class Resource(six.with_metaclass(ResourceMeta, RestfulResource)):
         .. seealso:: :meth:`marshal_item_list`
         """
         raise NotImplementedError()
+
+    @classmethod
+    def filter_sort_item_list(cls, items, where):
+        """
+
+        Where supports filtering on one or more fields using several filters:
+
+        Equality: ``{"field": "value"}``
+        Numeric comparison: ``{"field": {"$lt": 123"}}``
+        Note -- possible values must all evaluate to valid values of a given field type;
+        there is also a list of possible operators for each field e.g. $lt, $gt only work for Integer and Number fields
+        (and dates)
+
+        Set membership: ``{"field": {"$in": ["one", "two"]}}``
+
+        $ts: -> text search
+
+        .. todo:: arrays & json
+
+            'field.0.by'
+
+            relationship fields not supported for now
+
+        """
+        if isinstance(items, list):
+
+            raise NotImplementedError()
+
+        else:
+            raise NotImplementedError()
 
     @classmethod
     def get_relationship(cls, item, relationship):  # pragma: no cover
@@ -427,10 +463,13 @@ class ModelResourceMeta(ResourceMeta):
                         if column.default is not None and column.default.is_scalar:
                             field_kwargs['default'] = column.default.arg
 
-                        fields[name] = field_class(*field_args, **field_kwargs)
+                        fields[name] = field_class(*field_args, attribute=name, **field_kwargs)
 
                         if not (column.nullable or column.default):
                             required_fields.append(name)
+
+            class_._filter = Filter(model, fields, meta.get('allowed_filters', '*'))
+
         return class_
 
 
@@ -465,6 +504,7 @@ class ModelResource(six.with_metaclass(ModelResourceMeta, Resource)):
     """
     _model = None
     _model_id_column = None
+    _filter = None
 
     @staticmethod
     def _get_field_from_python_type(python_type):
@@ -556,6 +596,10 @@ class ModelResource(six.with_metaclass(ModelResourceMeta, Resource)):
                                        item=item,
                                        relationship=relationship,
                                        child=child)
+
+    @classmethod
+    def filter_sort_item_list(cls, items, filter, sorting):
+        return cls._filter.apply(items, filter, sorting)
 
     @classmethod
     def get_item_for_id(cls, id_):

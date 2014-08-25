@@ -385,7 +385,12 @@ class Relationship(ResourceRoute, MethodView):
 
     def get(self, id):
         parent = ItemWrapper.read(self.binding, id)
-        return parent.get_relationship(self.attribute, target_resource=self.resource).marshal()
+
+        # TODO sort, filter:
+        return parent\
+            .get_relationship(self.attribute, target_resource=self.resource)\
+            .apply_filter(request=request)\
+            .marshal()
 
     def post(self, id):
         #parent_item = self.binding.get_item_for_id(parent_id)

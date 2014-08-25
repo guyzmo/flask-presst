@@ -19,7 +19,7 @@ class SimpleResource(Resource):
         abort(404)
 
     @classmethod
-    def get_item_list(cls):
+    def get_item_list(cls, where=None):
         return cls.items
 
     @classmethod
