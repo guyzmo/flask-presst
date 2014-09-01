@@ -87,7 +87,7 @@ class FilterTestCase(PresstTestCase):
     def test_inequality(self):
         self.post_sample_set_a()
 
-        response = self.client.get('/user?where={"last_name": {"$neq": "Watts"}, "age": {"$neq": 32}}')
+        response = self.client.get('/user?where={"last_name": {"$ne": "Watts"}, "age": {"$ne": 32}}')
 
         self.assertEqualWithout([
                                     {'first_name': 'Jonnie', 'last_name': 'Doe'},
@@ -101,7 +101,7 @@ class FilterTestCase(PresstTestCase):
                                     {'first_name': 'John', 'last_name': 'Doe'}
                                 ], response.json, without=['_uri', 'gender', 'age', 'is_staff'])
 
-        response = self.client.get('/user?where={"age": {"$geq": 25}}')
+        response = self.client.get('/user?where={"age": {"$gte": 25}}')
 
         self.assertEqualWithout([
                                     {'first_name': 'John', 'last_name': 'Doe'},
@@ -109,7 +109,7 @@ class FilterTestCase(PresstTestCase):
                                     {'first_name': 'Sue', 'last_name': 'Watts'},
                                 ], response.json, without=['_uri', 'gender', 'age', 'is_staff'])
 
-        response = self.client.get('/user?where={"age": {"$leq": 21}}')
+        response = self.client.get('/user?where={"age": {"$lte": 21}}')
 
         self.assertEqualWithout([
                                     {'first_name': 'Jane', 'last_name': 'Roe'},
