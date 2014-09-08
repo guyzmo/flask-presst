@@ -647,7 +647,7 @@ class ModelResource(six.with_metaclass(ModelResourceMeta, Resource)):
             session.rollback()
             raise
 
-        after_update_item.send(cls, item=item)
+        after_update_item.send(cls, item=item, changes=changes, partial=partial)
         return item
 
     @classmethod
