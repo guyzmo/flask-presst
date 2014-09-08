@@ -366,6 +366,8 @@ class List(Raw):
                 "type": "array",
                 "items": container.schema
             }, **kwargs)
+        else:
+            raise RuntimeError()
 
     def format(self, value):
         if value is None:
