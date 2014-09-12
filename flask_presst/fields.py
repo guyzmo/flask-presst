@@ -309,9 +309,10 @@ class Nested(Raw):
 
     :param dict fields: dictionary of fields
     :param read_only: optional list or tuple with keys of fields that are read-only
+    :param additional_properties: allow additional properties beyond those defined in ``fields``.
     """
 
-    def __init__(self, fields, read_only=None, **kwargs):
+    def __init__(self, fields, read_only=None, additional_properties=True, **kwargs):
         self.fields = fields
         self.read_only = read_only or []
 
@@ -319,9 +320,11 @@ class Nested(Raw):
             properties = {}
             schema = {
                 "type": "object",
-                "properties": properties,
-            #    "additionalProperties": False
+                "properties": properties
             }
+
+            if not additional_properties:
+                schema["additionalProperties"] = False
 
             for key, field in self.fields.items():
                 properties[key] = field.schema
