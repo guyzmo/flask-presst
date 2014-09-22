@@ -279,36 +279,6 @@ class Resource(six.with_metaclass(ResourceMeta, RestfulResource)):
         raise NotImplementedError()
 
     @classmethod
-    def filter_sort_item_list(cls, items, where):
-        """
-
-        Where supports filtering on one or more fields using several filters:
-
-        Equality: ``{"field": "value"}``
-        Numeric comparison: ``{"field": {"$lt": 123"}}``
-        Note -- possible values must all evaluate to valid values of a given field type;
-        there is also a list of possible operators for each field e.g. $lt, $gt only work for Integer and Number fields
-        (and dates)
-
-        Set membership: ``{"field": {"$in": ["one", "two"]}}``
-
-        $ts: -> text search
-
-        .. todo:: arrays & json
-
-            'field.0.by'
-
-            relationship fields not supported for now
-
-        """
-        if isinstance(items, list):
-
-            raise NotImplementedError()
-
-        else:
-            raise NotImplementedError()
-
-    @classmethod
     def get_relationship(cls, item, relationship):  # pragma: no cover
         """
         Return the list of items for a relationship. Must be implemented in the parents of nested resources.
@@ -596,10 +566,6 @@ class ModelResource(six.with_metaclass(ModelResourceMeta, Resource)):
                                        item=item,
                                        relationship=relationship,
                                        child=child)
-
-    @classmethod
-    def filter_sort_item_list(cls, items, filter, sorting):
-        return cls._filter.apply(items, filter, sorting)
 
     @classmethod
     def get_item_for_id(cls, id_):
