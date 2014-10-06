@@ -42,6 +42,13 @@ class ParsingTest(PresstTestCase):
                                  'number': 12.34,
                                  'text': 'text'})
 
+    def test_rename_field(self):
+        parser = SchemaParser({'foo': fields.String(attribute='bar')})
+        with self.app.test_request_context('/',
+                                   data=json.dumps({"foo": "value"}),
+                                   content_type='application/json'):
+            self.assertEqual(parser.parse_request(), {"bar": "value"})
+
     def test_field_custom(self):
         insanity_field = fields.Custom({
                                            'type': 'object',

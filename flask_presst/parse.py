@@ -15,7 +15,7 @@ class SchemaParser(object):
     def __init__(self, fields=None, required_fields=None, read_only_fields=None):  # TODO read-only fields
         if fields is None:
             fields = {}
-        self.fields = {key or field.attribute: field for key, field in fields.items()}
+        self.fields = {key: field for key, field in fields.items()}
         self.required_fields = set(required_fields or [])
         self.read_only_fields = set(read_only_fields or [])
 
@@ -98,7 +98,7 @@ class SchemaParser(object):
                     else:
                         raise ParsingException(message='Missing required field: {}'.format(key))
 
-                converted[key] = field.convert(value)
+                converted[field.attribute or key] = field.convert(value)
 
             if strict:
                 unknown_fields = set(obj.keys()) - set(self.fields.keys())
