@@ -52,6 +52,21 @@ def load_user(userid):
     # Return an instance of the User model
     return User(id=userid)
 
+@login_manager.request_loader
+def load_user_from_request(request):
+    # Try to login using Basic Auth
+    # http://flask.pocoo.org/snippets/8/
+    auth = request.authorization
+
+    if auth:
+        user = User(auth.username) # XXX consider that this user may not exist
+        if auth.password == user.get_password():
+            return user
+
+    # return None if no user was authenticated
+    return None
+
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     # A hypothetical login form that uses Flask-WTF
@@ -98,6 +113,12 @@ def logout():
 from flask.ext.principal import Principal, Identity, AnonymousIdentity, identity_changed, identity_loaded
 
 principals = Principal(app)
+
+@principals.identity_loader
+def read_identity_from_flask_login():
+    if current_user.is_authenticated():
+        return Identity(current_user.id)
+    return AnonymousIdentity()
 
 @identity_loaded.connect_via(app)
 def on_identity_loaded(sender, identity):
