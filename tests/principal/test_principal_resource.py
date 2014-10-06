@@ -134,6 +134,24 @@ class PrincipalResourceTestCase(PresstTestCase):
         #
         # self.assert200(response)
 
+    def test_access_forbidden_to_resource_collection(self):
+        class BookResource(PrincipalResource):
+            class Meta:
+                model = self.BOOK
+                permissions = {
+                    'read': 'author',
+                    'create': 'author',
+                }
+
+        self.api.add_resource(BookResource)
+        self.mock_user = {'id': 1, 'roles': ['author']}
+        response = self.client.post('/book', data={'title': 'Foo'})
+        self.assert200(response)
+        self.assertEqual({'title': 'Foo', '_uri': '/book/1'}, response.json)
+        self.assert200(self.client.get('/book'))
+        self.mock_user = {'id': 1}
+        self.assert403(self.client.get('/book'))
+
 
     def test_inherit_role_to_one_field(self):
 
