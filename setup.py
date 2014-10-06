@@ -17,6 +17,7 @@ setup(
         'Flask-Testing>=0.4.1',
         'Flask-Principal',
         'nose>=1.1.2',
+        'mock',
     ],
     install_requires=[
         'Flask>=0.10',
