@@ -86,7 +86,7 @@ def login():
             identity_changed.send(current_app._get_current_object(),
                                   identity=Identity(user.id))
 
-            return redirect(request.args.get('next') or '/')
+            return redirect(request.args.get('next') or '/book')
 
     return render_template('login.html', form=form)
 
@@ -96,15 +96,11 @@ def logout():
     # Remove the user information from the session
     logout_user()
 
-    # Remove session keys set by Flask-Principal
-    for key in ('identity.name', 'identity.auth_type'):
-        session.pop(key, None)
-
     # Tell Flask-Principal the user is anonymous
     identity_changed.send(current_app._get_current_object(),
                           identity=AnonymousIdentity())
 
-    return redirect(request.args.get('next') or '/')
+    return redirect(request.args.get('next') or '/book')
 
 
 #########
@@ -154,7 +150,7 @@ class BookResource(PrincipalResource):
     class Meta:
         model = Book
         permissions = {
-            'read': ['lambda','admin'],
+            'read': ['user','admin'],
             'create': 'admin',
             'update': 'admin',
             'delete': 'admin'

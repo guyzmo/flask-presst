@@ -2,6 +2,8 @@
 
 <html>
   <body>
+  <p>Login either with admin/admin to have full permissions or user/user to have read only permissions. <br />
+  All the other have no permissions.</p>
     <form method="POST">
       {{ form.hidden_tag() }}
       {% for error in form.userid.errors %}
