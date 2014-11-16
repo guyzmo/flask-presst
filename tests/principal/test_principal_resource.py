@@ -33,9 +33,16 @@ class PrincipalResourceTestCase(PresstTestCase):
         self.principal = Principal(app)
         self.db = db = SQLAlchemy(app)
 
+        class Group(db.Model):
+            id = db.Column(db.Integer, primary_key=True)
+            name = db.Column(db.String())
+
         class User(db.Model):
             id = db.Column(db.Integer, primary_key=True)
             name = db.Column(db.String())
+
+            group_id = db.Column(db.Integer, db.ForeignKey(Group.id))
+            group = db.relationship(Group)
 
         class BookStore(db.Model):
             id = db.Column(db.Integer, primary_key=True)
@@ -44,12 +51,18 @@ class PrincipalResourceTestCase(PresstTestCase):
             owner_id = db.Column(db.Integer, db.ForeignKey(User.id))
             owner = db.relationship(User, backref=backref('stores', lazy='dynamic'))
 
+            group_id = db.Column(db.Integer, db.ForeignKey(Group.id))
+            group = db.relationship(Group)
+
         class Book(db.Model):
             id = db.Column(db.Integer, primary_key=True)
             title = db.Column(db.String(), nullable=False)
 
             author_id = db.Column(db.Integer, db.ForeignKey(User.id))
             author = db.relationship(User, backref=backref('books', lazy='dynamic'))
+
+            store_id = db.Column(db.Integer, db.ForeignKey(BookStore.id))
+            store = db.relationship(BookStore)
 
         class BookSigning(db.Model):
             id = db.Column(db.Integer, primary_key=True)
@@ -61,7 +74,7 @@ class PrincipalResourceTestCase(PresstTestCase):
 
         db.create_all()
 
-        for model in (BookStore, User, Book, BookSigning):
+        for model in (Group, BookStore, User, Book, BookSigning):
             setattr(self, model.__tablename__.upper(), model)
 
         return app
@@ -338,6 +351,135 @@ class PrincipalResourceTestCase(PresstTestCase):
 
         self.mock_user = {'id': 4}
         self.assertEqual([], self.client.get('/book').json)
+
+    def test_relationship_group(self):
+        "require read permission on a third part resource to access the list of book"
+
+        class GroupResource(PrincipalResource):
+            class Meta:
+                model = self.GROUP
+                permissions = {
+                    'read': 'admin',
+                    'create': 'admin',
+                    'group':'group'
+                }
+
+        class BookStoreResource(PrincipalResource):
+            group = fields.ToOne('group')
+            class Meta:
+                model = self.BOOK_STORE
+                permissions = {
+                    'read': ['admin','group:group'],
+                    'create': 'admin'
+                }
+
+        class BookResource(PrincipalResource):
+            store = fields.ToOne('book_store')
+            group = fields.ToOne('group')
+            class Meta:
+                model = self.BOOK
+                permissions = {
+                    'read': ['admin','read:store'],
+                    'create': 'admin'
+                }
+
+        class UserResource(PrincipalResource):
+            group = fields.ToOne('group')
+            class Meta:
+                model = self.USER
+                permissions = {
+                    'read' : 'admin',
+                    'create' : 'admin'
+                }
+
+
+        self.api.add_resource(GroupResource)
+        self.api.add_resource(BookStoreResource)
+        self.api.add_resource(BookResource)
+        self.api.add_resource(UserResource)
+
+        self.mock_user = {'id': 1, 'roles': ['admin']}
+        self.assert200(self.client.post('/group', data=[
+            {'name': 'Group 1'},
+            {'name': 'Group 2'},
+            {'name': 'Group 3'},
+            {'name': 'Group 4'}
+        ]))
+        self.assert200(self.client.post('/user', data=[
+            {'name': 'Admin'},
+            {'name': 'Author 1', 'group': '/group/2'},
+            {'name': 'Author 2', 'group': '/group/2'},
+            {'name': 'Author 3', 'group': '/group/3'}
+        ]))
+        self.assert200(self.client.post('/book_store', data=[
+            {'name': 'Store 1', 'group': '/group/2'},
+            {'name': 'Store 2', 'group': '/group/2'},
+            {'name': 'Store 3', 'group': '/group/3'},
+            {'name': 'Store 4', 'group': '/group/4'},
+        ]))
+        self.assert200(self.client.post('/book', data=[
+            {'store': '/book_store/1', 'title': 'Book 2.1.1'}, # group #2
+            {'store': '/book_store/1', 'title': 'Book 2.1.2'}, # group #2
+            {'store': '/book_store/2', 'title': 'Book 2.2.1'}, # group #2
+            {'store': '/book_store/2', 'title': 'Book 2.2.2'}, # group #2
+            {'store': '/book_store/2', 'title': 'Book 2.2.3'}, # group #2
+            {'store': '/book_store/2', 'title': 'Book 2.2.4'}, # group #2
+            {'store': '/book_store/3', 'title': 'Book 3.3.1'}, # group #3
+            {'store': '/book_store/3', 'title': 'Book 3.3.2'}, # group #3
+            {'store': '/book_store/4', 'title': 'Book 4.4.1'}, # group #4
+            {'store': '/book_store/4', 'title': 'Book 4.4.2'}, # group #4
+        ]))
+        response = self.client.get('/book')
+        self.assert200(response)
+        self.assertEqual(10, len(response.json))
+
+        self.mock_user = {'id': 1, 'roles': ['group'], 'needs': [ItemNeed('group', 1, 'group')]}
+        response = self.client.get('/book_store')
+        self.assert200(response)
+        self.assertEqual(0, len(response.json))
+
+        self.mock_user = {'id': 2, 'roles': ['group'], 'needs': [ItemNeed('group', 2, 'group')]}
+        response = self.client.get('/book_store')
+        self.assert200(response)
+        self.assertEqual(2, len(response.json))
+
+        self.mock_user = {'id': 3, 'roles': ['group'], 'needs': [ItemNeed('group', 2, 'group')]}
+        response = self.client.get('/book_store')
+        self.assert200(response)
+        self.assertEqual(2, len(response.json))
+
+        self.mock_user = {'id': 4, 'roles': ['group'], 'needs': [ItemNeed('group', 3, 'group')]}
+        response = self.client.get('/book_store')
+        self.assert200(response)
+        self.assertEqual(1, len(response.json))
+
+        #
+
+        self.mock_user = {'id': 1, 'roles': ['admin']}
+        response = self.client.get('/book')
+        self.assert200(response)
+        self.assertEqual(10, len(response.json))
+
+        self.mock_user = {'id': 2, 'roles': ['group'], 'needs': [ItemNeed('group', 2, 'group')]}
+        response = self.client.get('/book')
+        self.assert200(response)
+        self.assertEqual(6, len(response.json))
+
+        self.mock_user = {'id': 3, 'roles': ['group'], 'needs': [ItemNeed('group', 2, 'group')]}
+        response = self.client.get('/book')
+        self.assert200(response)
+        self.assertEqual(6, len(response.json))
+
+        self.mock_user = {'id': 4, 'roles': ['group'], 'needs': [ItemNeed('group', 3, 'group')]}
+        response = self.client.get('/book')
+        self.assert200(response)
+        self.assertEqual(2, len(response.json))
+
+        self.mock_user = {'id': 5, 'roles': ['group'], 'needs': [ItemNeed('group', 4, 'group')]}
+        response = self.client.get('/book')
+        self.assert200(response)
+        self.assertEqual(2, len(response.json))
+
 
     def test_relationship(self):
         "should require update permission on parent resource for updating, read permissions on both"
